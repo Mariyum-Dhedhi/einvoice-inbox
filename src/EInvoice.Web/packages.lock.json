@@ -1,0 +1,29 @@
+{
+  "version": 2,
+  "dependencies": {
+    "net10.0": {
+      "Microsoft.AspNetCore.App.Internal.Assets": {
+        "type": "Direct",
+        "requested": "[10.0.15, )",
+        "resolved": "10.0.15",
+        "contentHash": "cineG7aU2cpo+CC5rDORY4bFRya0mlaULDpzQ+ncfG0tMyZlWATyVAo2P29i0hH40EElK5O204pjT4XEYALb6g=="
+      },
+      "einvoice.application": {
+        "type": "Project",
+        "dependencies": {
+          "EInvoice.Domain": "[1.0.0, )"
+        }
+      },
+      "einvoice.domain": {
+        "type": "Project"
+      },
+      "einvoice.infrastructure": {
+        "type": "Project",
+        "dependencies": {
+          "EInvoice.Application": "[1.0.0, )",
+          "EInvoice.Domain": "[1.0.0, )"
+        }
+      }
+    }
+  }
+}
