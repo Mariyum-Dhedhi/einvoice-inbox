@@ -55,3 +55,12 @@ CodeCoverage/
 *.VisualState.xml
 TestResult.xml
 nunit-*.xml
+
+# Local secrets and environment
+.env
+*.env.local
+appsettings.*.local.json
+
+# Test output
+TestResults/
+coverage/
