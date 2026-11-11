@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\EInvoice.Application\EInvoice.Application.csproj" />
+    <ProjectReference Include="..\EInvoice.Domain\EInvoice.Domain.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,17 @@
+version: 2
+updates:
+  - package-ecosystem: nuget
+    directory: "/"
+    schedule:
+      interval: weekly
+    groups:
+      testing:
+        patterns: ["xunit*", "coverlet*", "Microsoft.NET.Test.Sdk"]
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+  - package-ecosystem: docker-compose
+    directory: "/"
+    schedule:
+      interval: weekly

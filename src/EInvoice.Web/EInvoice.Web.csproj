@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\EInvoice.Application\EInvoice.Application.csproj" />
+    <ProjectReference Include="..\EInvoice.Infrastructure\EInvoice.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>
