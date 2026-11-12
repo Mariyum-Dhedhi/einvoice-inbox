@@ -1,8 +1,10 @@
 name: einvoice-inbox
 
+x-sqlserver-image: &sqlserver-image mcr.microsoft.com/mssql/server:2022-CU27-ubuntu-22.04
+
 services:
   sqlserver:
-    image: mcr.microsoft.com/mssql/server:2022-CU27-ubuntu-22.04
+    image: *sqlserver-image
     container_name: einvoice-sqlserver
     environment:
       ACCEPT_EULA: "Y"
@@ -15,11 +17,26 @@ services:
     volumes:
       - sqldata:/var/opt/mssql
     healthcheck:
-      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$$MSSQL_SA_PASSWORD\" -C -b -Q \"SELECT 1\" > /dev/null"]
+      # Password via SQLCMDPASSWORD, not -P, so it does not appear in process listings.
+      test: ["CMD-SHELL", "SQLCMDPASSWORD=\"$$MSSQL_SA_PASSWORD\" /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -C -b -Q \"SELECT 1\" > /dev/null"]
       interval: 10s
       timeout: 5s
       retries: 12
       start_period: 20s
+
+  # One-shot: creates the database, applies migrations, creates the app user, loads seed data, then exits.
+  db-init:
+    image: *sqlserver-image
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    environment:
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:?Set MSSQL_SA_PASSWORD in .env - see .env.example}
+      EINVOICE_APP_PASSWORD: ${EINVOICE_APP_PASSWORD:?Set EINVOICE_APP_PASSWORD in .env - see .env.example}
+    volumes:
+      - ./db:/db:ro
+    entrypoint: ["/bin/sh", "/db/init.sh"]
+    restart: "no"
 
 volumes:
   sqldata:
