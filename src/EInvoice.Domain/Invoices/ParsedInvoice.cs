@@ -74,6 +74,13 @@ public sealed record InvoiceLine
         PurchaseOrderLineNumber = purchaseOrderLineNumber;
     }
 
+    /// <summary>For EF Core when loading from the database.</summary>
+    private InvoiceLine()
+    {
+        Description = null!;
+        NetAmount = null!;
+    }
+
     public int LineNumber { get; }
 
     public string Description { get; }

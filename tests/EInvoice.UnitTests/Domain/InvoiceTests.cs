@@ -73,6 +73,14 @@ public class InvoiceTests
     }
 
     [Fact]
+    public void Status_history_is_numbered_in_order_so_it_survives_a_database_round_trip()
+    {
+        var invoice = TestInvoices.InStatus(InvoiceStatus.Matched, [InvoiceStatus.Parsed, InvoiceStatus.Validated, InvoiceStatus.Matched]);
+
+        Assert.Equal([1, 2, 3, 4], invoice.StatusHistory.Select(h => h.Sequence));
+    }
+
+    [Fact]
     public void Status_history_cannot_be_modified_from_outside()
     {
         var invoice = TestInvoices.Received();

@@ -43,9 +43,11 @@ public sealed class Invoice
 
     public Money? GrossTotal { get; private set; }
 
-    public IReadOnlyList<InvoiceLine> Lines => _lines.AsReadOnly();
+    /// <summary>Always in line-number order (the database does not guarantee row order; matching depends on it).</summary>
+    public IReadOnlyList<InvoiceLine> Lines => _lines.OrderBy(l => l.LineNumber).ToList().AsReadOnly();
 
-    public IReadOnlyList<StatusChange> StatusHistory => _statusHistory.AsReadOnly();
+    /// <summary>Always in the order the changes happened.</summary>
+    public IReadOnlyList<StatusChange> StatusHistory => _statusHistory.OrderBy(s => s.Sequence).ToList().AsReadOnly();
 
     /// <summary>Creates an invoice for a newly uploaded file. Its content is not known until it is parsed.</summary>
     public static Invoice Receive(SourceFormat sourceFormat, string submittedBy, DateTimeOffset at)
@@ -53,7 +55,7 @@ public sealed class Invoice
         ArgumentException.ThrowIfNullOrWhiteSpace(submittedBy);
 
         var invoice = new Invoice(sourceFormat, submittedBy) { Status = InvoiceStatus.Received };
-        invoice._statusHistory.Add(new StatusChange(null, InvoiceStatus.Received, submittedBy, at, null));
+        invoice._statusHistory.Add(new StatusChange(1, null, InvoiceStatus.Received, submittedBy, at, null));
         return invoice;
     }
 
@@ -94,7 +96,7 @@ public sealed class Invoice
 
     private void Record(InvoiceStatus to, string actor, DateTimeOffset at, string? reason)
     {
-        _statusHistory.Add(new StatusChange(Status, to, actor, at, reason));
+        _statusHistory.Add(new StatusChange(_statusHistory.Count + 1, Status, to, actor, at, reason));
         Status = to;
     }
 }
