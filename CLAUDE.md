@@ -36,8 +36,15 @@ db/                          stored procedures, views, seed data
 - GitHub Actions are pinned to full commit SHAs with the version in a comment.
 - Docker images are pinned to a specific tag; database ports bind to 127.0.0.1 only.
 - One branch and one pull request per work package; the PR closes its issue.
+- Schema changes: add an EF migration AND regenerate db/migrations/schema.sql (see db/README.md); CI checks both.
+- Every decimal column has explicit precision; every string has a max length; enums get a CHECK constraint (DatabaseModelTests).
+- Tables: Guid nonclustered PK, clustered on a hidden bigint IDENTITY RowId (MappingConventions.UseClusteredRowId).
+- Collections exposed by entities are returned in a defined order; the database never guarantees row order.
+- The app connects as einvoice_app (no schema rights); only db-init uses sa.
+- Tests that need SQL Server carry [Trait("Category", "Database")].
 
 ## Commands
 dotnet build --warnaserror
-dotnet test
+dotnet test --filter "Category!=Database"   # fast, no database
+dotnet test --filter Category=Database      # needs docker compose up and EINVOICE_TEST_CONNECTION
 docker compose up -d

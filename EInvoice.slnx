@@ -6,6 +6,7 @@
     <Project Path="src/EInvoice.Web/EInvoice.Web.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/EInvoice.IntegrationTests/EInvoice.IntegrationTests.csproj" />
     <Project Path="tests/EInvoice.UnitTests/EInvoice.UnitTests.csproj" />
   </Folder>
 </Solution>

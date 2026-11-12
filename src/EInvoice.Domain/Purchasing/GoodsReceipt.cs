@@ -3,15 +3,20 @@ namespace EInvoice.Domain.Purchasing;
 /// <summary>What actually arrived for a purchase order. One order can have several receipts (partial deliveries).</summary>
 public sealed class GoodsReceipt
 {
+    private readonly List<GoodsReceiptLine> _lines = [];
+
     public GoodsReceipt(string number, Guid purchaseOrderId, DateOnly receivedDate, IReadOnlyList<GoodsReceiptLine> lines)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(number);
-        Lines = LineRules.EnsureUnique(lines, l => l.PurchaseOrderLineNumber, "Goods receipt");
+        _lines.AddRange(LineRules.EnsureUnique(lines, l => l.PurchaseOrderLineNumber, "Goods receipt"));
 
         Number = number;
         PurchaseOrderId = purchaseOrderId;
         ReceivedDate = receivedDate;
     }
+
+    /// <summary>For EF Core when loading from the database; validation ran when the receipt was first created.</summary>
+    private GoodsReceipt() => Number = null!;
 
     public Guid Id { get; } = Guid.NewGuid();
 
@@ -21,7 +26,7 @@ public sealed class GoodsReceipt
 
     public DateOnly ReceivedDate { get; }
 
-    public IReadOnlyList<GoodsReceiptLine> Lines { get; }
+    public IReadOnlyList<GoodsReceiptLine> Lines => _lines.OrderBy(l => l.PurchaseOrderLineNumber).ToList().AsReadOnly();
 }
 
 public sealed record GoodsReceiptLine

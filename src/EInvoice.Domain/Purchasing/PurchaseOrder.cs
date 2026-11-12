@@ -3,16 +3,25 @@ namespace EInvoice.Domain.Purchasing;
 /// <summary>What was ordered from a vendor. Mirrors the purchase order header and lines of an ERP.</summary>
 public sealed class PurchaseOrder
 {
+    private readonly List<PurchaseOrderLine> _lines = [];
+
     public PurchaseOrder(string number, Guid vendorId, DateOnly orderDate, string currency, IReadOnlyList<PurchaseOrderLine> lines)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(number);
         ArgumentException.ThrowIfNullOrWhiteSpace(currency);
-        Lines = LineRules.EnsureUnique(lines, l => l.LineNumber, "Purchase order");
+        _lines.AddRange(LineRules.EnsureUnique(lines, l => l.LineNumber, "Purchase order"));
 
         Number = number;
         VendorId = vendorId;
         OrderDate = orderDate;
         Currency = currency;
+    }
+
+    /// <summary>For EF Core when loading from the database; validation ran when the order was first created.</summary>
+    private PurchaseOrder()
+    {
+        Number = null!;
+        Currency = null!;
     }
 
     public Guid Id { get; } = Guid.NewGuid();
@@ -25,7 +34,7 @@ public sealed class PurchaseOrder
 
     public string Currency { get; }
 
-    public IReadOnlyList<PurchaseOrderLine> Lines { get; }
+    public IReadOnlyList<PurchaseOrderLine> Lines => _lines.OrderBy(l => l.LineNumber).ToList().AsReadOnly();
 }
 
 /// <param name="UnitPrice">Plain decimal, not Money: unit prices may have more than two decimals.</param>
@@ -77,6 +86,6 @@ internal static class LineRules
             throw new ArgumentException($"{documentName} line numbers must be unique.", nameof(lines));
         }
 
-        return lines.ToArray().AsReadOnly();
+        return lines;
     }
 }

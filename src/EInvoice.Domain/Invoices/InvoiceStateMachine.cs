@@ -53,5 +53,6 @@ public sealed class InvalidStatusTransitionException : DomainException
 }
 
 /// <summary>One entry in an invoice's status history: who changed it, when, from what, to what, and why.</summary>
+/// <param name="Sequence">1 for the first entry, then 2, 3, ...; gives the order and, with the invoice id, the key.</param>
 /// <param name="From">Null only for the first entry, when the invoice is received.</param>
-public sealed record StatusChange(InvoiceStatus? From, InvoiceStatus To, string Actor, DateTimeOffset At, string? Reason);
+public sealed record StatusChange(int Sequence, InvoiceStatus? From, InvoiceStatus To, string Actor, DateTimeOffset At, string? Reason);

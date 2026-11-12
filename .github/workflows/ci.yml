@@ -37,11 +37,23 @@ jobs:
       - name: Build (warnings as errors)
         run: dotnet build EInvoice.slnx --no-restore --configuration Release --warnaserror
 
-      - name: Test
+      - name: Test (no database)
         run: >
           dotnet test EInvoice.slnx --no-build --configuration Release
+          --filter "Category!=Database"
           --logger "trx;LogFilePrefix=results"
           --results-directory TestResults
+
+      - name: Migration drift check
+        run: |
+          dotnet tool restore
+          E="--project src/EInvoice.Infrastructure --startup-project src/EInvoice.Infrastructure --no-build --configuration Release"
+          # Fails if the EF model changed without a new migration.
+          dotnet ef migrations has-pending-model-changes $E
+          # Fails if db/migrations/schema.sql was not regenerated after the last migration.
+          dotnet ef migrations script --idempotent $E -o db/migrations/schema.sql
+          git diff --exit-code -- db/migrations/schema.sql \
+            || { echo "::error::db/migrations/schema.sql is out of date. Regenerate it (see db/README.md)."; exit 1; }
 
       - name: Vulnerable package check
         run: |
@@ -58,3 +70,59 @@ jobs:
           name: test-results
           path: TestResults
           retention-days: 14
+
+  # Proves "docker compose up gives a seeded database", plus the security checks and round-trip tests.
+  database:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+
+      - name: Generate throwaway passwords
+        run: |
+          sa="Sa$(openssl rand -hex 16)#1"
+          app="Ap$(openssl rand -hex 16)#2"
+          echo "::add-mask::$sa"
+          echo "::add-mask::$app"
+          printf 'MSSQL_SA_PASSWORD=%s\nEINVOICE_APP_PASSWORD=%s\n' "$sa" "$app" > .env
+          echo "EINVOICE_TEST_CONNECTION=Server=127.0.0.1,1433;Database=EInvoice;User Id=einvoice_app;Password=$app;Encrypt=True;TrustServerCertificate=True" >> "$GITHUB_ENV"
+          echo "EINVOICE_APP_PASSWORD=$app" >> "$GITHUB_ENV"
+
+      - name: docker compose up
+        run: |
+          docker compose up -d --wait sqlserver
+          docker compose run --rm db-init
+
+      - name: Security and constraint checks (as the app user)
+        run: >
+          docker exec -e SQLCMDPASSWORD="$EINVOICE_APP_PASSWORD" -i einvoice-sqlserver
+          /opt/mssql-tools18/bin/sqlcmd -S localhost -U einvoice_app -d EInvoice -C -b -I
+          < db/tests/verify.sql
+
+      - name: db-init is idempotent
+        run: docker compose run --rm db-init | tee second-run.log && grep -q "already present; skipping" second-run.log
+
+      - name: Round-trip tests
+        run: >
+          dotnet test tests/EInvoice.IntegrationTests --configuration Release
+          --filter "Category=Database"
+          --logger "trx;LogFilePrefix=database"
+          --results-directory TestResults
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: database-test-results
+          path: TestResults
+          retention-days: 14
+
+      - name: Tear down
+        if: always()
+        run: docker compose down -v
