@@ -42,6 +42,9 @@ db/                          stored procedures, views, seed data
 - Collections exposed by entities are returned in a defined order; the database never guarantees row order.
 - The app connects as einvoice_app (no schema rights); only db-init uses sa.
 - Tests that need SQL Server carry [Trait("Category", "Database")].
+- All XML is read through Infrastructure/Parsing/SafeXml (DTD prohibited, no resolver, size limit). Never create an XmlReader or XDocument from untrusted input anywhere else.
+- Parse errors name the business term (BT-n) and never repeat document content.
+- testdata/**/kosit holds official files byte-exact; never edit them. Build modified variants in the test instead.
 
 ## Commands
 dotnet build --warnaserror
