@@ -58,14 +58,44 @@ internal static class CiiMapper
             NetTotal: RequiredDecimal(totals?.Element(Ram + "TaxBasisTotalAmount"), "BT-109 invoice total amount without VAT"),
             TaxTotal: TaxTotalInInvoiceCurrency(totals?.Elements(Ram + "TaxTotalAmount") ?? [], currency),
             GrossTotal: RequiredDecimal(totals?.Element(Ram + "GrandTotalAmount"), "BT-112 invoice total amount with VAT"),
-            Lines: lines);
+            Lines: lines,
+            VatBreakdown: VatBreakdown(settlement));
     }
+
+    /// <summary>BG-23: ram:ApplicableTradeTax directly under the header settlement (the line-level ones are BT-151/152).</summary>
+    private static List<VatBreakdownEntry> VatBreakdown(XElement? settlement) =>
+        (settlement?.Elements(Ram + "ApplicableTradeTax") ?? [])
+            .Select((tax, i) =>
+            {
+                var n = i + 1;
+                return new VatBreakdownEntry(
+                    CategoryCode: Required(tax.Element(Ram + "CategoryCode"), $"BT-118 VAT category code in breakdown {n}"),
+                    RatePercent: OptionalDecimal(tax.Element(Ram + "RateApplicablePercent"), $"BT-119 VAT rate in breakdown {n}") ?? 0m,
+                    TaxableAmount: RequiredDecimal(tax.Element(Ram + "BasisAmount"), $"BT-116 VAT taxable amount in breakdown {n}"),
+                    TaxAmount: RequiredDecimal(tax.Element(Ram + "CalculatedAmount"), $"BT-117 VAT amount in breakdown {n}"));
+            })
+            .ToList();
 
     private static ParsedDocumentLine MapLine(XElement line, int position)
     {
         var lineAgreement = line.Element(Ram + "SpecifiedLineTradeAgreement");
         var netPrice = lineAgreement?.Element(Ram + "NetPriceProductTradePrice");
         var lineSettlement = line.Element(Ram + "SpecifiedLineTradeSettlement");
+
+        // BG-27/BG-28: allowances and charges on the line settlement (not the gross-price discount under the agreement).
+        decimal allowances = 0m, charges = 0m;
+        foreach (var ac in lineSettlement?.Elements(Ram + "SpecifiedTradeAllowanceCharge") ?? [])
+        {
+            var amount = RequiredDecimal(ac.Element(Ram + "ActualAmount"), $"BT-136/BT-141 allowance or charge amount on line {position}");
+            if (IsCharge(ac.Element(Ram + "ChargeIndicator")?.Element(Udt + "Indicator"), position))
+            {
+                charges += amount;
+            }
+            else
+            {
+                allowances += amount;
+            }
+        }
 
         return new ParsedDocumentLine(
             Position: position,
@@ -80,7 +110,9 @@ internal static class CiiMapper
                 lineSettlement?.Element(Ram + "SpecifiedTradeSettlementLineMonetarySummation")?.Element(Ram + "LineTotalAmount"),
                 $"BT-131 invoice line net amount on line {position}"),
             TaxRatePercent: OptionalDecimal(lineSettlement?.Element(Ram + "ApplicableTradeTax")?.Element(Ram + "RateApplicablePercent"), $"BT-152 VAT rate on line {position}") ?? 0m,
-            PurchaseOrderLineReference: Optional(lineAgreement?.Element(Ram + "BuyerOrderReferencedDocument")?.Element(Ram + "LineID")));
+            PurchaseOrderLineReference: Optional(lineAgreement?.Element(Ram + "BuyerOrderReferencedDocument")?.Element(Ram + "LineID")),
+            LineAllowances: allowances,
+            LineCharges: charges);
     }
 
     /// <summary>CII dates carry a format code; EN 16931 allows only 102 (yyyyMMdd).</summary>

@@ -47,7 +47,47 @@ internal static class UblMapper
             NetTotal: RequiredDecimal(totals?.Element(Cbc + "TaxExclusiveAmount"), "BT-109 invoice total amount without VAT"),
             TaxTotal: TaxTotalInInvoiceCurrency(invoice.Elements(Cac + "TaxTotal").Select(t => t.Element(Cbc + "TaxAmount")).OfType<XElement>(), currency),
             GrossTotal: RequiredDecimal(totals?.Element(Cbc + "TaxInclusiveAmount"), "BT-112 invoice total amount with VAT"),
-            Lines: lines);
+            Lines: lines,
+            VatBreakdown: VatBreakdown(invoice));
+    }
+
+    /// <summary>BG-23 lives in the cac:TaxTotal that has subtotals; the BT-111 tax-currency total never has any.</summary>
+    private static List<VatBreakdownEntry> VatBreakdown(XElement invoice) =>
+        invoice.Elements(Cac + "TaxTotal")
+            .SelectMany(t => t.Elements(Cac + "TaxSubtotal"))
+            .Select((subtotal, i) =>
+            {
+                var category = subtotal.Element(Cac + "TaxCategory");
+                var n = i + 1;
+                return new VatBreakdownEntry(
+                    CategoryCode: Required(category?.Element(Cbc + "ID"), $"BT-118 VAT category code in breakdown {n}"),
+                    RatePercent: OptionalDecimal(category?.Element(Cbc + "Percent"), $"BT-119 VAT rate in breakdown {n}") ?? 0m,
+                    TaxableAmount: RequiredDecimal(subtotal.Element(Cbc + "TaxableAmount"), $"BT-116 VAT taxable amount in breakdown {n}"),
+                    TaxAmount: RequiredDecimal(subtotal.Element(Cbc + "TaxAmount"), $"BT-117 VAT amount in breakdown {n}"));
+            })
+            .ToList();
+
+    /// <summary>
+    /// Line-level allowances and charges (BG-27/BG-28) are direct children of cac:InvoiceLine.
+    /// A cac:AllowanceCharge inside cac:Price is a price discount (BT-147), already included in the net price.
+    /// </summary>
+    private static (decimal Allowances, decimal Charges) LineAllowancesAndCharges(XElement line, int position)
+    {
+        decimal allowances = 0m, charges = 0m;
+        foreach (var ac in line.Elements(Cac + "AllowanceCharge"))
+        {
+            var amount = RequiredDecimal(ac.Element(Cbc + "Amount"), $"BT-136/BT-141 allowance or charge amount on line {position}");
+            if (IsCharge(ac.Element(Cbc + "ChargeIndicator"), position))
+            {
+                charges += amount;
+            }
+            else
+            {
+                allowances += amount;
+            }
+        }
+
+        return (allowances, charges);
     }
 
     /// <summary>
@@ -68,6 +108,7 @@ internal static class UblMapper
     {
         var item = line.Element(Cac + "Item");
         var price = line.Element(Cac + "Price");
+        var (allowances, charges) = LineAllowancesAndCharges(line, position);
 
         return new ParsedDocumentLine(
             Position: position,
@@ -80,6 +121,8 @@ internal static class UblMapper
                 position),
             NetAmount: RequiredDecimal(line.Element(Cbc + "LineExtensionAmount"), $"BT-131 invoice line net amount on line {position}"),
             TaxRatePercent: OptionalDecimal(item?.Element(Cac + "ClassifiedTaxCategory")?.Element(Cbc + "Percent"), $"BT-152 VAT rate on line {position}") ?? 0m,
-            PurchaseOrderLineReference: Optional(line.Element(Cac + "OrderLineReference")?.Element(Cbc + "LineID")));
+            PurchaseOrderLineReference: Optional(line.Element(Cac + "OrderLineReference")?.Element(Cbc + "LineID")),
+            LineAllowances: allowances,
+            LineCharges: charges);
     }
 }

@@ -38,7 +38,7 @@ public class DatabaseModelTests
         var tables = Model.GetEntityTypes().Select(e => e.GetTableName() ?? "(none)").Distinct().Order().ToList();
 
         Assert.Equal(
-            new[] { "GoodsReceipt", "GoodsReceiptLine", "Invoice", "InvoiceLine", "InvoiceStatusChange", "PurchaseOrder", "PurchaseOrderLine", "Vendor" },
+            new[] { "GoodsReceipt", "GoodsReceiptLine", "Invoice", "InvoiceLine", "InvoiceStatusChange", "PurchaseOrder", "PurchaseOrderLine", "Vendor", "VendorBankAccount" },
             tables);
     }
 
@@ -106,6 +106,26 @@ public class DatabaseModelTests
         var type = Model.FindEntityType(entity)!;
 
         Assert.Contains(type.GetIndexes(), i => i.IsUnique && i.Properties.Single().Name == "Number" && i.GetFilter() is null);
+    }
+
+    [Fact]
+    public void Vat_id_identifies_at_most_one_vendor()
+    {
+        // Vendor lookup during validation is by VAT id; two vendors with the same id would make it ambiguous.
+        var index = Assert.Single(Entity<EInvoice.Domain.Vendors.Vendor>().GetIndexes(), i => i.Properties.Single().Name == "VatId");
+
+        Assert.True(index.IsUnique);
+        Assert.Equal("[VatId] IS NOT NULL", index.GetFilter());
+    }
+
+    [Fact]
+    public void A_bank_account_is_stored_once_per_vendor()
+    {
+        var index = Assert.Single(Entity<EInvoice.Domain.Vendors.VendorBankAccount>().GetIndexes(),
+            i => i.Properties.Select(p => p.Name).SequenceEqual(["VendorId", "Iban"]));
+
+        Assert.True(index.IsUnique);
+        Assert.Equal("varchar(34)", Entity<EInvoice.Domain.Vendors.VendorBankAccount>().FindProperty("Iban")!.GetColumnType());
     }
 
     [Fact]
@@ -182,7 +202,7 @@ public class DatabaseModelTests
                          && !DocumentLines.Contains((fk.PrincipalEntityType.GetTableName()!, fk.DeclaringEntityType.GetTableName()!)))
             .ToList();
 
-        Assert.NotEmpty(fromMasterData); // Vendor -> PurchaseOrder, Vendor -> Invoice, PurchaseOrder -> GoodsReceipt
+        Assert.NotEmpty(fromMasterData); // Vendor -> PurchaseOrder, Vendor -> Invoice, Vendor -> VendorBankAccount, PurchaseOrder -> GoodsReceipt
         Assert.All(fromMasterData, fk => Assert.Equal(DeleteBehavior.Restrict, fk.DeleteBehavior));
     }
 

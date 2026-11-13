@@ -294,3 +294,55 @@ END;
 COMMIT;
 GO
 
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261113185401_AddVendorBankAccountAndVatIdIndex'
+)
+BEGIN
+    CREATE TABLE [dbo].[VendorBankAccount] (
+        [Id] uniqueidentifier NOT NULL,
+        [VendorId] uniqueidentifier NOT NULL,
+        [Iban] varchar(34) NOT NULL,
+        [RowId] bigint NOT NULL IDENTITY,
+        CONSTRAINT [PK_VendorBankAccount] PRIMARY KEY NONCLUSTERED ([Id]),
+        CONSTRAINT [FK_VendorBankAccount_Vendor_VendorId] FOREIGN KEY ([VendorId]) REFERENCES [dbo].[Vendor] ([Id]) ON DELETE NO ACTION
+    );
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261113185401_AddVendorBankAccountAndVatIdIndex'
+)
+BEGIN
+    EXEC(N'CREATE UNIQUE INDEX [UX_Vendor_VatId] ON [dbo].[Vendor] ([VatId]) WHERE [VatId] IS NOT NULL');
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261113185401_AddVendorBankAccountAndVatIdIndex'
+)
+BEGIN
+    CREATE CLUSTERED INDEX [CX_VendorBankAccount_RowId] ON [dbo].[VendorBankAccount] ([RowId]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261113185401_AddVendorBankAccountAndVatIdIndex'
+)
+BEGIN
+    CREATE UNIQUE INDEX [UX_VendorBankAccount_Vendor_Iban] ON [dbo].[VendorBankAccount] ([VendorId], [Iban]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261113185401_AddVendorBankAccountAndVatIdIndex'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20261113185401_AddVendorBankAccountAndVatIdIndex', N'10.0.14');
+END;
+
+COMMIT;
+GO
+
