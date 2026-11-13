@@ -3,7 +3,7 @@
 # Every download is pinned by version AND SHA-256; the build fails if a single byte differs.
 
 # --- Stage 1: fetch and unpack (busybox has unzip) ---------------------------------------------
-FROM busybox:1.37.0@sha256:a7dbc319b1438115a207e11930dc4bb3e643dcb3ec0bdd694bb36cd8fad289ec AS fetch
+FROM busybox:1.38.0@sha256:a46257e06c82ad85242d0d38077d0a52d9896389ca60a1a59d3463db586e5fa4 AS fetch
 
 # itplr-kosit/validator v1.6.3 (Apache-2.0)
 ADD --checksum=sha256:799e64befca97d4080e03608c80b85dd5a5ecc5f4ae4f35d1116ec2855b9a7c9 \
