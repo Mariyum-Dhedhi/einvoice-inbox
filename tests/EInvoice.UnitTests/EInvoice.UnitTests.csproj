@@ -16,6 +16,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Real KoSIT validator responses used as fixtures. -->
+    <None Include="Validation\KositReports\*.xml" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\src\EInvoice.Domain\EInvoice.Domain.csproj" />
     <ProjectReference Include="..\..\src\EInvoice.Application\EInvoice.Application.csproj" />
     <ProjectReference Include="..\..\src\EInvoice.Infrastructure\EInvoice.Infrastructure.csproj" />

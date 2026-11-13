@@ -38,5 +38,28 @@ services:
     entrypoint: ["/bin/sh", "/db/init.sh"]
     restart: "no"
 
+  # KoSIT validator (EN 16931 + XRechnung 3.0.2). Built from pinned, checksum-verified downloads; see docker/kosit-validator.
+  kosit-validator:
+    build: ./docker/kosit-validator
+    image: einvoice-kosit-validator:1.6.3-xr-2026-08-31
+    container_name: einvoice-kosit-validator
+    ports:
+      - "127.0.0.1:${KOSIT_PORT:-8081}:8080"
+    # Hardening: read-only filesystem, no Linux capabilities, no privilege escalation, bounded memory.
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 1g
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://localhost:8080/server/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
 volumes:
   sqldata:

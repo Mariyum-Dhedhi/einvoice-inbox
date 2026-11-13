@@ -47,9 +47,13 @@ db/                          stored procedures, views, seed data
 - testdata/**/kosit holds official files byte-exact; never edit them. Build modified variants in the test instead.
 - Validation rules live in Application/Validation as pure functions with stable codes (RuleCodes); data comes through IValidationDataSource. Every rule needs a passing and a failing test, and every document rule must accept all 66 KoSIT samples.
 - Findings never contain free text from the document; IBANs only via the masked Iban.ToString().
+- External checks fail closed: an unreachable or misbehaving service gives Unavailable / a human review, never "accepted".
+- Tests against the KoSIT validator container carry [Trait("Category", "Kosit")] and need EINVOICE_KOSIT_URL (docker compose up -d kosit-validator).
+- Downloads baked into images are pinned by URL and SHA-256 (ADD --checksum); see docker/kosit-validator/README.md.
 
 ## Commands
 dotnet build --warnaserror
-dotnet test --filter "Category!=Database"   # fast, no database
+dotnet test --filter "Category!=Database&Category!=Kosit"   # fast, no containers
 dotnet test --filter Category=Database      # needs docker compose up and EINVOICE_TEST_CONNECTION
+dotnet test --filter Category=Kosit         # needs the kosit-validator service and EINVOICE_KOSIT_URL
 docker compose up -d

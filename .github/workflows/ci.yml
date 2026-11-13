@@ -40,7 +40,7 @@ jobs:
       - name: Test (no database)
         run: >
           dotnet test EInvoice.slnx --no-build --configuration Release
-          --filter "Category!=Database"
+          --filter "Category!=Database&Category!=Kosit"
           --logger "trx;LogFilePrefix=results"
           --results-directory TestResults
 
@@ -126,3 +126,48 @@ jobs:
       - name: Tear down
         if: always()
         run: docker compose down -v
+
+  # The KoSIT validator container: built from checksum-verified downloads; every official sample must be accepted.
+  kosit-validator:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+
+      - name: Throwaway .env (compose validates every service's variables)
+        run: printf 'MSSQL_SA_PASSWORD=Unused%s#1\nEINVOICE_APP_PASSWORD=Unused%s#2\n' "$(openssl rand -hex 8)" "$(openssl rand -hex 8)" > .env
+
+      - name: Build and start the validator (fails if a download checksum differs)
+        run: docker compose up -d --build --wait kosit-validator
+
+      - name: Hardening is in place
+        run: |
+          docker inspect einvoice-kosit-validator --format '{{.Config.User}} {{.HostConfig.ReadonlyRootfs}} {{.HostConfig.CapDrop}}' | tee hardening.txt
+          grep -q '^10001:10001 true \[ALL\]$' hardening.txt
+
+      - name: All official samples accepted, tampered sample rejected
+        env:
+          EINVOICE_KOSIT_URL: http://127.0.0.1:8081/
+        run: >
+          dotnet test tests/EInvoice.IntegrationTests --configuration Release
+          --filter "Category=Kosit"
+          --logger "trx;LogFilePrefix=kosit"
+          --results-directory TestResults
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: kosit-test-results
+          path: TestResults
+          retention-days: 14
+
+      - name: Tear down
+        if: always()
+        run: docker compose down
