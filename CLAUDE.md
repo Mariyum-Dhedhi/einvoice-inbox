@@ -45,6 +45,8 @@ db/                          stored procedures, views, seed data
 - All XML is read through Infrastructure/Parsing/SafeXml (DTD prohibited, no resolver, size limit). Never create an XmlReader or XDocument from untrusted input anywhere else.
 - Parse errors name the business term (BT-n) and never repeat document content.
 - testdata/**/kosit holds official files byte-exact; never edit them. Build modified variants in the test instead.
+- Validation rules live in Application/Validation as pure functions with stable codes (RuleCodes); data comes through IValidationDataSource. Every rule needs a passing and a failing test, and every document rule must accept all 66 KoSIT samples.
+- Findings never contain free text from the document; IBANs only via the masked Iban.ToString().
 
 ## Commands
 dotnet build --warnaserror
