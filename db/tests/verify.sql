@@ -9,6 +9,7 @@ SET XACT_ABORT OFF;
 -- Seed counts
 IF (SELECT COUNT(*) FROM dbo.Vendor) <> 20 THROW 50001, 'Expected 20 vendors.', 1;
 IF (SELECT COUNT(*) FROM dbo.PurchaseOrder) <> 200 THROW 50002, 'Expected 200 purchase orders.', 1;
+IF (SELECT COUNT(*) FROM dbo.VendorBankAccount) <> 20 THROW 50006, 'Expected 20 vendor bank accounts.', 1;
 IF (SELECT COUNT(*) FROM dbo.GoodsReceipt) <> 180 THROW 50003, 'Expected 180 goods receipts (every 10th order has none).', 1;
 IF (SELECT COUNT(*) FROM dbo.Invoice) <> 6 THROW 50004, 'Expected 6 seeded invoices.', 1;
 IF EXISTS (SELECT 1 FROM dbo.Invoice WHERE GrossTotal_Amount <> NetTotal_Amount + TaxTotal_Amount)

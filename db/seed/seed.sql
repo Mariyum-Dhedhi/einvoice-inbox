@@ -5,7 +5,7 @@
   Idempotent: skipped when vendors already exist.
 
   Ids follow 00000000-0000-0000-KKKK-NNNNNNNNNNNN, where KKKK is the table and N the row number:
-  0001 Vendor, 0002 PurchaseOrder, 0003 GoodsReceipt, 0004 Invoice.
+  0001 Vendor, 0002 PurchaseOrder, 0003 GoodsReceipt, 0004 Invoice, 0006 VendorBankAccount.
 
   Scenario for the match procedure (package 6):
     - Every 10th purchase order (PO-0010, PO-0020, ...) has no goods receipt.
@@ -45,6 +45,21 @@ FROM (VALUES
     (16, N'Vorlage Büromaschinen AG'), (17, N'Entwurf Gebäudeservice GmbH'), (18, N'Beispiel Energie GmbH'),
     (19, N'Muster Verpackung GmbH'), (20, N'Ehemals Lieferant GmbH')
 ) AS v(n, Name);
+
+-- Approved bank accounts: one per vendor. Bank code 00000000 does not exist, so these can never be real accounts;
+-- the check digits are computed so that each passes the IBAN mod-97 check.
+INSERT INTO dbo.VendorBankAccount (Id, VendorId, Iban)
+SELECT
+    CONVERT(uniqueidentifier, CONCAT('00000000-0000-0000-0006-', RIGHT(CONCAT('000000000000', a.n), 12))),
+    CONVERT(uniqueidentifier, CONCAT('00000000-0000-0000-0001-', RIGHT(CONCAT('000000000000', a.n), 12))),
+    a.Iban
+FROM (VALUES
+    (1, 'DE72000000000000001001'), (2, 'DE45000000000000001002'), (3, 'DE18000000000000001003'), (4, 'DE88000000000000001004'),
+    (5, 'DE61000000000000001005'), (6, 'DE34000000000000001006'), (7, 'DE07000000000000001007'), (8, 'DE77000000000000001008'),
+    (9, 'DE50000000000000001009'), (10, 'DE23000000000000001010'), (11, 'DE93000000000000001011'), (12, 'DE66000000000000001012'),
+    (13, 'DE39000000000000001013'), (14, 'DE12000000000000001014'), (15, 'DE82000000000000001015'), (16, 'DE55000000000000001016'),
+    (17, 'DE28000000000000001017'), (18, 'DE98000000000000001018'), (19, 'DE71000000000000001019'), (20, 'DE44000000000000001020')
+) AS a(n, Iban);
 
 -- Item catalogue used for order lines. Prices with more than two decimals are intentional.
 DROP TABLE IF EXISTS #Item;
@@ -158,6 +173,7 @@ CROSS JOIN (VALUES (1, NULL, 1, N'clerk@demo.local'), (2, 1, 2, N'system')) AS h
 COMMIT TRANSACTION;
 
 SELECT 'Vendor' AS [Table], COUNT(*) AS [Rows] FROM dbo.Vendor
+UNION ALL SELECT 'VendorBankAccount', COUNT(*) FROM dbo.VendorBankAccount
 UNION ALL SELECT 'PurchaseOrder', COUNT(*) FROM dbo.PurchaseOrder
 UNION ALL SELECT 'PurchaseOrderLine', COUNT(*) FROM dbo.PurchaseOrderLine
 UNION ALL SELECT 'GoodsReceipt', COUNT(*) FROM dbo.GoodsReceipt

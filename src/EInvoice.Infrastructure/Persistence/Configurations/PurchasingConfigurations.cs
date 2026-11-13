@@ -1,4 +1,5 @@
 using EInvoice.Domain.Purchasing;
+using EInvoice.Domain.Shared;
 using EInvoice.Domain.Vendors;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -20,6 +21,29 @@ internal sealed class VendorConfiguration : IEntityTypeConfiguration<Vendor>
         builder.Property(v => v.IsActive);
 
         builder.HasIndex(v => v.Number).IsUnique().HasDatabaseName("UX_Vendor_Number");
+
+        // Validation finds the vendor by VAT id, so one VAT id must mean one vendor.
+        builder.HasIndex(v => v.VatId).IsUnique().HasFilter("[VatId] IS NOT NULL").HasDatabaseName("UX_Vendor_VatId");
+    }
+}
+
+internal sealed class VendorBankAccountConfiguration : IEntityTypeConfiguration<VendorBankAccount>
+{
+    public void Configure(EntityTypeBuilder<VendorBankAccount> builder)
+    {
+        builder.ToTable("VendorBankAccount");
+        builder.HasKey(a => a.Id).IsClustered(false);
+        builder.UseClusteredRowId("VendorBankAccount");
+
+        builder.Property(a => a.VendorId);
+        builder.Property(a => a.Iban)
+            .HasConversion(iban => iban.Value, value => Iban.Parse(value))
+            .HasColumnType("varchar(34)")
+            .HasMaxLength(34)
+            .IsUnicode(false);
+
+        builder.HasOne<Vendor>().WithMany().HasForeignKey(a => a.VendorId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasIndex(a => new { a.VendorId, a.Iban }).IsUnique().HasDatabaseName("UX_VendorBankAccount_Vendor_Iban");
     }
 }
 

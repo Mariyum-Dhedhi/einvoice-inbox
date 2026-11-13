@@ -8,7 +8,7 @@ which applies everything in this folder in order. Every step is idempotent.
 | 1 | (inline) | Creates the `EInvoice` database |
 | 2 | `migrations/schema.sql` | Schema, generated from the EF Core migrations (do not edit by hand) |
 | 3 | `security/app-user.sql` | Least-privilege login `einvoice_app`: read/write data, execute procedures, no schema changes |
-| 4 | `seed/seed.sql` | Synthetic data: 20 vendors, 200 purchase orders, receipts, 6 invoices covering all match outcomes |
+| 4 | `seed/seed.sql` | Synthetic data: 20 vendors with one approved IBAN each, 200 purchase orders, receipts, 6 invoices covering all match outcomes |
 
 `tests/verify.sql` runs as `einvoice_app` and checks the seed counts and the security controls
 (cannot create or drop tables, cannot change migration history, duplicate invoice number and unknown status rejected).
@@ -50,3 +50,9 @@ Use `127.0.0.1`, not `localhost`: the port is bound to IPv4 loopback only.
 - **Status:** stored as `int` with a CHECK constraint generated from the C# enum.
 - **Deletes:** only a document's own lines cascade; deleting a vendor or order never deletes documents.
 - **sqlcmd needs `-I`** (QUOTED_IDENTIFIER ON); filtered indexes fail without it.
+
+## Seed data changes
+
+The seed runs only into an empty database (it skips when vendors exist). After pulling a change to
+`seed/seed.sql`, reset the local database: `docker compose down -v && docker compose up -d`.
+CI always starts from an empty database.

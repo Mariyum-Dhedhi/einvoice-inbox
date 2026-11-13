@@ -9,6 +9,8 @@ public sealed class EInvoiceDbContext(DbContextOptions<EInvoiceDbContext> option
 {
     public DbSet<Vendor> Vendors => Set<Vendor>();
 
+    public DbSet<VendorBankAccount> VendorBankAccounts => Set<VendorBankAccount>();
+
     public DbSet<PurchaseOrder> PurchaseOrders => Set<PurchaseOrder>();
 
     public DbSet<GoodsReceipt> GoodsReceipts => Set<GoodsReceipt>();

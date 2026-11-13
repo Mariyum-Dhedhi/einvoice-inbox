@@ -440,7 +440,49 @@ namespace EInvoice.Infrastructure.Persistence.Migrations
 
                     SqlServerIndexBuilderExtensions.IsClustered(b.HasIndex("RowId"));
 
+                    b.HasIndex("VatId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_Vendor_VatId")
+                        .HasFilter("[VatId] IS NOT NULL");
+
                     b.ToTable("Vendor", "dbo");
+                });
+
+            modelBuilder.Entity("EInvoice.Domain.Vendors.VendorBankAccount", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Iban")
+                        .IsRequired()
+                        .HasMaxLength(34)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(34)");
+
+                    b.Property<long>("RowId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("RowId"));
+
+                    b.Property<Guid>("VendorId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    SqlServerKeyBuilderExtensions.IsClustered(b.HasKey("Id"), false);
+
+                    b.HasIndex("RowId")
+                        .HasDatabaseName("CX_VendorBankAccount_RowId");
+
+                    SqlServerIndexBuilderExtensions.IsClustered(b.HasIndex("RowId"));
+
+                    b.HasIndex("VendorId", "Iban")
+                        .IsUnique()
+                        .HasDatabaseName("UX_VendorBankAccount_Vendor_Iban");
+
+                    b.ToTable("VendorBankAccount", "dbo");
                 });
 
             modelBuilder.Entity("EInvoice.Domain.Invoices.Invoice", b =>
@@ -502,6 +544,15 @@ namespace EInvoice.Infrastructure.Persistence.Migrations
                         .WithMany("Lines")
                         .HasForeignKey("PurchaseOrderId")
                         .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("EInvoice.Domain.Vendors.VendorBankAccount", b =>
+                {
+                    b.HasOne("EInvoice.Domain.Vendors.Vendor", null)
+                        .WithMany()
+                        .HasForeignKey("VendorId")
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });
 
