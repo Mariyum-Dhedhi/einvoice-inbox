@@ -41,7 +41,10 @@ db/                          stored procedures, views, seed data
 - Tables: Guid nonclustered PK, clustered on a hidden bigint IDENTITY RowId (MappingConventions.UseClusteredRowId).
 - Collections exposed by entities are returned in a defined order; the database never guarantees row order.
 - The app connects as einvoice_app (no schema rights); only db-init uses sa.
-- Tests that need SQL Server carry [Trait("Category", "Database")].
+- Tests that need SQL Server carry [Trait("Category", "Database")] and [Collection(SqlServerCollection.Name)]; SqlServerFixture builds the database from the db/ scripts, so a broken deployment script fails the tests.
+- Database tests must not assume they are alone: create data under unique numbers, and roll back unless the test needs commits.
+- Matching rules exist twice (ThreeWayMatcher in C#, dbo.usp_MatchInvoice in SQL). Change both together; MatchProcedureTests compares them field by field.
+- Stored procedures live in db/procedures as CREATE OR ALTER scripts, deployed by db-init after the migrations.
 - All XML is read through Infrastructure/Parsing/SafeXml (DTD prohibited, no resolver, size limit). Never create an XmlReader or XDocument from untrusted input anywhere else.
 - Parse errors name the business term (BT-n) and never repeat document content.
 - testdata/**/kosit holds official files byte-exact; never edit them. Build modified variants in the test instead.
@@ -54,6 +57,6 @@ db/                          stored procedures, views, seed data
 ## Commands
 dotnet build --warnaserror
 dotnet test --filter "Category!=Database&Category!=Kosit"   # fast, no containers
-dotnet test --filter Category=Database      # needs docker compose up and EINVOICE_TEST_CONNECTION
+dotnet test --filter Category=Database      # needs Docker running; Testcontainers starts SQL Server itself
 dotnet test --filter Category=Kosit         # needs the kosit-validator service and EINVOICE_KOSIT_URL
 docker compose up -d
