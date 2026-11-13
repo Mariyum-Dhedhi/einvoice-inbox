@@ -1,3 +1,6 @@
 * text=auto eol=lf
 *.{cmd,bat,ps1} text eol=crlf
 *.{png,jpg,gif,pdf,ico,woff,woff2} binary
+
+# Official test corpora are stored byte-exact (no line-ending normalisation).
+testdata/**/kosit/*.xml -text

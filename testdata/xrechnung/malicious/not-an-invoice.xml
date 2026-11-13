@@ -1,0 +1,3 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Well-formed XML that is not an invoice. Detected by root element namespace, not by file name. -->
+<html xmlns="http://www.w3.org/1999/xhtml"><body><p>Hello</p></body></html>
