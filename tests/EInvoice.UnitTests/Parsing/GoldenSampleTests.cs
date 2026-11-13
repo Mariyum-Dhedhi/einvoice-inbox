@@ -26,10 +26,12 @@ public class GoldenSampleTests
         Assert.Equal(22.04m, doc.TaxTotal);                          // BT-110
         Assert.Equal(336.90m, doc.GrossTotal);                       // BT-112
 
+        Assert.Equal([new VatBreakdownEntry("S", 7m, 314.86m, 22.04m)], doc.VatBreakdown); // BG-23
+
         Assert.Equal(
             [
-                new ParsedDocumentLine(1, "Zeitschrift [...]", "Zeitschrift [...]", 1m, 288.79m, 288.79m, 7m, "6171175.1"),
-                new ParsedDocumentLine(2, "Porto + Versandkosten", "Porto + Versandkosten", 1m, 26.07m, 26.07m, 7m, null),
+                new ParsedDocumentLine(1, "Zeitschrift [...]", "Zeitschrift [...]", 1m, 288.79m, 288.79m, 7m, "6171175.1", LineAllowances: 0m, LineCharges: 0m),
+                new ParsedDocumentLine(2, "Porto + Versandkosten", "Porto + Versandkosten", 1m, 26.07m, 26.07m, 7m, null, LineAllowances: 0m, LineCharges: 0m),
             ],
             doc.Lines);
     }

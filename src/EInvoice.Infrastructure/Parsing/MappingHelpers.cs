@@ -51,6 +51,14 @@ internal static class MappingHelpers
         return RequiredDecimal(match, "BT-110 invoice total VAT amount");
     }
 
+    /// <summary>Charge indicator of an allowance/charge: "true" is a charge, "false" an allowance (xs:boolean, lower case).</summary>
+    public static bool IsCharge(XElement? indicator, int position) => Required(indicator, $"charge indicator on line {position}") switch
+    {
+        "true" => true,
+        "false" => false,
+        _ => throw new DocumentRejectedException(ParseErrorCode.InvalidValue, $"Charge indicator on line {position} must be true or false."),
+    };
+
     public static decimal UnitPrice(decimal netPrice, decimal? baseQuantity, int position)
     {
         var divisor = baseQuantity ?? 1m;

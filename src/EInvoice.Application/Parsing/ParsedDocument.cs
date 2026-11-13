@@ -35,7 +35,8 @@ public sealed record ParsedDocument(
     decimal NetTotal,                            // BT-109
     decimal TaxTotal,                            // BT-110
     decimal GrossTotal,                          // BT-112
-    IReadOnlyList<ParsedDocumentLine> Lines);
+    IReadOnlyList<ParsedDocumentLine> Lines,
+    IReadOnlyList<VatBreakdownEntry> VatBreakdown); // BG-23
 
 /// <param name="Position">1, 2, 3 ... in document order. Line ids (BT-126) are free text, so they cannot be the line number.</param>
 /// <param name="UnitPrice">Net price (BT-146) divided by base quantity (BT-149), at full precision.</param>
@@ -48,7 +49,16 @@ public sealed record ParsedDocumentLine(
     decimal UnitPrice,
     decimal NetAmount,                           // BT-131
     decimal TaxRatePercent,                      // BT-152, 0 when not stated
-    string? PurchaseOrderLineReference);         // BT-132
+    string? PurchaseOrderLineReference,          // BT-132
+    decimal LineAllowances,                      // sum of BG-27 (BT-136), not price discounts (BT-147)
+    decimal LineCharges);                        // sum of BG-28 (BT-141)
+
+/// <summary>One VAT category of the invoice (BG-23).</summary>
+public sealed record VatBreakdownEntry(
+    string CategoryCode,                         // BT-118, for example S (standard), AE (reverse charge), E (exempt)
+    decimal RatePercent,                         // BT-119, 0 when not stated
+    decimal TaxableAmount,                       // BT-116
+    decimal TaxAmount);                          // BT-117
 
 public enum ParseErrorCode
 {

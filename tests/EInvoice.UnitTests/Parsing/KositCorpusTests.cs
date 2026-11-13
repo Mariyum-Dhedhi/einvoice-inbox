@@ -117,6 +117,12 @@ public class KositCorpusTests
         Compare("NetTotal", ubl.NetTotal, cii.NetTotal);
         Compare("TaxTotal", ubl.TaxTotal, cii.TaxTotal);
         Compare("GrossTotal", ubl.GrossTotal, cii.GrossTotal);
+        // By value, not by text: decimal keeps trailing zeros ("19" vs "19.00"), which are the same number.
+        Compare("VatBreakdown.Count", ubl.VatBreakdown.Count, cii.VatBreakdown.Count);
+        foreach (var (u, c) in ubl.VatBreakdown.Zip(cii.VatBreakdown))
+        {
+            Compare($"VatBreakdown {u.CategoryCode}", u, c);
+        }
         Compare("Lines.Count", ubl.Lines.Count, cii.Lines.Count);
         foreach (var (u, c) in ubl.Lines.Zip(cii.Lines))
         {
