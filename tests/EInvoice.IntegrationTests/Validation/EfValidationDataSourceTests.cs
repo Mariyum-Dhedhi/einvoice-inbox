@@ -1,13 +1,15 @@
 using EInvoice.Domain.Shared;
 using EInvoice.Infrastructure.Persistence;
 using EInvoice.Infrastructure.Validation;
+using EInvoice.IntegrationTests.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 
 namespace EInvoice.IntegrationTests.Validation;
 
 /// <summary>Master-data queries used by validation, against the seeded database as the app user.</summary>
 [Trait("Category", "Database")]
-public sealed class EfValidationDataSourceTests : IAsyncLifetime
+[Collection(SqlServerCollection.Name)]
+public sealed class EfValidationDataSourceTests(SqlServerFixture fixture) : IAsyncLifetime
 {
     // Seed: vendor n has VAT id DE000000nnn and IBAN DE..0000000000001000+n; vendor 20 is inactive.
     // Invoice RE-2026-0001 belongs to vendor 1 (via PO-0001), issued 2026-11-02.
@@ -18,9 +20,7 @@ public sealed class EfValidationDataSourceTests : IAsyncLifetime
 
     public Task InitializeAsync()
     {
-        var connection = Environment.GetEnvironmentVariable("EINVOICE_TEST_CONNECTION")
-            ?? throw new InvalidOperationException("Set EINVOICE_TEST_CONNECTION to run database tests (see db/README.md).");
-        _context = new EInvoiceDbContext(new DbContextOptionsBuilder<EInvoiceDbContext>().UseSqlServer(connection).Options);
+        _context = fixture.CreateContext();
         _source = new EfValidationDataSource(_context);
         return Task.CompletedTask;
     }
