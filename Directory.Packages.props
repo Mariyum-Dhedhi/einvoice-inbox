@@ -7,7 +7,7 @@
   </PropertyGroup>
   <ItemGroup Label="Data access">
     <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.14" />
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.14" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.15" />
   </ItemGroup>
   <ItemGroup Label="Security pins (transitive)">
     <!-- Microsoft.Data.SqlClient 6.1.7 pulls in 9.0.11, affected by CVE-2026-84008 (high) and CVE-2026-70162 (moderate),
