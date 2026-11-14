@@ -1,6 +1,7 @@
 using EInvoice.Domain.Invoices;
 using EInvoice.Domain.Shared;
 using EInvoice.Infrastructure.Persistence;
+using EInvoice.IntegrationTests.Infrastructure;
 using Microsoft.EntityFrameworkCore;
 
 namespace EInvoice.IntegrationTests.Persistence;
@@ -8,10 +9,11 @@ namespace EInvoice.IntegrationTests.Persistence;
 /// <summary>
 /// Round-trip tests against a real SQL Server, connected as the low-privilege application user.
 /// Each test runs in a transaction that is rolled back, so the seeded data is never changed.
-/// Requires EINVOICE_TEST_CONNECTION (see db/README.md); package 6 replaces this with Testcontainers.
+/// Runs against the shared Testcontainers SQL Server (SqlServerFixture).
 /// </summary>
 [Trait("Category", "Database")]
-public sealed class InvoicePersistenceTests : IAsyncLifetime
+[Collection(SqlServerCollection.Name)]
+public sealed class InvoicePersistenceTests(SqlServerFixture fixture) : IAsyncLifetime
 {
     // Seeded vendor V-1001 (see db/seed/seed.sql).
     private static readonly Guid SeededVendorId = Guid.Parse("00000000-0000-0000-0001-000000000001");
@@ -21,9 +23,7 @@ public sealed class InvoicePersistenceTests : IAsyncLifetime
 
     public async Task InitializeAsync()
     {
-        var connection = Environment.GetEnvironmentVariable("EINVOICE_TEST_CONNECTION")
-            ?? throw new InvalidOperationException("Set EINVOICE_TEST_CONNECTION to run database tests (see db/README.md).");
-        _context = new EInvoiceDbContext(new DbContextOptionsBuilder<EInvoiceDbContext>().UseSqlServer(connection).Options);
+        _context = fixture.CreateContext();
         await _context.Database.BeginTransactionAsync();
     }
 
@@ -90,7 +90,8 @@ public sealed class InvoicePersistenceTests : IAsyncLifetime
     public async Task Seed_data_is_present()
     {
         Assert.Equal(20, await _context.Vendors.CountAsync());
-        Assert.Equal(200, await _context.PurchaseOrders.CountAsync());
+        // Count the seeded orders by their numbers: other tests may commit their own orders (unique T... numbers).
+        Assert.Equal(200, await _context.PurchaseOrders.CountAsync(p => p.Number.StartsWith("PO-")));
         Assert.True(await _context.GoodsReceipts.AnyAsync());
     }
 }

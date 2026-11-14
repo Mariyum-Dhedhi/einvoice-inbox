@@ -38,7 +38,7 @@ public class DatabaseModelTests
         var tables = Model.GetEntityTypes().Select(e => e.GetTableName() ?? "(none)").Distinct().Order().ToList();
 
         Assert.Equal(
-            new[] { "GoodsReceipt", "GoodsReceiptLine", "Invoice", "InvoiceLine", "InvoiceStatusChange", "PurchaseOrder", "PurchaseOrderLine", "Vendor", "VendorBankAccount" },
+            new[] { "GoodsReceipt", "GoodsReceiptLine", "Invoice", "InvoiceLine", "InvoiceStatusChange", "MatchResult", "PurchaseOrder", "PurchaseOrderLine", "Vendor", "VendorBankAccount" },
             tables);
     }
 
@@ -137,6 +137,15 @@ public class DatabaseModelTests
     }
 
     [Fact]
+    public void Match_outcome_check_constraint_lists_exactly_the_enum_values()
+    {
+        var expected = $"[Outcome] IN ({string.Join(", ", Enum.GetValues<EInvoice.Domain.Matching.MatchOutcome>().Cast<int>())})";
+        var matchResult = Model.GetEntityTypes().Single(e => e.GetTableName() == "MatchResult");
+
+        Assert.Contains(matchResult.GetCheckConstraints(), c => c.Sql == expected);
+    }
+
+    [Fact]
     public void Source_format_check_constraint_lists_exactly_the_enum_values()
     {
         var expected = $"[SourceFormat] IN ({string.Join(", ", Enum.GetValues<SourceFormat>().Cast<int>())})";
@@ -164,6 +173,7 @@ public class DatabaseModelTests
     [
         ("Invoice", "InvoiceLine"),
         ("Invoice", "InvoiceStatusChange"),
+        ("Invoice", "MatchResult"),
         ("PurchaseOrder", "PurchaseOrderLine"),
         ("GoodsReceipt", "GoodsReceiptLine"),
     ];

@@ -71,7 +71,7 @@ jobs:
           path: TestResults
           retention-days: 14
 
-  # Proves "docker compose up gives a seeded database", plus the security checks and round-trip tests.
+  # Proves "docker compose up gives a seeded database" with the security checks, then runs the database tests.
   database:
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -91,7 +91,6 @@ jobs:
           echo "::add-mask::$sa"
           echo "::add-mask::$app"
           printf 'MSSQL_SA_PASSWORD=%s\nEINVOICE_APP_PASSWORD=%s\n' "$sa" "$app" > .env
-          echo "EINVOICE_TEST_CONNECTION=Server=127.0.0.1,1433;Database=EInvoice;User Id=einvoice_app;Password=$app;Encrypt=True;TrustServerCertificate=True" >> "$GITHUB_ENV"
           echo "EINVOICE_APP_PASSWORD=$app" >> "$GITHUB_ENV"
 
       - name: docker compose up
@@ -108,7 +107,8 @@ jobs:
       - name: db-init is idempotent
         run: docker compose run --rm db-init | tee second-run.log && grep -q "already present; skipping" second-run.log
 
-      - name: Round-trip tests
+      # Database tests start their own SQL Server with Testcontainers, built from the same db/ scripts.
+      - name: Database tests (Testcontainers)
         run: >
           dotnet test tests/EInvoice.IntegrationTests --configuration Release
           --filter "Category=Database"

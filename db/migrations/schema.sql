@@ -346,3 +346,51 @@ END;
 COMMIT;
 GO
 
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261113192242_AddMatchResult'
+)
+BEGIN
+    CREATE TABLE [dbo].[MatchResult] (
+        [InvoiceId] uniqueidentifier NOT NULL,
+        [InvoiceLineNumber] int NOT NULL,
+        [PurchaseOrderLineNumber] int NULL,
+        [Outcome] int NOT NULL,
+        [InvoiceUnitPrice] decimal(18,6) NOT NULL,
+        [OrderUnitPrice] decimal(18,6) NULL,
+        [PriceVariancePercent] decimal(19,6) NULL,
+        [PriceVarianceAmount] decimal(18,2) NULL,
+        [Currency] char(3) NOT NULL,
+        [QuantityInvoiced] decimal(18,4) NOT NULL,
+        [QuantityAvailable] decimal(18,4) NULL,
+        [QuantityVariance] decimal(18,4) NULL,
+        [PriceTolerancePercent] decimal(5,2) NOT NULL,
+        [MatchedAt] datetimeoffset NOT NULL,
+        [RowId] bigint NOT NULL IDENTITY,
+        CONSTRAINT [PK_MatchResult] PRIMARY KEY NONCLUSTERED ([InvoiceId], [InvoiceLineNumber]),
+        CONSTRAINT [CK_MatchResult_Outcome] CHECK ([Outcome] IN (1, 2, 3, 4, 5)),
+        CONSTRAINT [FK_MatchResult_Invoice_InvoiceId] FOREIGN KEY ([InvoiceId]) REFERENCES [dbo].[Invoice] ([Id]) ON DELETE CASCADE
+    );
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261113192242_AddMatchResult'
+)
+BEGIN
+    CREATE CLUSTERED INDEX [CX_MatchResult_RowId] ON [dbo].[MatchResult] ([RowId]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261113192242_AddMatchResult'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20261113192242_AddMatchResult', N'10.0.14');
+END;
+
+COMMIT;
+GO
+

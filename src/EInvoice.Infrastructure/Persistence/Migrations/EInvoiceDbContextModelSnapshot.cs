@@ -485,6 +485,75 @@ namespace EInvoice.Infrastructure.Persistence.Migrations
                     b.ToTable("VendorBankAccount", "dbo");
                 });
 
+            modelBuilder.Entity("EInvoice.Infrastructure.Persistence.MatchResultRecord", b =>
+                {
+                    b.Property<Guid>("InvoiceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("InvoiceLineNumber")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .IsUnicode(false)
+                        .HasColumnType("char(3)")
+                        .IsFixedLength();
+
+                    b.Property<decimal>("InvoiceUnitPrice")
+                        .HasColumnType("decimal(18,6)");
+
+                    b.Property<DateTimeOffset>("MatchedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<decimal?>("OrderUnitPrice")
+                        .HasColumnType("decimal(18,6)");
+
+                    b.Property<int>("Outcome")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("PriceTolerancePercent")
+                        .HasColumnType("decimal(5,2)");
+
+                    b.Property<decimal?>("PriceVarianceAmount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("PriceVariancePercent")
+                        .HasColumnType("decimal(19,6)");
+
+                    b.Property<int?>("PurchaseOrderLineNumber")
+                        .HasColumnType("int");
+
+                    b.Property<decimal?>("QuantityAvailable")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<decimal>("QuantityInvoiced")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<decimal?>("QuantityVariance")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<long>("RowId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("RowId"));
+
+                    b.HasKey("InvoiceId", "InvoiceLineNumber");
+
+                    SqlServerKeyBuilderExtensions.IsClustered(b.HasKey("InvoiceId", "InvoiceLineNumber"), false);
+
+                    b.HasIndex("RowId")
+                        .HasDatabaseName("CX_MatchResult_RowId");
+
+                    SqlServerIndexBuilderExtensions.IsClustered(b.HasIndex("RowId"));
+
+                    b.ToTable("MatchResult", "dbo", t =>
+                        {
+                            t.HasCheckConstraint("CK_MatchResult_Outcome", "[Outcome] IN (1, 2, 3, 4, 5)");
+                        });
+                });
+
             modelBuilder.Entity("EInvoice.Domain.Invoices.Invoice", b =>
                 {
                     b.HasOne("EInvoice.Domain.Vendors.Vendor", null)
@@ -553,6 +622,15 @@ namespace EInvoice.Infrastructure.Persistence.Migrations
                         .WithMany()
                         .HasForeignKey("VendorId")
                         .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("EInvoice.Infrastructure.Persistence.MatchResultRecord", b =>
+                {
+                    b.HasOne("EInvoice.Domain.Invoices.Invoice", null)
+                        .WithMany()
+                        .HasForeignKey("InvoiceId")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 

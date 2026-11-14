@@ -17,6 +17,9 @@ public sealed class EInvoiceDbContext(DbContextOptions<EInvoiceDbContext> option
 
     public DbSet<Invoice> Invoices => Set<Invoice>();
 
+    /// <summary>Written only by dbo.usp_MatchInvoice; read by the match panel.</summary>
+    public DbSet<MatchResultRecord> MatchResults => Set<MatchResultRecord>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasDefaultSchema("dbo");

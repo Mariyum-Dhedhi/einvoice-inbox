@@ -75,4 +75,26 @@ BEGIN CATCH
     PRINT 'OK: unknown status rejected by CK_Invoice_Status';
 END CATCH;
 
+-- The app user can run the match procedure ...
+DECLARE @Seeded uniqueidentifier = (SELECT Id FROM dbo.Invoice WHERE InvoiceNumber = N'RE-2026-0003');
+BEGIN TRANSACTION;
+DECLARE @Results TABLE (InvoiceLineNumber int, PurchaseOrderLineNumber int, Outcome int, InvoiceUnitPrice decimal(18,6), OrderUnitPrice decimal(18,6),
+    PriceVariancePercent decimal(19,6), PriceVarianceAmount decimal(18,2), Currency char(3), QuantityInvoiced decimal(18,4),
+    QuantityAvailable decimal(18,4), QuantityVariance decimal(18,4));
+INSERT INTO @Results EXEC dbo.usp_MatchInvoice @InvoiceId = @Seeded, @PriceTolerancePercent = 2.00;
+ROLLBACK TRANSACTION;
+IF NOT EXISTS (SELECT 1 FROM @Results) OR EXISTS (SELECT 1 FROM @Results WHERE Outcome <> 2)
+    THROW 50106, 'usp_MatchInvoice did not report the seeded price variance.', 1;
+PRINT 'OK: app user can execute usp_MatchInvoice (RE-2026-0003 -> PriceVariance)';
+
+-- ... but cannot change it
+BEGIN TRY
+    EXEC (N'CREATE OR ALTER PROCEDURE dbo.usp_MatchInvoice AS SELECT 1;');
+    THROW 50107, 'SECURITY: app user was able to alter usp_MatchInvoice.', 1;
+END TRY
+BEGIN CATCH
+    IF ERROR_NUMBER() = 50107 THROW;
+    PRINT 'OK: app user cannot alter stored procedures';
+END CATCH;
+
 PRINT 'All database checks passed.';
