@@ -5,8 +5,11 @@ updates:
     schedule:
       interval: weekly
     groups:
+      # EF Core packages must always share one version; separate PRs fail on their own.
+      efcore:
+        patterns: ["Microsoft.EntityFrameworkCore*"]
       testing:
-        patterns: ["xunit*", "coverlet*", "Microsoft.NET.Test.Sdk"]
+        patterns: ["xunit*", "coverlet*", "Microsoft.NET.Test.Sdk", "Testcontainers*"]
   - package-ecosystem: github-actions
     directory: "/"
     schedule:
@@ -19,3 +22,8 @@ updates:
     directory: "/docker/kosit-validator"
     schedule:
       interval: weekly
+    ignore:
+      # Stay on the Java LTS line (21) for the KoSIT validator; a major move is a deliberate decision,
+      # not a bot update. Patch and minor updates within 21 still arrive.
+      - dependency-name: "eclipse-temurin"
+        update-types: ["version-update:semver-major"]
