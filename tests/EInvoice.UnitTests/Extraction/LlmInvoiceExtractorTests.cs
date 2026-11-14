@@ -124,6 +124,22 @@ public partial class LlmInvoiceExtractorTests
     }
 
     [Fact]
+    public async Task Prompt_explains_both_number_notations_with_examples()
+    {
+        // Found with the real model: qwen2.5 read the German "7,4125" as 7412.5 until the notation was spelled out.
+        var (extractor, model) = With(_ => Faithful());
+
+        await Extract(extractor, Invoice());
+
+        var system = model.LastSystemText;
+        Assert.Contains("7,4125", system, StringComparison.Ordinal);
+        Assert.Contains("7.4125", system, StringComparison.Ordinal);
+        Assert.Contains("1.234,56", system, StringComparison.Ordinal);
+        Assert.Contains("1,234.56", system, StringComparison.Ordinal);
+        Assert.Contains("every decimal", system, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public async Task Document_cannot_close_its_own_fence()
     {
         // The supplier writes what looks like the end of the document block, followed by new "instructions".

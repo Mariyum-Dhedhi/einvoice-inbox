@@ -89,7 +89,11 @@ internal static class ExtractionPrompt
         Rules:
         - Reply with exactly one JSON object that fits the schema, and nothing else.
         - Copy values as they are written. Use null when a value is not in the document. Never guess, never calculate.
-        - Dates as yyyy-MM-dd. Numbers as JSON numbers with a dot as decimal separator (1.234,56 in the document is 1234.56).
+        - Dates as yyyy-MM-dd.
+        - Numbers as JSON numbers with a dot as the decimal separator, keeping every decimal place.
+          Read each number in the notation the document uses. German invoices write the decimal separator as a comma
+          and group thousands with a dot: 7,4125 is 7.4125; 39,90 is 39.9; 1.234,56 is 1234.56.
+          English notation is the other way round: 1,234.56 is 1234.56. Never treat a decimal comma as a thousands separator.
         - Some values are replaced by placeholders such as [IBAN_1]. Copy a placeholder exactly as it is.
         - One entry in "lines" per invoice line, in document order.
         """;
