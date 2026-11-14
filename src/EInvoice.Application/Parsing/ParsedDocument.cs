@@ -13,6 +13,9 @@ public enum DocumentSyntax
 
     /// <summary>UN/CEFACT Cross Industry Invoice (also the XML inside ZUGFeRD).</summary>
     Cii = 2,
+
+    /// <summary>A plain PDF whose fields were extracted by a language model and then checked (package 13). Not an e-invoice syntax.</summary>
+    Pdf = 3,
 }
 
 /// <summary>
