@@ -58,3 +58,9 @@ public sealed class DuplicateInvoiceNumberException : Exception
     {
     }
 }
+
+/// <summary>The upload pipeline as the API and the UI see it; implemented by <see cref="InvoiceIntake"/>.</summary>
+public interface IInvoiceIntake
+{
+    Task<IntakeResult> SubmitAsync(UploadedFile file, string submittedBy, CancellationToken cancellationToken);
+}

@@ -36,3 +36,39 @@ h1:focus {
 .form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
     text-align: start;
 }
+/* ---- E-Invoice Inbox ------------------------------------------------------------------------------------------ */
+
+
+/* Amounts line up in columns (MudBlazor sets text-align on table cells, hence the longer selector). */
+.tabular, .num { font-variant-numeric: tabular-nums; }
+.mud-simple-table table tr > td.num, .mud-simple-table table tr > th.num { text-align: right; }
+.nowrap { white-space: nowrap; }
+.strong { font-weight: 600; }
+.code { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 0.8125rem; }
+.break-all { overflow-wrap: anywhere; }
+
+/* Wide tables scroll inside their own box; the page never scrolls sideways. */
+.table-scroll { overflow-x: auto; }
+
+/* Lines the match did not clear get a marker that is not colour alone (the outcome chip names the problem). */
+tr.problem > td:first-child { box-shadow: inset 4px 0 0 var(--mud-palette-warning); }
+
+.facts { display: grid; grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr)); gap: 0.75rem 1.5rem; margin: 0; }
+.facts dt { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--mud-palette-text-secondary); }
+.facts dd { margin: 0.125rem 0 0; }
+
+.two-columns { display: grid; grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr)); gap: 0 0.75rem; }
+
+.history { list-style: none; margin: 0; padding: 0; }
+.history > li { padding: 0.5rem 0; border-bottom: 1px solid var(--mud-palette-lines-default); }
+.history > li:last-child { border-bottom: none; }
+
+/* The file input stays in the tab order but is not drawn; its label (the upload button) shows focus instead. */
+.visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+.upload:focus-within label { outline: 2px solid var(--mud-palette-primary); outline-offset: 2px; }
+
+#blazor-error-ui .dismiss { border: none; background: none; font-size: 1.25rem; }
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+}

@@ -40,7 +40,7 @@ jobs:
       - name: Test (no database)
         run: >
           dotnet test EInvoice.slnx --no-build --configuration Release
-          --filter "Category!=Database&Category!=Kosit"
+          --filter "Category!=Database&Category!=Kosit&Category!=E2E"
           --logger "trx;LogFilePrefix=results"
           --results-directory TestResults
 
@@ -171,3 +171,41 @@ jobs:
       - name: Tear down
         if: always()
         run: docker compose down
+
+  # The browser test: upload an invoice in Chromium and see its result (Testcontainers SQL Server, app on Kestrel).
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+
+      - name: Restore (locked)
+        run: dotnet restore EInvoice.slnx --locked-mode
+
+      - name: Build
+        run: dotnet build tests/EInvoice.IntegrationTests --no-restore --configuration Release --warnaserror
+
+      # The browser build is the one this exact Playwright package version is made for.
+      - name: Install Chromium
+        run: pwsh tests/EInvoice.IntegrationTests/bin/Release/net10.0/playwright.ps1 install --with-deps chromium
+
+      - name: Browser test
+        run: >
+          dotnet test tests/EInvoice.IntegrationTests --no-build --configuration Release
+          --filter "Category=E2E"
+          --logger "trx;LogFilePrefix=e2e"
+          --results-directory TestResults
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: e2e-test-results
+          path: TestResults
+          retention-days: 14

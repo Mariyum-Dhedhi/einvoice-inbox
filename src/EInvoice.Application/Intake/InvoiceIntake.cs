@@ -21,7 +21,7 @@ public sealed class InvoiceIntake(
     IIntakeStore store,
     MatchingPolicy policy,
     IntakeOptions options,
-    TimeProvider time)
+    TimeProvider time) : IInvoiceIntake
 {
     private const string System = "system";
 

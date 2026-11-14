@@ -30,6 +30,12 @@ public interface IRematchStore
     Task SaveChangesAsync(CancellationToken cancellationToken);
 }
 
+/// <summary>Re-match as the API and the UI see it; implemented by <see cref="InvoiceRematch"/>.</summary>
+public interface IInvoiceRematch
+{
+    Task<RematchResult> RematchAsync(Guid invoiceId, string actor, CancellationToken cancellationToken);
+}
+
 public sealed class ConcurrentStatusChangeException : Exception
 {
     public ConcurrentStatusChangeException()
@@ -42,7 +48,7 @@ public sealed class ConcurrentStatusChangeException : Exception
 /// Matches an invoice again, typically after a late goods receipt. Allowed only for an invoice in Exception that has
 /// no validation findings: a match can clear a match problem, never a finding that a human has to look at.
 /// </summary>
-public sealed class InvoiceRematch(IRematchStore store, IInvoiceMatcher matcher, MatchingPolicy policy, TimeProvider time)
+public sealed class InvoiceRematch(IRematchStore store, IInvoiceMatcher matcher, MatchingPolicy policy, TimeProvider time) : IInvoiceRematch
 {
     public async Task<RematchResult> RematchAsync(Guid invoiceId, string actor, CancellationToken cancellationToken)
     {

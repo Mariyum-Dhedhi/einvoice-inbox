@@ -54,6 +54,11 @@ db/                          stored procedures, views, seed data
 - OpenAPI (/openapi/v1.json) is mapped in Development only.
 - Re-match only clears match problems: an invoice in Exception with validation findings stays for a human.
 - Committed test invoices for the same vendor need distinct amounts or dates, or the POSSIBLE_DUPLICATE rule (correctly) flags invoices in other tests.
+- UI pages run operations through Operations (one DI scope per operation): never inject DbContext-backed services straight into a Blazor Server component.
+- UI shows status and match outcome as text + icon (Labels), never colour alone. Amounts and dates use Formats (German formats, Berlin time).
+- No third-party web fonts or CDNs in the UI (Google Fonts sends visitor IPs to Google); system fonts and packaged assets only.
+- Filter and page state lives in the address (query string) so every view can be linked; address values are user input and are validated.
+- Component tests use bUnit (tests/EInvoice.ComponentTests); the browser test uses Playwright with [Trait("Category", "E2E")].
 - All XML is read through Infrastructure/Parsing/SafeXml (DTD prohibited, no resolver, size limit). Never create an XmlReader or XDocument from untrusted input anywhere else.
 - Parse errors name the business term (BT-n) and never repeat document content.
 - testdata/**/kosit holds official files byte-exact; never edit them. Build modified variants in the test instead.
@@ -65,7 +70,8 @@ db/                          stored procedures, views, seed data
 
 ## Commands
 dotnet build --warnaserror
-dotnet test --filter "Category!=Database&Category!=Kosit"   # fast, no containers
+dotnet test --filter "Category!=Database&Category!=Kosit&Category!=E2E"   # fast, no containers
 dotnet test --filter Category=Database      # needs Docker running; Testcontainers starts SQL Server itself
 dotnet test --filter Category=Kosit         # needs the kosit-validator service and EINVOICE_KOSIT_URL
+dotnet test --filter Category=E2E           # needs Docker and Chromium (once: powershell tests/EInvoice.IntegrationTests/bin/Debug/net10.0/playwright.ps1 install chromium)
 docker compose up -d

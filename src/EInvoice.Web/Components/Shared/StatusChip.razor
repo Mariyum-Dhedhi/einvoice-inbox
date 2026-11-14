@@ -1,0 +1,8 @@
+@* Status as word + icon; the colour only supports them. *@
+<MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Labels.StatusColor(Status)" Icon="@Labels.StatusIcon(Status)"
+         data-testid="status" data-status="@Status.ToString()" Class="ma-0">@Labels.Status(Status)</MudChip>
+
+@code {
+    [Parameter, EditorRequired]
+    public InvoiceStatus Status { get; set; }
+}
