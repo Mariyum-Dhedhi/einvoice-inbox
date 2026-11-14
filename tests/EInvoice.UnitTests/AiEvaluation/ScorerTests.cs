@@ -92,6 +92,17 @@ public class ScorerTests
     }
 
     [Fact]
+    public void A_flag_counts_only_for_the_line_it_names()
+    {
+        var wrongLine1 = Perfect(d => d with { Lines = [d.Lines[0] with { Quantity = 12m }, d.Lines[1]] });
+
+        var score = Scorer.Score(Result(wrongLine1, new CaseOutcome("Exception", [], null), new FieldConfidence("BT-129", 2, false, "x")));
+
+        Assert.False(score.Field("BT-129", 1).Flagged);
+        Assert.Equal(1, score.UnflaggedWrongFields);
+    }
+
+    [Fact]
     public void Extra_or_missing_lines_make_the_line_count_wrong_and_the_missing_fields_wrong()
     {
         var oneLine = Perfect(d => d with { Lines = [d.Lines[0]] });
@@ -188,6 +199,19 @@ public class ReportTests
 
         Assert.Contains("27 / 27", headline, StringComparison.Ordinal);
         Assert.Contains("Wrong values that reached Matched: **0**", headline, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Headline_counts_only_the_cases_that_ended_as_expected()
+    {
+        var scores = AllRight().ToList();
+        scores[0] = scores[0] with { OutcomeCorrect = false };
+        scores[5] = scores[5] with { WrongValueReachedMatched = true };
+
+        var md = EvaluationReport.ToMarkdown(Info(true), scores);
+
+        Assert.Contains("**26 / 27**", md, StringComparison.Ordinal);
+        Assert.Contains("Wrong values that reached Matched: **1**", md, StringComparison.Ordinal);
     }
 
     [Fact]
