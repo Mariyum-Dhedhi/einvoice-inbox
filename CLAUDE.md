@@ -45,6 +45,9 @@ db/                          stored procedures, views, seed data
 - Database tests must not assume they are alone: create data under unique numbers, and roll back unless the test needs commits.
 - Matching rules exist twice (ThreeWayMatcher in C#, dbo.usp_MatchInvoice in SQL). Change both together; MatchProcedureTests compares them field by field.
 - Stored procedures live in db/procedures as CREATE OR ALTER scripts, deployed by db-init after the migrations.
+- Uploads: file type comes from the bytes (ContentSniffer), never the name; file names are display-only (UploadNames.Sanitize). Duplicates are checked first and backed by unique indexes for races.
+- Every accepted upload becomes an invoice: Matched, Exception (with findings or match reasons) or Failed (unreadable, original kept). Refusals (empty, too large, wrong type, duplicate) store nothing.
+- Values longer than a database column are refused with a reason before saving, never truncated where they identify something (invoice number, order reference).
 - All XML is read through Infrastructure/Parsing/SafeXml (DTD prohibited, no resolver, size limit). Never create an XmlReader or XDocument from untrusted input anywhere else.
 - Parse errors name the business term (BT-n) and never repeat document content.
 - testdata/**/kosit holds official files byte-exact; never edit them. Build modified variants in the test instead.
