@@ -48,6 +48,12 @@ db/                          stored procedures, views, seed data
 - Uploads: file type comes from the bytes (ContentSniffer), never the name; file names are display-only (UploadNames.Sanitize). Duplicates are checked first and backed by unique indexes for races.
 - Every accepted upload becomes an invoice: Matched, Exception (with findings or match reasons) or Failed (unreadable, original kept). Refusals (empty, too large, wrong type, duplicate) store nothing.
 - Values longer than a database column are refused with a reason before saving, never truncated where they identify something (invoice number, order reference).
+- API errors are problem details (application/problem+json) with a safe detail: no exception text, no stack trace. Refusals carry an "outcome" name.
+- Settings are bound to options classes and validated at startup (ValidateOnStart); a wrong value stops the app. Connection strings come from user secrets or environment variables.
+- Every response sends X-Content-Type-Options: nosniff; API responses are no-store. Stored files are only served as attachments.
+- OpenAPI (/openapi/v1.json) is mapped in Development only.
+- Re-match only clears match problems: an invoice in Exception with validation findings stays for a human.
+- Committed test invoices for the same vendor need distinct amounts or dates, or the POSSIBLE_DUPLICATE rule (correctly) flags invoices in other tests.
 - All XML is read through Infrastructure/Parsing/SafeXml (DTD prohibited, no resolver, size limit). Never create an XmlReader or XDocument from untrusted input anywhere else.
 - Parse errors name the business term (BT-n) and never repeat document content.
 - testdata/**/kosit holds official files byte-exact; never edit them. Build modified variants in the test instead.
