@@ -11,6 +11,7 @@ using EInvoice.Infrastructure.Persistence;
 using EInvoice.Infrastructure.Queries;
 using EInvoice.Infrastructure.Validation;
 using EInvoice.Web.Api;
+using EInvoice.Web.Components.Shared;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
@@ -63,8 +64,9 @@ internal static class ServiceRegistration
         services.AddScoped<IIntakeStore, EfIntakeStore>();
         services.AddScoped<IRematchStore, EfRematchStore>();
         services.AddScoped<IInvoiceQueries, EfInvoiceQueries>();
-        services.AddScoped<InvoiceIntake>();
-        services.AddScoped<InvoiceRematch>();
+        services.AddScoped<IInvoiceIntake, InvoiceIntake>();
+        services.AddScoped<IInvoiceRematch, InvoiceRematch>();
+        services.AddSingleton<Operations>();
 
         services.AddSingleton<ICurrentUser, AnonymousUser>();
         return services;

@@ -1,0 +1,273 @@
+@page "/invoices/{Id:guid}"
+@implements IDisposable
+@using EInvoice.Application.Matching
+@using EInvoice.Application.Validation
+@using EInvoice.Web.Api
+@inject Operations Operations
+@inject ICurrentUser CurrentUser
+
+@if (!_loaded)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" aria-label="Loading the invoice" />
+}
+else if (_invoice is null)
+{
+    <PageTitle>Invoice not found – E-Invoice Inbox</PageTitle>
+    <MudPaper Outlined="true" Class="pa-6" data-testid="not-found">
+        <MudText Typo="Typo.h5" HtmlTag="h1">Invoice not found</MudText>
+        <MudText Class="my-2">There is no invoice with this address. It may have been typed wrong.</MudText>
+        <MudLink Href="/">Back to the inbox</MudLink>
+    </MudPaper>
+}
+else
+{
+    var invoice = _invoice;
+    <PageTitle>@(invoice.InvoiceNumber ?? "Invoice") – E-Invoice Inbox</PageTitle>
+
+    <MudLink Href="/" Typo="Typo.body2" Class="d-inline-flex align-center mb-2">
+        <MudIcon Icon="@Icons.Material.Outlined.ArrowBack" Size="Size.Small" Class="mr-1" aria-hidden="true" /> Inbox
+    </MudLink>
+
+    @* ---- Header ---------------------------------------------------------------------------------------- *@
+    <MudPaper Outlined="true" Class="pa-4 mb-3">
+        <div class="d-flex flex-wrap align-center gap-3">
+            <MudText Typo="Typo.h4" HtmlTag="h1">@(invoice.InvoiceNumber ?? "Not readable")</MudText>
+            <StatusChip Status="invoice.Status" />
+            <MudSpacer />
+            @if (CanRematch(invoice))
+            {
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Outlined.Sync" Disabled="_rematching"
+                           OnClick="RematchAsync" data-testid="rematch">@(_rematching ? "Matching…" : "Match again")</MudButton>
+            }
+        </div>
+
+        <dl class="facts mt-3">
+            <div><dt>Vendor</dt><dd data-testid="vendor">@(invoice.VendorName ?? "Unknown vendor")</dd></div>
+            <div><dt>Purchase order</dt><dd data-testid="order">@(invoice.PurchaseOrderNumber ?? "–")</dd></div>
+            <div><dt>Issue date</dt><dd>@Formats.Date(invoice.IssueDate)</dd></div>
+            <div><dt>Net</dt><dd class="num" data-testid="net">@Formats.Money(invoice.NetTotal, invoice.Currency)</dd></div>
+            <div><dt>VAT</dt><dd class="num" data-testid="tax">@Formats.Money(invoice.TaxTotal, invoice.Currency)</dd></div>
+            <div><dt>Gross</dt><dd class="num strong" data-testid="gross">@Formats.Money(invoice.GrossTotal, invoice.Currency)</dd></div>
+        </dl>
+
+        @if (invoice.Status == InvoiceStatus.Failed && invoice.History.LastOrDefault()?.Reason is { } failure)
+        {
+            <MudAlert Severity="Severity.Error" Class="mt-3" data-testid="failure-reason">
+                The file could not be processed: @failure
+            </MudAlert>
+        }
+
+        @if (_rematchMessage is not null)
+        {
+            <MudAlert Severity="_rematchSeverity" Class="mt-3" data-testid="rematch-result" role="status">@_rematchMessage</MudAlert>
+        }
+    </MudPaper>
+
+    @* ---- Findings -------------------------------------------------------------------------------------- *@
+    @if (invoice.Findings.Count > 0)
+    {
+        <MudPaper Outlined="true" Class="pa-4 mb-3">
+            <MudText Typo="Typo.h6" HtmlTag="h2" Class="mb-2">Validation findings</MudText>
+            <div class="table-scroll">
+                <MudSimpleTable Dense="true">
+                    <thead><tr><th scope="col">Severity</th><th scope="col">Rule</th><th scope="col">Finding</th><th scope="col">Line</th></tr></thead>
+                    <tbody>
+                        @foreach (var finding in invoice.Findings)
+                        {
+                            <tr data-testid="finding">
+                                <td>
+                                    <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Labels.SeverityColor(finding.Severity)" Class="ma-0"
+                                             Icon="@(finding.Severity == FindingSeverity.Blocking ? Icons.Material.Outlined.Block : Icons.Material.Outlined.Visibility)">
+                                        @finding.Severity
+                                    </MudChip>
+                                </td>
+                                <td class="code">@finding.RuleCode</td>
+                                <td>@finding.Message</td>
+                                <td>@(finding.LinePosition?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "–")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            </div>
+        </MudPaper>
+    }
+
+    @* ---- Match panel ----------------------------------------------------------------------------------- *@
+    <MudPaper Outlined="true" Class="pa-4 mb-3">
+        <div class="d-flex flex-wrap align-baseline gap-3 mb-2">
+            <MudText Typo="Typo.h6" HtmlTag="h2">Three-way match</MudText>
+            @if (invoice.MatchResults.Count > 0)
+            {
+                <MudText Typo="Typo.body2" Color="Color.Secondary" data-testid="tolerance">Price tolerance: @Formats.Rate(invoice.MatchResults[0].PriceTolerancePercent)</MudText>
+            }
+        </div>
+        @if (invoice.MatchResults.Count == 0)
+        {
+            <MudText data-testid="no-match">
+                This invoice was not matched: @(invoice.Status == InvoiceStatus.Failed
+                    ? "its file could not be read."
+                    : "it has validation findings that a person has to review first.")
+            </MudText>
+        }
+        else
+        {
+            <div class="table-scroll">
+                <MudSimpleTable Dense="true">
+                    <thead>
+                        <tr>
+                            <th scope="col">Line</th>
+                            <th scope="col">Order line</th>
+                            <th scope="col">Result</th>
+                            <th scope="col" class="num">Invoice price</th>
+                            <th scope="col" class="num">Order price</th>
+                            <th scope="col" class="num">Difference</th>
+                            <th scope="col" class="num">Invoiced qty</th>
+                            <th scope="col" class="num">Received, not yet invoiced</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var match in invoice.MatchResults)
+                        {
+                            <tr data-testid="match-row" data-outcome="@match.Outcome.ToString()" class="@(match.Outcome == MatchOutcome.FullMatch ? null : "problem")">
+                                <td>@match.InvoiceLineNumber</td>
+                                <td>@(match.PurchaseOrderLineNumber?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "–")</td>
+                                <td><OutcomeChip Outcome="match.Outcome" /></td>
+                                <td class="num nowrap">@Formats.UnitPrice(match.InvoiceUnitPrice, invoice.Currency)</td>
+                                <td class="num nowrap">@Formats.UnitPrice(match.OrderUnitPrice, invoice.Currency)</td>
+                                <td class="num nowrap">@Formats.Percent(match.PriceVariancePercent)</td>
+                                <td class="num" data-testid="qty-invoiced">@Formats.Quantity(match.QuantityInvoiced)</td>
+                                <td class="num" data-testid="qty-available">@Formats.Quantity(match.QuantityAvailable)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            </div>
+        }
+    </MudPaper>
+
+    @* ---- Lines ------------------------------------------------------------------------------------------ *@
+    @if (invoice.Lines.Count > 0)
+    {
+        <MudPaper Outlined="true" Class="pa-4 mb-3">
+            <MudText Typo="Typo.h6" HtmlTag="h2" Class="mb-2">Invoice lines</MudText>
+            <div class="table-scroll">
+                <MudSimpleTable Dense="true">
+                    <thead>
+                        <tr>
+                            <th scope="col">Line</th>
+                            <th scope="col">Description</th>
+                            <th scope="col" class="num">Quantity</th>
+                            <th scope="col" class="num">Unit price</th>
+                            <th scope="col" class="num">Net amount</th>
+                            <th scope="col" class="num">VAT</th>
+                            <th scope="col">Order line</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var line in invoice.Lines)
+                        {
+                            <tr data-testid="line">
+                                <td>@line.LineNumber</td>
+                                <td>@line.Description</td>
+                                <td class="num">@Formats.Quantity(line.Quantity)</td>
+                                <td class="num nowrap">@Formats.UnitPrice(line.UnitPrice, invoice.Currency)</td>
+                                <td class="num nowrap">@Formats.Money(line.NetAmount, invoice.Currency)</td>
+                                <td class="num nowrap">@Formats.Rate(line.TaxRatePercent)</td>
+                                <td>@(line.PurchaseOrderLineNumber?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "–")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            </div>
+        </MudPaper>
+    }
+
+    <div class="two-columns">
+        @* ---- History --------------------------------------------------------------------------------------- *@
+        <MudPaper Outlined="true" Class="pa-4 mb-3">
+            <MudText Typo="Typo.h6" HtmlTag="h2" Class="mb-2">History</MudText>
+            <ol class="history">
+                @foreach (var change in invoice.History)
+                {
+                    <li data-testid="history-entry">
+                        <div class="d-flex flex-wrap align-center gap-2">
+                            <StatusChip Status="change.To" />
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">@Formats.Timestamp(change.At) · @change.Actor</MudText>
+                        </div>
+                        @if (change.Reason is not null)
+                        {
+                            <MudText Typo="Typo.body2" Class="mt-1">@change.Reason</MudText>
+                        }
+                    </li>
+                }
+            </ol>
+        </MudPaper>
+
+        @* ---- Original file ------------------------------------------------------------------------------- *@
+        @if (invoice.Document is { } document)
+        {
+            <MudPaper Outlined="true" Class="pa-4 mb-3">
+                <MudText Typo="Typo.h6" HtmlTag="h2" Class="mb-2">Original file</MudText>
+                <MudText data-testid="file-name" Class="break-all">@document.FileName</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2">@Formats.FileSize(document.SizeBytes) · received @Formats.Timestamp(document.ReceivedAt)</MudText>
+                @* "download": the browser saves the file (served as an attachment) and the Blazor router leaves the link alone. *@
+                <MudButton Href="@($"/api/invoices/{invoice.Id}/document")" Variant="Variant.Outlined" StartIcon="@Icons.Material.Outlined.Download"
+                           download="@document.FileName" data-testid="download">Download original</MudButton>
+            </MudPaper>
+        }
+    </div>
+}
+
+@code {
+    private readonly CancellationTokenSource _disposed = new();
+    private InvoiceDetail? _invoice;
+    private bool _loaded;
+    private bool _rematching;
+    private string? _rematchMessage;
+    private Severity _rematchSeverity;
+
+    [Parameter]
+    public Guid Id { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _rematchMessage = null;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _invoice = await Operations.RunAsync<IInvoiceQueries, InvoiceDetail?>(q => q.GetAsync(Id, _disposed.Token));
+        _loaded = true;
+    }
+
+    /// <summary>Same rule as the use case: only an exception that comes from the match, not from findings.</summary>
+    private static bool CanRematch(InvoiceDetail invoice) => invoice.Status == InvoiceStatus.Exception && invoice.Findings.Count == 0;
+
+    private async Task RematchAsync()
+    {
+        _rematching = true;
+        try
+        {
+            var result = await Operations.RunAsync<IInvoiceRematch, RematchResult>(r => r.RematchAsync(Id, CurrentUser.Name, _disposed.Token));
+            (_rematchSeverity, _rematchMessage) = result.Outcome switch
+            {
+                RematchOutcome.Matched => (Severity.Success, "Matched again: the invoice now matches its order and goods receipts."),
+                RematchOutcome.StillException => (Severity.Warning, $"Still an exception: {string.Join(", ", result.Reasons.Select(Labels.Outcome))}."),
+                RematchOutcome.NotFound => (Severity.Error, "The invoice no longer exists."),
+                _ => (Severity.Error, result.Detail ?? "The invoice cannot be matched again."),
+            };
+            await LoadAsync();
+        }
+        finally
+        {
+            _rematching = false;
+        }
+    }
+
+    public void Dispose()
+    {
+        _disposed.Cancel();
+        _disposed.Dispose();
+    }
+}

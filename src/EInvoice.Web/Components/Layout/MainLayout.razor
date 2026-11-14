@@ -1,9 +1,40 @@
-﻿@inherits LayoutComponentBase
+@inherits LayoutComponentBase
 
-@Body
+<MudThemeProvider @ref="_themeProvider" Theme="AppTheme.Theme" @bind-IsDarkMode="_darkMode" ObserveSystemDarkModeChange="true" />
+<MudPopoverProvider />
+<MudDialogProvider />
+<MudSnackbarProvider />
+
+<MudLayout>
+    <MudAppBar Elevation="0" Dense="true">
+        <MudLink Href="/" Color="Color.Inherit" Underline="Underline.None" Typo="Typo.h6" Class="app-title">E-Invoice Inbox</MudLink>
+        <MudSpacer />
+        <MudText Typo="Typo.body2" Class="app-subtitle">Accounts payable</MudText>
+    </MudAppBar>
+    <MudMainContent>
+        <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="py-4">
+            @Body
+        </MudContainer>
+    </MudMainContent>
+</MudLayout>
 
 <div id="blazor-error-ui" data-nosnippet>
     An unhandled error has occurred.
     <a href="." class="reload">Reload</a>
-    <span class="dismiss">🗙</span>
+    <button type="button" class="dismiss" aria-label="Dismiss">×</button>
 </div>
+
+@code {
+    private MudThemeProvider? _themeProvider;
+    private bool _darkMode;
+
+    /// <summary>Light or dark follows the operating system setting.</summary>
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && _themeProvider is not null)
+        {
+            _darkMode = await _themeProvider.GetSystemDarkModeAsync();
+            StateHasChanged();
+        }
+    }
+}

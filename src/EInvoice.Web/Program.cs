@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using EInvoice.Web.Components;
 using EInvoice.Web.Configuration;
+using MudBlazor.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -9,6 +10,7 @@ builder.Services.AddProblemDetails();
 builder.Services.AddControllers()
     .AddJsonOptions(json => json.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter())); // statuses as names, not numbers
 builder.Services.AddOpenApi();
+builder.Services.AddMudServices();
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 

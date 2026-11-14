@@ -31,7 +31,7 @@ public sealed class InvoicesController(ICurrentUser user) : ControllerBase
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict, "application/problem+json")]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status413PayloadTooLarge, "application/problem+json")]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status415UnsupportedMediaType, "application/problem+json")]
-    public async Task<IActionResult> Upload([FromServices] InvoiceIntake intake, [FromServices] IntakeOptions options, CancellationToken cancellationToken)
+    public async Task<IActionResult> Upload([FromServices] IInvoiceIntake intake, [FromServices] IntakeOptions options, CancellationToken cancellationToken)
     {
         if (!Request.HasFormContentType)
         {
@@ -152,7 +152,7 @@ public sealed class InvoicesController(ICurrentUser user) : ControllerBase
     [ProducesResponseType<RematchResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound, "application/problem+json")]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict, "application/problem+json")]
-    public async Task<IActionResult> Rematch([FromServices] InvoiceRematch rematch, Guid id, CancellationToken cancellationToken)
+    public async Task<IActionResult> Rematch([FromServices] IInvoiceRematch rematch, Guid id, CancellationToken cancellationToken)
     {
         var result = await rematch.RematchAsync(id, user.Name, cancellationToken).ConfigureAwait(false);
         return result.Outcome switch

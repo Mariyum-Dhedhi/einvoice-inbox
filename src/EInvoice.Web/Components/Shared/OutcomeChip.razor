@@ -1,0 +1,8 @@
+@* Match outcome as word + icon; the colour only supports them. *@
+<MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Labels.OutcomeColor(Outcome)" Icon="@Labels.OutcomeIcon(Outcome)"
+         data-testid="outcome" Class="ma-0">@Labels.Outcome(Outcome)</MudChip>
+
+@code {
+    [Parameter, EditorRequired]
+    public MatchOutcome Outcome { get; set; }
+}

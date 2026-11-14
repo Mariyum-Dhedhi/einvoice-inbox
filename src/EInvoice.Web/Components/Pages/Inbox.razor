@@ -1,0 +1,202 @@
+@page "/"
+@implements IDisposable
+@using EInvoice.Application.Intake
+@using EInvoice.Web.Api
+@inject Operations Operations
+@inject IntakeOptions IntakeOptions
+@inject ICurrentUser CurrentUser
+@inject NavigationManager Navigation
+
+<PageTitle>Inbox – E-Invoice Inbox</PageTitle>
+
+<div class="d-flex flex-wrap align-center justify-space-between gap-3 mb-3">
+    <MudText Typo="Typo.h4" HtmlTag="h1">Inbox</MudText>
+
+    @* The real file input stays focusable (visually hidden); the button is its label. Type checks happen on the server. *@
+    <div class="upload">
+        <InputFile id="upload-input" class="visually-hidden" OnChange="UploadAsync" accept=".xml,application/xml,text/xml" disabled="@(!CanUpload)" />
+        <MudButton HtmlTag="label" for="upload-input" Variant="Variant.Filled" Color="Color.Primary" Disabled="!CanUpload"
+                   StartIcon="@Icons.Material.Outlined.UploadFile">
+            @(_uploading ? "Uploading…" : "Upload XRechnung")
+        </MudButton>
+    </div>
+</div>
+
+@if (_uploadError is not null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-3" data-testid="upload-error" ShowCloseIcon="true" CloseIconClicked="() => _uploadError = null">
+        @_uploadError
+        @if (_existingInvoice is { } existing)
+        {
+            <MudLink Href="@($"/invoices/{existing}")" data-testid="existing-invoice" Class="ml-1">Open the existing invoice</MudLink>
+        }
+    </MudAlert>
+}
+
+<nav aria-label="Filter by status" class="d-flex flex-wrap gap-2 mb-3">
+    <MudButton Href="/" Size="Size.Small" Variant="@(_status is null ? Variant.Filled : Variant.Outlined)" Color="Color.Primary"
+               data-testid="filter-all" aria-current="@(_status is null ? "page" : null)">All</MudButton>
+    @foreach (var status in FilterStatuses)
+    {
+        var current = _status == status;
+        <MudButton Href="@Link(status, 1)" Size="Size.Small" Variant="@(current ? Variant.Filled : Variant.Outlined)" Color="Color.Primary"
+                   data-testid="@($"filter-{status}")" aria-current="@(current ? "page" : null)">@Labels.Status(status)</MudButton>
+    }
+</nav>
+
+@if (_page is null)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" aria-label="Loading invoices" />
+}
+else if (_page.TotalCount == 0)
+{
+    <MudPaper Outlined="true" Class="pa-6 text-center" data-testid="empty">
+        <MudText>
+            @(_status is { } status
+                ? $"No invoices with status {Labels.Status(status)}."
+                : "No invoices yet. Upload an XRechnung file to start.")
+        </MudText>
+    </MudPaper>
+}
+else
+{
+    <MudPaper Outlined="true" Class="table-scroll">
+        <MudSimpleTable Dense="true" Hover="true" FixedHeader="false">
+            <thead>
+                <tr>
+                    <th scope="col">Status</th>
+                    <th scope="col">Invoice no.</th>
+                    <th scope="col">Vendor</th>
+                    <th scope="col">Issue date</th>
+                    <th scope="col" class="num">Gross amount</th>
+                    <th scope="col">Received</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var invoice in _page.Items)
+                {
+                    <tr data-testid="invoice-row">
+                        <td><StatusChip Status="invoice.Status" /></td>
+                        <td><MudLink Href="@($"/invoices/{invoice.Id}")">@(invoice.InvoiceNumber ?? "Not readable")</MudLink></td>
+                        <td>@(invoice.VendorName ?? "Unknown vendor")</td>
+                        <td class="nowrap">@Formats.Date(invoice.IssueDate)</td>
+                        <td class="num nowrap">@Formats.Money(invoice.GrossTotal, invoice.Currency)</td>
+                        <td class="nowrap">@Formats.Timestamp(invoice.ReceivedAt)</td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    </MudPaper>
+
+    <nav aria-label="Pages" class="d-flex align-center justify-end gap-2 mt-2">
+        <MudText Typo="Typo.body2" data-testid="page-range">@RangeText()</MudText>
+        @if (_page.Page > 1)
+        {
+            <MudButton Href="@Link(_status, _page.Page - 1)" Size="Size.Small" Variant="Variant.Text" StartIcon="@Icons.Material.Outlined.ChevronLeft"
+                       data-testid="page-prev">Previous</MudButton>
+        }
+        @if (_page.Page * _page.PageSize < _page.TotalCount)
+        {
+            <MudButton Href="@Link(_status, _page.Page + 1)" Size="Size.Small" Variant="Variant.Text" EndIcon="@Icons.Material.Outlined.ChevronRight"
+                       data-testid="page-next">Next</MudButton>
+        }
+    </nav>
+}
+
+@code {
+    // Statuses an invoice can have after intake and later in its life; Received/Parsed/Validated are only passed through.
+    private static readonly InvoiceStatus[] FilterStatuses =
+        [InvoiceStatus.Exception, InvoiceStatus.Matched, InvoiceStatus.Failed, InvoiceStatus.Approved, InvoiceStatus.Rejected, InvoiceStatus.Posted];
+
+    private readonly CancellationTokenSource _disposed = new();
+    private InvoicePage? _page;
+    private InvoiceStatus? _status;
+    private bool _uploading;
+    private string? _uploadError;
+    private Guid? _existingInvoice;
+
+    // While the page is only prerendered nothing would handle a picked file; enable the upload once it is interactive.
+    private bool CanUpload => RendererInfo.IsInteractive && !_uploading;
+
+    [SupplyParameterFromQuery(Name = "status")]
+    public string? StatusQuery { get; set; }
+
+    [SupplyParameterFromQuery(Name = "page")]
+    public string? PageQuery { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // The address is user input: anything that is not a status name or a positive number means "all" / page 1.
+        _status = Enum.GetNames<InvoiceStatus>().FirstOrDefault(n => string.Equals(n, StatusQuery, StringComparison.OrdinalIgnoreCase)) is { } name
+            ? Enum.Parse<InvoiceStatus>(name)
+            : null;
+        var page = int.TryParse(PageQuery, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var p) && p > 0 ? p : 1;
+
+        var query = new InvoiceListQuery(_status, page, InvoiceListQuery.DefaultPageSize);
+        _page = await Operations.RunAsync<IInvoiceQueries, InvoicePage>(q => q.ListAsync(query, _disposed.Token));
+    }
+
+    private async Task UploadAsync(InputFileChangeEventArgs e)
+    {
+        _uploadError = null;
+        _existingInvoice = null;
+        var file = e.File;
+        if (file.Size > IntakeOptions.MaxDocumentBytes)
+        {
+            _uploadError = $"The file is larger than {Formats.FileSize(IntakeOptions.MaxDocumentBytes)}.";
+            return;
+        }
+
+        _uploading = true;
+        try
+        {
+            using var buffer = new MemoryStream();
+            await using (var stream = file.OpenReadStream(IntakeOptions.MaxDocumentBytes, _disposed.Token))
+            {
+                await stream.CopyToAsync(buffer, _disposed.Token);
+            }
+
+            var upload = new UploadedFile(file.Name, buffer.ToArray());
+            var result = await Operations.RunAsync<IInvoiceIntake, IntakeResult>(intake => intake.SubmitAsync(upload, CurrentUser.Name, _disposed.Token));
+            if (result.Outcome == IntakeOutcome.Created)
+            {
+                Navigation.NavigateTo($"/invoices/{result.InvoiceId}");
+                return;
+            }
+
+            _uploadError = result.Detail ?? "The file was not accepted.";
+            _existingInvoice = result.Outcome == IntakeOutcome.DuplicateFile ? result.InvoiceId : null;
+        }
+        catch (IOException)
+        {
+            // The browser sent more than it announced, or the connection broke while reading.
+            _uploadError = "The file could not be read. Try again.";
+        }
+        finally
+        {
+            _uploading = false;
+        }
+    }
+
+    private static string Link(InvoiceStatus? status, int page) =>
+        (status, page) switch
+        {
+            (null, 1) => "/",
+            (null, _) => $"/?page={page}",
+            (_, 1) => $"/?status={status}",
+            _ => $"/?status={status}&page={page}",
+        };
+
+    private string RangeText()
+    {
+        var first = ((_page!.Page - 1) * _page.PageSize) + 1;
+        var last = first + _page.Items.Count - 1;
+        return $"{first}–{last} of {_page.TotalCount}";
+    }
+
+    public void Dispose()
+    {
+        _disposed.Cancel();
+        _disposed.Dispose();
+    }
+}
