@@ -15,7 +15,7 @@ public class InvoiceStateMachineTests
         [InvoiceStatus.Parsed] = [InvoiceStatus.Validated, InvoiceStatus.Exception],
         [InvoiceStatus.Validated] = [InvoiceStatus.Matched, InvoiceStatus.Exception],
         [InvoiceStatus.Matched] = [InvoiceStatus.Approved, InvoiceStatus.Exception],
-        [InvoiceStatus.Exception] = [InvoiceStatus.Approved, InvoiceStatus.Rejected],
+        [InvoiceStatus.Exception] = [InvoiceStatus.Approved, InvoiceStatus.Rejected, InvoiceStatus.Matched], // re-match after late goods receipt
         [InvoiceStatus.Approved] = [InvoiceStatus.Posted, InvoiceStatus.Failed],
         [InvoiceStatus.Failed] = [InvoiceStatus.Approved],
         [InvoiceStatus.Rejected] = [],

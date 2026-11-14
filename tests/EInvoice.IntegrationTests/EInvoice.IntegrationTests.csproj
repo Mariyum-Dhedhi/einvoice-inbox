@@ -10,6 +10,7 @@
     <PackageReference Include="xunit" />
     <PackageReference Include="xunit.runner.visualstudio" />
     <PackageReference Include="Testcontainers.MsSql" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
   </ItemGroup>
 
   <ItemGroup>
@@ -18,6 +19,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\EInvoice.Infrastructure\EInvoice.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\EInvoice.Web\EInvoice.Web.csproj" />
   </ItemGroup>
 
 </Project>
