@@ -5,6 +5,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\EInvoice.Application\EInvoice.Application.csproj" />
     <ProjectReference Include="..\EInvoice.Infrastructure\EInvoice.Infrastructure.csproj" />
   </ItemGroup>

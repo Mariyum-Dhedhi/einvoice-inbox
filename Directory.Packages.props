@@ -9,6 +9,9 @@
     <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.14" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.14" />
   </ItemGroup>
+  <ItemGroup Label="Web">
+    <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="10.0.14" />
+  </ItemGroup>
   <ItemGroup Label="Security pins (transitive)">
     <!-- Microsoft.Data.SqlClient 6.1.7 pulls in 9.0.11, affected by CVE-2026-84008 (high) and CVE-2026-70162 (moderate),
          both .NET denial of service. Patched in 10.0.13. Remove this pin once SqlClient depends on a fixed version. -->
@@ -17,6 +20,7 @@
   <ItemGroup Label="Testing">
     <PackageVersion Include="coverlet.collector" Version="6.0.4" />
     <PackageVersion Include="Testcontainers.MsSql" Version="4.16.0" />
+    <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.14" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageVersion Include="xunit" Version="2.9.3" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.4" />
