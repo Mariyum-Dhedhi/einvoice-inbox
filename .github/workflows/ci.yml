@@ -40,7 +40,7 @@ jobs:
       - name: Test (no database)
         run: >
           dotnet test EInvoice.slnx --no-build --configuration Release
-          --filter "Category!=Database&Category!=Kosit&Category!=E2E"
+          --filter "Category!=Database&Category!=Kosit&Category!=E2E&Category!=Ollama"
           --logger "trx;LogFilePrefix=results"
           --results-directory TestResults
 

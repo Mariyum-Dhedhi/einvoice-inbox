@@ -33,6 +33,7 @@ public sealed class EfInvoiceQueries(EInvoiceDbContext db) : IInvoiceQueries
             .Select(i => new InvoiceSummary(
                 i.Id,
                 i.Status,
+                i.SourceFormat,
                 i.InvoiceNumber,
                 db.Vendors.Where(v => v.Id == i.VendorId).Select(v => v.Name).FirstOrDefault(),
                 i.IssueDate,

@@ -1,3 +1,4 @@
+using EInvoice.Application.Extraction;
 using System.Security.Cryptography;
 using EInvoice.Application.Intake;
 using EInvoice.Application.Validation;
@@ -58,7 +59,8 @@ public sealed class InvoiceIntakeTests(SqlServerFixture fixture) : IAsyncLifetim
             new EfIntakeStore(_db),
             MatchingPolicy.Default,
             options ?? IntakeOptions.Default,
-            TimeProvider.System);
+            TimeProvider.System,
+            new DisabledInvoiceExtractor());
     }
 
     /// <summary>A fresh order for seeded vendor 1 (10 x 7.4125 and 4 x 39.90, fully received) and a matching invoice.</summary>

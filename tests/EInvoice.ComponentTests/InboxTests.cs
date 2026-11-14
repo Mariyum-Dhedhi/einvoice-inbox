@@ -215,3 +215,32 @@ public sealed class InboxPrerenderTests : UiTest
         Assert.False(cut.Find("input[type=file]").HasAttribute("disabled"));
     }
 }
+
+/// <summary>PDF uploads are offered, and AI-read invoices are recognisable in the list.</summary>
+public sealed class InboxPdfTests : UiTest
+{
+    [Fact]
+    public void Upload_accepts_pdf_files_too()
+    {
+        NavigateTo("/");
+
+        var accept = Render<Inbox>().Find("input[type=file]").GetAttribute("accept");
+
+        Assert.Contains(".pdf", accept, StringComparison.Ordinal);
+        Assert.Contains(".xml", accept, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Ai_read_invoices_are_marked_in_the_list_and_xml_invoices_are_not()
+    {
+        Queries.Page = new InvoicePage(
+            [Views.Summary(Guid.NewGuid(), number: "RE-PDF", format: SourceFormat.Pdf), Views.Summary(Guid.NewGuid(), number: "RE-XML")], 1, 25, 2);
+        NavigateTo("/");
+
+        var rows = Render<Inbox>().FindAll("[data-testid=invoice-row]");
+
+        Assert.Single(rows[0].QuerySelectorAll("[data-testid=ai-badge]"));
+        Assert.Empty(rows[1].QuerySelectorAll("[data-testid=ai-badge]"));
+        Assert.Contains("AI", rows[0].QuerySelector("[data-testid=ai-badge]")!.GetAttribute("aria-label"), StringComparison.Ordinal);
+    }
+}

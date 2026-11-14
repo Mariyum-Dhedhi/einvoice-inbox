@@ -111,8 +111,8 @@ public static class Views
     public static readonly Guid Vendor = Guid.Parse("00000000-0000-0000-0001-000000000001");
     public static readonly DateTimeOffset Received = new(2026, 11, 14, 8, 15, 0, TimeSpan.Zero); // 09:15 in Berlin
 
-    public static InvoiceSummary Summary(Guid id, InvoiceStatus status = InvoiceStatus.Matched, string? number = "RE-2026-0001", string? vendor = "Beispiel Bürobedarf GmbH") =>
-        new(id, status, number, vendor, new DateOnly(2026, 11, 2), 1234.56m, "EUR", Received);
+    public static InvoiceSummary Summary(Guid id, InvoiceStatus status = InvoiceStatus.Matched, string? number = "RE-2026-0001", string? vendor = "Beispiel Bürobedarf GmbH", SourceFormat format = SourceFormat.XRechnung) =>
+        new(id, status, format, number, vendor, new DateOnly(2026, 11, 2), 1234.56m, "EUR", Received);
 
     public static InvoiceDetail Detail(
         Guid id,
@@ -121,11 +121,12 @@ public static class Views
         IReadOnlyList<MatchLineView>? matches = null,
         IReadOnlyList<StatusChangeView>? history = null,
         string? vendorName = "Beispiel Bürobedarf GmbH",
-        string description = "HDMI cable 2 m") =>
+        string description = "HDMI cable 2 m",
+        SourceFormat format = SourceFormat.XRechnung) =>
         new(
             id,
             status,
-            SourceFormat.XRechnung,
+            format,
             "clerk@test",
             "RE-2026-0001",
             vendorName is null ? null : Vendor,

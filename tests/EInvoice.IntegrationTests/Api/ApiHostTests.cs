@@ -88,6 +88,45 @@ public sealed class ApiHostTests
         Assert.Contains(key.Split(':')[^1], string.Join(" ", validation.Failures), StringComparison.Ordinal);
     }
 
+    /// <summary>AI settings are checked only when AI is switched on; then every one of them must be right.</summary>
+    [Theory]
+    [InlineData("Ai:Model", null)]
+    [InlineData("Ai:Model", " ")]
+    [InlineData("Ai:OllamaUrl", null)]
+    [InlineData("Ai:OllamaUrl", "not a url")]
+    [InlineData("Ai:OllamaUrl", "file:///etc/passwd")]
+    [InlineData("Ai:TimeoutSeconds", "0")]
+    [InlineData("Ai:TimeoutSeconds", "601")]
+    public async Task Invalid_ai_setting_stops_the_application_when_ai_is_on(string key, string? value)
+    {
+        var settings = ApiFactory.Settings(UnusedConnection);
+        settings["Ai:Enabled"] = "true";
+        settings["Ai:OllamaUrl"] = "http://127.0.0.1:11434/";
+        settings["Ai:Model"] = "qwen2.5:7b";
+        settings[key] = value;
+        await using var factory = new ApiFactory(settings);
+
+        var error = Record.Exception(() => factory.CreateApiClient());
+
+        Assert.NotNull(error);
+        var validation = Unwrap(error).OfType<OptionsValidationException>().FirstOrDefault();
+        Assert.True(validation is not null, $"expected an options validation error, got {error.GetType().Name}");
+        Assert.Contains(key.Split(':')[^1], string.Join(" ", validation.Failures), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Ai_settings_are_not_needed_while_ai_is_off()
+    {
+        var settings = ApiFactory.Settings(UnusedConnection);
+        settings["Ai:Enabled"] = "false";
+        settings["Ai:OllamaUrl"] = "not a url"; // ignored while off
+        await using var factory = new ApiFactory(settings);
+
+        using var client = factory.CreateApiClient();
+
+        Assert.NotNull(client);
+    }
+
     private static IEnumerable<Exception> Unwrap(Exception error)
     {
         for (var e = error; e is not null; e = e.InnerException)

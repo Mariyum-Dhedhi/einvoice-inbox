@@ -1,3 +1,4 @@
+using EInvoice.Application.Extraction;
 using EInvoice.Application.Intake;
 using EInvoice.Application.Matching;
 using EInvoice.Application.Validation;
@@ -76,7 +77,8 @@ public sealed class InvoiceRematchTests(SqlServerFixture fixture) : IAsyncLifeti
             new EfIntakeStore(_db),
             MatchingPolicy.Default,
             IntakeOptions.Default,
-            TimeProvider.System);
+            TimeProvider.System,
+            new DisabledInvoiceExtractor());
         var upload = await intake.SubmitAsync(new UploadedFile("invoice.xml", xml), "clerk@test", CancellationToken.None);
         return (scenario, upload);
     }

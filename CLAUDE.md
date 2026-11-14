@@ -65,6 +65,10 @@ db/                          stored procedures, views, seed data
 - Extracted invoices become the same ParsedDocument as XML and go through the same rules and matcher; the VAT breakdown is recomputed from the lines.
 - FakeInvoiceModel is for tests and CI plumbing only; numbers from it are never reported as model accuracy (the evaluation in package 13c uses a real model).
 - Test PDFs are built in code (SyntheticPdf), never downloaded or taken from real suppliers.
+- PDFs are read by AI only when Ai:Enabled is true (off by default). Off: PDF refused (415). Model down: 503, nothing stored, the same file can be sent again. Unreadable/invalid reply: stored as Failed.
+- AI-read invoices have SourceFormat.Pdf and get Review findings: EXTRACTION_UNCONFIRMED per field without evidence (names the BT, never the value) and HIDDEN_TEXT. They skip the KoSIT check (no XML) but get every document rule.
+- Never write "flag ? null : bytes" for a ReadOnlyMemory<byte>?: a null byte[] becomes an EMPTY memory, not "no value".
+- Ollama runs natively (GPU), bound to 127.0.0.1:11434; model qwen2.5:7b. Real-model tests ([Trait("Category", "Ollama")]) are never in CI and never reported as accuracy.
 - All XML is read through Infrastructure/Parsing/SafeXml (DTD prohibited, no resolver, size limit). Never create an XmlReader or XDocument from untrusted input anywhere else.
 - Parse errors name the business term (BT-n) and never repeat document content.
 - testdata/**/kosit holds official files byte-exact; never edit them. Build modified variants in the test instead.
@@ -76,8 +80,9 @@ db/                          stored procedures, views, seed data
 
 ## Commands
 dotnet build --warnaserror
-dotnet test --filter "Category!=Database&Category!=Kosit&Category!=E2E"   # fast, no containers
+dotnet test --filter "Category!=Database&Category!=Kosit&Category!=E2E&Category!=Ollama"   # fast, no containers
 dotnet test --filter Category=Database      # needs Docker running; Testcontainers starts SQL Server itself
 dotnet test --filter Category=Kosit         # needs the kosit-validator service and EINVOICE_KOSIT_URL
 dotnet test --filter Category=E2E           # needs Docker and Chromium (once: powershell tests/EInvoice.IntegrationTests/bin/Debug/net10.0/playwright.ps1 install chromium)
+dotnet test --filter Category=Ollama        # real model, local only: EINVOICE_OLLAMA_URL=http://127.0.0.1:11434/ EINVOICE_OLLAMA_MODEL=qwen2.5:7b
 docker compose up -d

@@ -229,3 +229,43 @@ public sealed class InvoiceDetailTests : UiTest
         cut.WaitForAssertion(() => Assert.Contains("someone else", cut.Find("[data-testid=rematch-result]").TextContent, StringComparison.Ordinal));
     }
 }
+
+/// <summary>An invoice read by AI from a PDF says so, so nobody mistakes it for a structured e-invoice.</summary>
+public sealed class AiExtractedDetailTests : UiTest
+{
+    private IRenderedComponent<InvoiceDetailPage> Show(SourceFormat format, IReadOnlyList<FindingView>? findings = null)
+    {
+        var id = Guid.NewGuid();
+        Queries.Details[id] = Views.Detail(id, findings is null ? InvoiceStatus.Matched : InvoiceStatus.Exception, findings: findings, format: format);
+        return Render<InvoiceDetailPage>(p => p.Add(c => c.Id, id));
+    }
+
+    [Fact]
+    public void Pdf_invoice_carries_an_ai_badge_with_words_and_an_icon()
+    {
+        var badge = Show(SourceFormat.Pdf).Find("[data-testid=ai-extracted]");
+
+        Assert.Contains("AI", badge.TextContent, StringComparison.Ordinal);
+        Assert.Contains("PDF", badge.TextContent, StringComparison.Ordinal);
+        Assert.NotEmpty(badge.QuerySelectorAll("svg"));
+    }
+
+    [Fact]
+    public void Xml_invoice_has_no_ai_badge()
+    {
+        Assert.Empty(Show(SourceFormat.XRechnung).FindAll("[data-testid=ai-extracted]"));
+    }
+
+    [Fact]
+    public void Fields_to_confirm_are_listed_as_findings_with_their_line()
+    {
+        var cut = Show(SourceFormat.Pdf,
+        [
+            new FindingView(RuleCodes.ExtractionUnconfirmed, FindingSeverity.Review, "BT-153 (item name) needs confirming: the value was not found in the visible text of the document.", 1),
+        ]);
+
+        var finding = cut.Find("[data-testid=finding]");
+        Assert.Contains("BT-153", finding.TextContent, StringComparison.Ordinal);
+        Assert.Contains(RuleCodes.ExtractionUnconfirmed, finding.TextContent, StringComparison.Ordinal);
+    }
+}
