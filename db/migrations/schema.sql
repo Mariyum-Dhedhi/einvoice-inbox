@@ -394,3 +394,78 @@ END;
 COMMIT;
 GO
 
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261114002726_AddInvoiceDocumentAndFindings'
+)
+BEGIN
+    CREATE TABLE [dbo].[InvoiceDocument] (
+        [InvoiceId] uniqueidentifier NOT NULL,
+        [FileName] nvarchar(255) NOT NULL,
+        [ContentType] varchar(100) NOT NULL,
+        [Content] varbinary(max) NOT NULL,
+        [Sha256] binary(32) NOT NULL,
+        [SizeBytes] int NOT NULL,
+        [ReceivedAt] datetimeoffset NOT NULL,
+        [RowId] bigint NOT NULL IDENTITY,
+        CONSTRAINT [PK_InvoiceDocument] PRIMARY KEY NONCLUSTERED ([InvoiceId]),
+        CONSTRAINT [FK_InvoiceDocument_Invoice_InvoiceId] FOREIGN KEY ([InvoiceId]) REFERENCES [dbo].[Invoice] ([Id]) ON DELETE CASCADE
+    );
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261114002726_AddInvoiceDocumentAndFindings'
+)
+BEGIN
+    CREATE TABLE [dbo].[InvoiceFinding] (
+        [InvoiceId] uniqueidentifier NOT NULL,
+        [Sequence] int NOT NULL,
+        [RuleCode] varchar(40) NOT NULL,
+        [Severity] int NOT NULL,
+        [Message] nvarchar(500) NOT NULL,
+        [LinePosition] int NULL,
+        [RowId] bigint NOT NULL IDENTITY,
+        CONSTRAINT [PK_InvoiceFinding] PRIMARY KEY NONCLUSTERED ([InvoiceId], [Sequence]),
+        CONSTRAINT [CK_InvoiceFinding_Severity] CHECK ([Severity] IN (1, 2)),
+        CONSTRAINT [FK_InvoiceFinding_Invoice_InvoiceId] FOREIGN KEY ([InvoiceId]) REFERENCES [dbo].[Invoice] ([Id]) ON DELETE CASCADE
+    );
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261114002726_AddInvoiceDocumentAndFindings'
+)
+BEGIN
+    CREATE CLUSTERED INDEX [CX_InvoiceDocument_RowId] ON [dbo].[InvoiceDocument] ([RowId]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261114002726_AddInvoiceDocumentAndFindings'
+)
+BEGIN
+    CREATE UNIQUE INDEX [UX_InvoiceDocument_Sha256] ON [dbo].[InvoiceDocument] ([Sha256]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261114002726_AddInvoiceDocumentAndFindings'
+)
+BEGIN
+    CREATE CLUSTERED INDEX [CX_InvoiceFinding_RowId] ON [dbo].[InvoiceFinding] ([RowId]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261114002726_AddInvoiceDocumentAndFindings'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20261114002726_AddInvoiceDocumentAndFindings', N'10.0.14');
+END;
+
+COMMIT;
+GO
+
