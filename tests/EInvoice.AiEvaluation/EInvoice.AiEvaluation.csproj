@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- The AI evaluation runner: generates the evaluation PDFs, checks them, and runs every case through the real
+       upload pipeline with a chosen model. A console app, not a test project; its own logic is tested in UnitTests. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Testcontainers.MsSql" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\EInvoice.Infrastructure\EInvoice.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>
