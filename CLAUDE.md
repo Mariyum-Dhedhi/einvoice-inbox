@@ -69,6 +69,10 @@ db/                          stored procedures, views, seed data
 - AI-read invoices have SourceFormat.Pdf and get Review findings: EXTRACTION_UNCONFIRMED per field without evidence (names the BT, never the value) and HIDDEN_TEXT. They skip the KoSIT check (no XML) but get every document rule.
 - Never write "flag ? null : bytes" for a ReadOnlyMemory<byte>?: a null byte[] becomes an EMPTY memory, not "no value".
 - Ollama runs natively (GPU), bound to 127.0.0.1:11434; model qwen2.5:7b. Real-model tests ([Trait("Category", "Ollama")]) are never in CI and never reported as accuracy.
+- AI evaluation: testdata/ai-eval/cases.json is the answer key (approved case by case); the PDFs are generated from it and never edited (EvalPdfTests compares bytes). Change cases.json, then run the generate command.
+- The oracle run (OracleRunTests, CI) must reach all expected answers; a failure there means the answer key or the scoring is wrong, not a model.
+- README AI numbers come only from full real-model runs saved in testdata/ai-eval/results/, quoted with model, digest, Ollama version, date and the number of runs.
+- gitattributes has no {a,b} brace patterns: one line per extension.
 - All XML is read through Infrastructure/Parsing/SafeXml (DTD prohibited, no resolver, size limit). Never create an XmlReader or XDocument from untrusted input anywhere else.
 - Parse errors name the business term (BT-n) and never repeat document content.
 - testdata/**/kosit holds official files byte-exact; never edit them. Build modified variants in the test instead.
@@ -85,4 +89,5 @@ dotnet test --filter Category=Database      # needs Docker running; Testcontaine
 dotnet test --filter Category=Kosit         # needs the kosit-validator service and EINVOICE_KOSIT_URL
 dotnet test --filter Category=E2E           # needs Docker and Chromium (once: powershell tests/EInvoice.IntegrationTests/bin/Debug/net10.0/playwright.ps1 install chromium)
 dotnet test --filter Category=Ollama        # real model, local only: EINVOICE_OLLAMA_URL=http://127.0.0.1:11434/ EINVOICE_OLLAMA_MODEL=qwen2.5:7b
+dotnet run --project tests/EInvoice.AiEvaluation -- run --provider ollama --model qwen2.5:7b   # AI evaluation (Docker + Ollama)
 docker compose up -d
