@@ -664,6 +664,7 @@
           "EInvoice.Domain": "[1.0.0, )",
           "Microsoft.EntityFrameworkCore.SqlServer": "[10.0.14, )",
           "Microsoft.Extensions.AI": "[10.11.0, )",
+          "OllamaSharp": "[5.5.0, )",
           "PdfPig": "[0.1.16, )"
         }
       },
@@ -720,6 +721,16 @@
           "Microsoft.AspNetCore.Components": "10.0.1",
           "Microsoft.AspNetCore.Components.Web": "10.0.1",
           "Microsoft.Extensions.Localization": "10.0.1"
+        }
+      },
+      "OllamaSharp": {
+        "type": "CentralTransitive",
+        "requested": "[5.5.0, )",
+        "resolved": "5.5.0",
+        "contentHash": "CpACG21U4KBZ5YcPUH/Pf8VMP0CCO7NsEkYJLLVf06YzVwcixRPy2bub71mbMlWCfzdADd8YfKx8kGWD5ai4Kg==",
+        "dependencies": {
+          "Microsoft.Extensions.AI": "10.8.0",
+          "Microsoft.Extensions.AI.Abstractions": "10.8.0"
         }
       },
       "PdfPig": {

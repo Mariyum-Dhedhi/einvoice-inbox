@@ -1,9 +1,11 @@
+using EInvoice.Application.Extraction;
 using EInvoice.Application.Intake;
 using EInvoice.Application.Matching;
 using EInvoice.Application.Parsing;
 using EInvoice.Application.Queries;
 using EInvoice.Application.Validation;
 using EInvoice.Domain.Matching;
+using EInvoice.Infrastructure.Extraction;
 using EInvoice.Infrastructure.Intake;
 using EInvoice.Infrastructure.Matching;
 using EInvoice.Infrastructure.Parsing;
@@ -15,7 +17,9 @@ using EInvoice.Web.Components.Shared;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Options;
+using OllamaSharp;
 
 namespace EInvoice.Web.Configuration;
 
@@ -38,6 +42,8 @@ internal static class ServiceRegistration
         services.AddOptions<KositSettings>().BindConfiguration(KositSettings.Section).ValidateDataAnnotations().ValidateOnStart();
         services.AddSingleton<IValidateOptions<KositSettings>, KositSettingsValidator>();
         services.AddOptions<MatchingSettings>().BindConfiguration(MatchingSettings.Section).ValidateDataAnnotations().ValidateOnStart();
+        services.AddOptions<AiSettings>().BindConfiguration(AiSettings.Section).ValidateOnStart();
+        services.AddSingleton<IValidateOptions<AiSettings>, AiSettingsValidator>();
 
         // Request limits follow the document limit: a larger upload is cut off while it is read.
         services.AddOptions<FormOptions>().Configure<IOptions<IntakeSettings>>((form, intake) => form.MultipartBodyLengthLimit = intake.Value.MaxDocumentBytes);
@@ -56,6 +62,24 @@ internal static class ServiceRegistration
         services.AddSingleton(TimeProvider.System);
         services.AddSingleton(sp => new IntakeOptions(sp.GetRequiredService<IOptions<IntakeSettings>>().Value.MaxDocumentBytes));
         services.AddSingleton(sp => new MatchingPolicy(sp.GetRequiredService<IOptions<MatchingSettings>>().Value.PriceTolerancePercent));
+        // AI extraction: the model only reads (see Infrastructure/Extraction). Off means PDFs are refused.
+        services.AddHttpClient("ollama", (sp, http) =>
+        {
+            var ai = sp.GetRequiredService<IOptions<AiSettings>>().Value;
+            http.BaseAddress = new Uri(ai.OllamaUrl!, UriKind.Absolute);
+            http.Timeout = TimeSpan.FromSeconds(ai.TimeoutSeconds);
+        });
+        services.AddSingleton<IInvoiceExtractor>(sp =>
+        {
+            var ai = sp.GetRequiredService<IOptions<AiSettings>>().Value;
+            if (!ai.Enabled)
+            {
+                return new DisabledInvoiceExtractor();
+            }
+
+            IChatClient model = new OllamaApiClient(sp.GetRequiredService<IHttpClientFactory>().CreateClient("ollama"), ai.Model!);
+            return new LlmInvoiceExtractor(new PdfTextReader(PdfLimits.Default), model);
+        });
         services.AddSingleton<IInvoiceDocumentParser>(_ => new XRechnungParser()); // default XML limits
 
         services.AddScoped<IValidationDataSource, EfValidationDataSource>();

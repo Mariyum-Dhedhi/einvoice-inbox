@@ -53,3 +53,52 @@ internal sealed class KositSettingsValidator : IValidateOptions<KositSettings>
             ? ValidateOptionsResult.Success
             : ValidateOptionsResult.Fail("Kosit:BaseUrl must be an absolute http or https URL.");
 }
+
+/// <summary>
+/// AI extraction of plain PDF invoices. Off by default: then PDFs are refused and no model is needed.
+/// The model runs locally in Ollama; the URL should stay on this machine or the local network.
+/// </summary>
+public sealed class AiSettings
+{
+    public const string Section = "Ai";
+
+    public bool Enabled { get; set; }
+
+    /// <summary>For example http://127.0.0.1:11434/.</summary>
+    public string? OllamaUrl { get; set; }
+
+    /// <summary>For example qwen2.5:7b; must be pulled in Ollama first.</summary>
+    public string? Model { get; set; }
+
+    /// <summary>A long invoice on a small GPU takes a while; a model that has not answered by then counts as unavailable.</summary>
+    public int TimeoutSeconds { get; set; } = 120;
+}
+
+internal sealed class AiSettingsValidator : IValidateOptions<AiSettings>
+{
+    public ValidateOptionsResult Validate(string? name, AiSettings options)
+    {
+        if (!options.Enabled)
+        {
+            return ValidateOptionsResult.Success; // nothing else is read while AI is off
+        }
+
+        var failures = new List<string>();
+        if (!Uri.TryCreate(options.OllamaUrl, UriKind.Absolute, out var uri) || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
+        {
+            failures.Add("Ai:OllamaUrl must be an absolute http or https URL when AI is enabled.");
+        }
+
+        if (string.IsNullOrWhiteSpace(options.Model) || options.Model.Length > 100)
+        {
+            failures.Add("Ai:Model is required when AI is enabled (for example qwen2.5:7b).");
+        }
+
+        if (options.TimeoutSeconds is < 1 or > 600)
+        {
+            failures.Add("Ai:TimeoutSeconds must be between 1 and 600.");
+        }
+
+        return failures.Count == 0 ? ValidateOptionsResult.Success : ValidateOptionsResult.Fail(failures);
+    }
+}

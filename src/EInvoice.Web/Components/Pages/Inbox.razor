@@ -14,10 +14,10 @@
 
     @* The real file input stays focusable (visually hidden); the button is its label. Type checks happen on the server. *@
     <div class="upload">
-        <InputFile id="upload-input" class="visually-hidden" OnChange="UploadAsync" accept=".xml,application/xml,text/xml" disabled="@(!CanUpload)" />
+        <InputFile id="upload-input" class="visually-hidden" OnChange="UploadAsync" accept=".xml,application/xml,text/xml,.pdf,application/pdf" disabled="@(!CanUpload)" />
         <MudButton HtmlTag="label" for="upload-input" Variant="Variant.Filled" Color="Color.Primary" Disabled="!CanUpload"
                    StartIcon="@Icons.Material.Outlined.UploadFile">
-            @(_uploading ? "Uploading…" : "Upload XRechnung")
+            @(_uploading ? "Uploading…" : "Upload invoice")
         </MudButton>
     </div>
 </div>
@@ -54,7 +54,7 @@ else if (_page.TotalCount == 0)
         <MudText>
             @(_status is { } status
                 ? $"No invoices with status {Labels.Status(status)}."
-                : "No invoices yet. Upload an XRechnung file to start.")
+                : "No invoices yet. Upload an XRechnung or PDF invoice to start.")
         </MudText>
     </MudPaper>
 }
@@ -77,7 +77,13 @@ else
                 {
                     <tr data-testid="invoice-row">
                         <td><StatusChip Status="invoice.Status" /></td>
-                        <td><MudLink Href="@($"/invoices/{invoice.Id}")" Underline="Underline.Always">@(invoice.InvoiceNumber ?? "Not readable")</MudLink></td>
+                        <td><MudLink Href="@($"/invoices/{invoice.Id}")" Underline="Underline.Always">@(invoice.InvoiceNumber ?? "Not readable")</MudLink>
+                            @if (invoice.SourceFormat == SourceFormat.Pdf)
+                            {
+                                <MudIcon Icon="@Icons.Material.Outlined.AutoAwesome" Size="Size.Small" Class="ml-1 ai-mark" Title="Read by AI from a PDF"
+                                         aria-label="Read by AI from a PDF" role="img" data-testid="ai-badge" />
+                            }
+                        </td>
                         <td>@(invoice.VendorName ?? "Unknown vendor")</td>
                         <td class="nowrap">@Formats.Date(invoice.IssueDate)</td>
                         <td class="num nowrap">@Formats.Money(invoice.GrossTotal, invoice.Currency)</td>

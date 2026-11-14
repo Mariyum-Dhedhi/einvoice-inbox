@@ -33,6 +33,11 @@ else
         <div class="d-flex flex-wrap align-center gap-3">
             <MudText Typo="Typo.h4" HtmlTag="h1">@(invoice.InvoiceNumber ?? "Not readable")</MudText>
             <StatusChip Status="invoice.Status" />
+            @if (invoice.SourceFormat == SourceFormat.Pdf)
+            {
+                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Info" Icon="@Icons.Material.Outlined.AutoAwesome" Class="ma-0"
+                         data-testid="ai-extracted" title="The fields were read from a PDF by a language model and checked against the document. Findings name every field a person has to confirm.">AI · read from PDF</MudChip>
+            }
             <MudSpacer />
             @if (CanRematch(invoice))
             {

@@ -21,7 +21,7 @@ public sealed class InvoicesController(ICurrentUser user) : ControllerBase
 
     public sealed record RematchResponse(Guid InvoiceId, RematchOutcome Outcome, InvoiceStatus Status, IReadOnlyList<MatchOutcome> Reasons);
 
-    /// <summary>Upload one XRechnung XML file as multipart/form-data field "file".</summary>
+    /// <summary>Upload one XRechnung XML file, or a plain PDF invoice (read by AI when it is switched on), as multipart/form-data field "file".</summary>
     /// <response code="201">Stored; the status says how far it got (Matched, Exception or Failed).</response>
     [HttpPost]
     [Consumes("multipart/form-data")]
@@ -30,6 +30,7 @@ public sealed class InvoicesController(ICurrentUser user) : ControllerBase
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict, "application/problem+json")]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status413PayloadTooLarge, "application/problem+json")]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status503ServiceUnavailable, "application/problem+json")]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status415UnsupportedMediaType, "application/problem+json")]
     public async Task<IActionResult> Upload([FromServices] IInvoiceIntake intake, [FromServices] IntakeOptions options, CancellationToken cancellationToken)
     {
@@ -77,6 +78,7 @@ public sealed class InvoicesController(ICurrentUser user) : ControllerBase
             IntakeOutcome.TooLarge => Refusal(StatusCodes.Status413PayloadTooLarge, result),
             IntakeOutcome.UnsupportedType => Refusal(StatusCodes.Status415UnsupportedMediaType, result),
             IntakeOutcome.DuplicateFile or IntakeOutcome.DuplicateInvoiceNumber => Refusal(StatusCodes.Status409Conflict, result),
+            IntakeOutcome.ExtractionUnavailable => Unavailable(result),
             _ => throw new InvalidOperationException($"Unhandled intake outcome {result.Outcome}."),
         };
     }
@@ -162,6 +164,13 @@ public sealed class InvoicesController(ICurrentUser user) : ControllerBase
             RematchOutcome.NotAllowed => Problem(statusCode: StatusCodes.Status409Conflict, detail: result.Detail),
             _ => throw new InvalidOperationException($"Unhandled re-match outcome {result.Outcome}."),
         };
+    }
+
+    /// <summary>The extraction model is down: nothing was stored, so the client can simply send the same file again later.</summary>
+    private ObjectResult Unavailable(IntakeResult result)
+    {
+        Response.Headers.RetryAfter = "60";
+        return Refusal(StatusCodes.Status503ServiceUnavailable, result);
     }
 
     private ObjectResult NotFoundProblem() => Problem(statusCode: StatusCodes.Status404NotFound, detail: "There is no invoice with this id.");
