@@ -151,6 +151,7 @@ public sealed class PdfIntakeTests(SqlServerFixture fixture) : IAsyncLifetime
         var unconfirmed = Assert.Single(findings, f => f.RuleCode == RuleCodes.ExtractionUnconfirmed);
         Assert.Equal(FindingSeverity.Review, unconfirmed.Severity);
         Assert.Contains("BT-112", unconfirmed.Message, StringComparison.Ordinal);
+        Assert.Contains("gross total", unconfirmed.Message, StringComparison.Ordinal);
         Assert.DoesNotContain("1.00", unconfirmed.Message, StringComparison.Ordinal); // never repeats model output
         Assert.Contains(findings, f => f.RuleCode == RuleCodes.Totals); // and the rules object on their own
         Assert.Empty(await _db.MatchResults.Where(r => r.InvoiceId == result.InvoiceId).ToListAsync());
@@ -166,6 +167,8 @@ public sealed class PdfIntakeTests(SqlServerFixture fixture) : IAsyncLifetime
 
         var unconfirmed = Assert.Single(await FindingsAsync(result.InvoiceId), f => f.RuleCode == RuleCodes.ExtractionUnconfirmed);
         Assert.Contains("BT-153", unconfirmed.Message, StringComparison.Ordinal);
+        Assert.Contains("item name", unconfirmed.Message, StringComparison.Ordinal); // the clerk reads words, not only codes
+        Assert.Contains("not found in the visible text", unconfirmed.Message, StringComparison.Ordinal); // and why
         Assert.Equal(1, unconfirmed.LinePosition);
     }
 
