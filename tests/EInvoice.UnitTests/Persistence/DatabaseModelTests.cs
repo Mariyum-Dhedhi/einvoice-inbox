@@ -38,7 +38,7 @@ public class DatabaseModelTests
         var tables = Model.GetEntityTypes().Select(e => e.GetTableName() ?? "(none)").Distinct().Order().ToList();
 
         Assert.Equal(
-            new[] { "GoodsReceipt", "GoodsReceiptLine", "Invoice", "InvoiceLine", "InvoiceStatusChange", "MatchResult", "PurchaseOrder", "PurchaseOrderLine", "Vendor", "VendorBankAccount" },
+            new[] { "GoodsReceipt", "GoodsReceiptLine", "Invoice", "InvoiceDocument", "InvoiceFinding", "InvoiceLine", "InvoiceStatusChange", "MatchResult", "PurchaseOrder", "PurchaseOrderLine", "Vendor", "VendorBankAccount" },
             tables);
     }
 
@@ -146,6 +146,27 @@ public class DatabaseModelTests
     }
 
     [Fact]
+    public void The_same_file_can_be_stored_only_once()
+    {
+        // Duplicate-file protection in the database, so two simultaneous uploads of one file cannot both succeed.
+        var document = Model.GetEntityTypes().Single(e => e.GetTableName() == "InvoiceDocument");
+        var index = Assert.Single(document.GetIndexes(), i => i.Properties.Single().Name == "Sha256");
+
+        Assert.True(index.IsUnique);
+        Assert.Equal("binary(32)", index.Properties.Single().GetColumnType());
+        Assert.Equal("varbinary(max)", document.FindProperty("Content")!.GetColumnType());
+    }
+
+    [Fact]
+    public void Finding_severity_check_constraint_lists_exactly_the_enum_values()
+    {
+        var expected = $"[Severity] IN ({string.Join(", ", Enum.GetValues<EInvoice.Application.Validation.FindingSeverity>().Cast<int>())})";
+        var finding = Model.GetEntityTypes().Single(e => e.GetTableName() == "InvoiceFinding");
+
+        Assert.Contains(finding.GetCheckConstraints(), c => c.Sql == expected);
+    }
+
+    [Fact]
     public void Source_format_check_constraint_lists_exactly_the_enum_values()
     {
         var expected = $"[SourceFormat] IN ({string.Join(", ", Enum.GetValues<SourceFormat>().Cast<int>())})";
@@ -174,6 +195,8 @@ public class DatabaseModelTests
         ("Invoice", "InvoiceLine"),
         ("Invoice", "InvoiceStatusChange"),
         ("Invoice", "MatchResult"),
+        ("Invoice", "InvoiceDocument"),
+        ("Invoice", "InvoiceFinding"),
         ("PurchaseOrder", "PurchaseOrderLine"),
         ("GoodsReceipt", "GoodsReceiptLine"),
     ];

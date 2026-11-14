@@ -125,6 +125,60 @@ namespace EInvoice.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("EInvoice.Domain.Invoices.InvoiceDocument", b =>
+                {
+                    b.Property<Guid>("InvoiceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte[]>("Content")
+                        .IsRequired()
+                        .HasColumnType("varbinary(max)");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(100)");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<DateTimeOffset>("ReceivedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<long>("RowId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("RowId"));
+
+                    b.Property<byte[]>("Sha256")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("binary(32)")
+                        .IsFixedLength();
+
+                    b.Property<int>("SizeBytes")
+                        .HasColumnType("int");
+
+                    b.HasKey("InvoiceId");
+
+                    SqlServerKeyBuilderExtensions.IsClustered(b.HasKey("InvoiceId"), false);
+
+                    b.HasIndex("RowId")
+                        .HasDatabaseName("CX_InvoiceDocument_RowId");
+
+                    SqlServerIndexBuilderExtensions.IsClustered(b.HasIndex("RowId"));
+
+                    b.HasIndex("Sha256")
+                        .IsUnique()
+                        .HasDatabaseName("UX_InvoiceDocument_Sha256");
+
+                    b.ToTable("InvoiceDocument", "dbo");
+                });
+
             modelBuilder.Entity("EInvoice.Domain.Invoices.InvoiceLine", b =>
                 {
                     b.Property<Guid>("InvoiceId")
@@ -485,6 +539,52 @@ namespace EInvoice.Infrastructure.Persistence.Migrations
                     b.ToTable("VendorBankAccount", "dbo");
                 });
 
+            modelBuilder.Entity("EInvoice.Infrastructure.Persistence.InvoiceFindingRecord", b =>
+                {
+                    b.Property<Guid>("InvoiceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Sequence")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("LinePosition")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<long>("RowId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("RowId"));
+
+                    b.Property<string>("RuleCode")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(40)");
+
+                    b.Property<int>("Severity")
+                        .HasColumnType("int");
+
+                    b.HasKey("InvoiceId", "Sequence");
+
+                    SqlServerKeyBuilderExtensions.IsClustered(b.HasKey("InvoiceId", "Sequence"), false);
+
+                    b.HasIndex("RowId")
+                        .HasDatabaseName("CX_InvoiceFinding_RowId");
+
+                    SqlServerIndexBuilderExtensions.IsClustered(b.HasIndex("RowId"));
+
+                    b.ToTable("InvoiceFinding", "dbo", t =>
+                        {
+                            t.HasCheckConstraint("CK_InvoiceFinding_Severity", "[Severity] IN (1, 2)");
+                        });
+                });
+
             modelBuilder.Entity("EInvoice.Infrastructure.Persistence.MatchResultRecord", b =>
                 {
                     b.Property<Guid>("InvoiceId")
@@ -562,6 +662,15 @@ namespace EInvoice.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
                 });
 
+            modelBuilder.Entity("EInvoice.Domain.Invoices.InvoiceDocument", b =>
+                {
+                    b.HasOne("EInvoice.Domain.Invoices.Invoice", null)
+                        .WithOne()
+                        .HasForeignKey("EInvoice.Domain.Invoices.InvoiceDocument", "InvoiceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("EInvoice.Domain.Invoices.InvoiceLine", b =>
                 {
                     b.HasOne("EInvoice.Domain.Invoices.Invoice", null)
@@ -622,6 +731,15 @@ namespace EInvoice.Infrastructure.Persistence.Migrations
                         .WithMany()
                         .HasForeignKey("VendorId")
                         .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("EInvoice.Infrastructure.Persistence.InvoiceFindingRecord", b =>
+                {
+                    b.HasOne("EInvoice.Domain.Invoices.Invoice", null)
+                        .WithMany()
+                        .HasForeignKey("InvoiceId")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 

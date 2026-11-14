@@ -17,6 +17,10 @@ public sealed class EInvoiceDbContext(DbContextOptions<EInvoiceDbContext> option
 
     public DbSet<Invoice> Invoices => Set<Invoice>();
 
+    public DbSet<InvoiceDocument> InvoiceDocuments => Set<InvoiceDocument>();
+
+    public DbSet<InvoiceFindingRecord> InvoiceFindings => Set<InvoiceFindingRecord>();
+
     /// <summary>Written only by dbo.usp_MatchInvoice; read by the match panel.</summary>
     public DbSet<MatchResultRecord> MatchResults => Set<MatchResultRecord>();
 
