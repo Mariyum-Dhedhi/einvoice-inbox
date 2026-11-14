@@ -61,7 +61,7 @@ else if (_page.TotalCount == 0)
 else
 {
     <MudPaper Outlined="true" Class="table-scroll">
-        <MudSimpleTable Dense="true" Hover="true" FixedHeader="false">
+        <MudSimpleTable Elevation="0" Dense="true" Hover="true" FixedHeader="false">
             <thead>
                 <tr>
                     <th scope="col">Status</th>
@@ -77,7 +77,7 @@ else
                 {
                     <tr data-testid="invoice-row">
                         <td><StatusChip Status="invoice.Status" /></td>
-                        <td><MudLink Href="@($"/invoices/{invoice.Id}")">@(invoice.InvoiceNumber ?? "Not readable")</MudLink></td>
+                        <td><MudLink Href="@($"/invoices/{invoice.Id}")" Underline="Underline.Always">@(invoice.InvoiceNumber ?? "Not readable")</MudLink></td>
                         <td>@(invoice.VendorName ?? "Unknown vendor")</td>
                         <td class="nowrap">@Formats.Date(invoice.IssueDate)</td>
                         <td class="num nowrap">@Formats.Money(invoice.GrossTotal, invoice.Currency)</td>

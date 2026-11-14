@@ -23,7 +23,7 @@ public static class Formats
     public static string Quantity(decimal? quantity) => quantity is { } value ? value.ToString("#,##0.####", German) : Missing;
 
     public static string Percent(decimal? percent) =>
-        percent is { } value ? value.ToString("+#,##0.00;-#,##0.00;0,00", German) + Nbsp + "%" : Missing;
+        percent is { } value ? value.ToString("+#,##0.00;-#,##0.00;0.00", German) + Nbsp + "%" : Missing;
 
     /// <summary>A setting, such as the tolerance: no sign.</summary>
     public static string Rate(decimal value) => value.ToString("#,##0.00", German) + Nbsp + "%";

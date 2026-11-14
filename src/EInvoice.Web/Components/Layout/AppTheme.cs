@@ -55,6 +55,7 @@ public static class AppTheme
             {
                 FontFamily = ["system-ui", "-apple-system", "Segoe UI", "Roboto", "Helvetica Neue", "Arial", "sans-serif"],
             },
+            Button = new ButtonTypography { TextTransform = "none" }, // sentence case, as the rest of the page
         },
         LayoutProperties = new LayoutProperties { DefaultBorderRadius = "6px" },
     };

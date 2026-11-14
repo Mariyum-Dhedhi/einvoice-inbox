@@ -45,9 +45,9 @@ else
             <div><dt>Vendor</dt><dd data-testid="vendor">@(invoice.VendorName ?? "Unknown vendor")</dd></div>
             <div><dt>Purchase order</dt><dd data-testid="order">@(invoice.PurchaseOrderNumber ?? "–")</dd></div>
             <div><dt>Issue date</dt><dd>@Formats.Date(invoice.IssueDate)</dd></div>
-            <div><dt>Net</dt><dd class="num" data-testid="net">@Formats.Money(invoice.NetTotal, invoice.Currency)</dd></div>
-            <div><dt>VAT</dt><dd class="num" data-testid="tax">@Formats.Money(invoice.TaxTotal, invoice.Currency)</dd></div>
-            <div><dt>Gross</dt><dd class="num strong" data-testid="gross">@Formats.Money(invoice.GrossTotal, invoice.Currency)</dd></div>
+            <div><dt>Net</dt><dd class="tabular" data-testid="net">@Formats.Money(invoice.NetTotal, invoice.Currency)</dd></div>
+            <div><dt>VAT</dt><dd class="tabular" data-testid="tax">@Formats.Money(invoice.TaxTotal, invoice.Currency)</dd></div>
+            <div><dt>Gross</dt><dd class="tabular strong" data-testid="gross">@Formats.Money(invoice.GrossTotal, invoice.Currency)</dd></div>
         </dl>
 
         @if (invoice.Status == InvoiceStatus.Failed && invoice.History.LastOrDefault()?.Reason is { } failure)
@@ -69,7 +69,7 @@ else
         <MudPaper Outlined="true" Class="pa-4 mb-3">
             <MudText Typo="Typo.h6" HtmlTag="h2" Class="mb-2">Validation findings</MudText>
             <div class="table-scroll">
-                <MudSimpleTable Dense="true">
+                <MudSimpleTable Elevation="0" Dense="true">
                     <thead><tr><th scope="col">Severity</th><th scope="col">Rule</th><th scope="col">Finding</th><th scope="col">Line</th></tr></thead>
                     <tbody>
                         @foreach (var finding in invoice.Findings)
@@ -112,7 +112,7 @@ else
         else
         {
             <div class="table-scroll">
-                <MudSimpleTable Dense="true">
+                <MudSimpleTable Elevation="0" Dense="true">
                     <thead>
                         <tr>
                             <th scope="col">Line</th>
@@ -151,7 +151,7 @@ else
         <MudPaper Outlined="true" Class="pa-4 mb-3">
             <MudText Typo="Typo.h6" HtmlTag="h2" Class="mb-2">Invoice lines</MudText>
             <div class="table-scroll">
-                <MudSimpleTable Dense="true">
+                <MudSimpleTable Elevation="0" Dense="true">
                     <thead>
                         <tr>
                             <th scope="col">Line</th>

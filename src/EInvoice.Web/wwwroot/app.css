@@ -38,8 +38,10 @@ h1:focus {
 }
 /* ---- E-Invoice Inbox ------------------------------------------------------------------------------------------ */
 
-/* Amounts line up in columns. */
-.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+/* Amounts line up in columns (MudBlazor sets text-align on table cells, hence the longer selector). */
+.tabular, .num { font-variant-numeric: tabular-nums; }
+.mud-simple-table table tr > td.num, .mud-simple-table table tr > th.num { text-align: right; }
 .nowrap { white-space: nowrap; }
 .strong { font-weight: 600; }
 .code { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 0.8125rem; }

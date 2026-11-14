@@ -40,8 +40,11 @@ public sealed class FormatsTests
     public void Timestamp_follows_summer_time() =>
         Assert.Equal("01.07.2026 10:00", Formats.Timestamp(new DateTimeOffset(2026, 7, 1, 8, 0, 0, TimeSpan.Zero)));
 
-    [Fact]
-    public void Percent_has_a_sign() => Assert.Equal("+3,25 %", Formats.Percent(3.25m));
+    [Theory]
+    [InlineData(3.25, "+3,25 %")]
+    [InlineData(-0.5, "-0,50 %")]
+    [InlineData(0, "0,00 %")] // found in a screenshot: "0,00" in a .NET format string means grouping and gave "000"
+    public void Percent_has_a_sign(decimal percent, string expected) => Assert.Equal(expected, Formats.Percent(percent));
 
     [Fact]
     public void Amount_and_currency_are_joined_by_a_non_breaking_space()
