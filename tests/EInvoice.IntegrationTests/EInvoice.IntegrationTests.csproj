@@ -19,6 +19,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- One builder for synthetic PDF invoices, shared with the unit tests. -->
+    <Compile Include="..\EInvoice.UnitTests\Extraction\SyntheticPdf.cs" Link="TestData\SyntheticPdf.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\src\EInvoice.Infrastructure\EInvoice.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\EInvoice.Web\EInvoice.Web.csproj" />
   </ItemGroup>

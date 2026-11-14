@@ -1,3 +1,4 @@
+using EInvoice.Application.Extraction;
 using EInvoice.Application.Intake;
 using EInvoice.Application.Validation;
 using EInvoice.Domain.Matching;
@@ -30,7 +31,8 @@ public sealed class InvoiceIntakeRaceTests(SqlServerFixture fixture)
         var db = fixture.CreateContext();
         var data = new EfValidationDataSource(db);
         var intake = new InvoiceIntake(new XRechnungParser(), new InvoiceValidator(data, new Accepting()), data,
-            new SqlInvoiceMatcher(db), new EfIntakeStore(db), MatchingPolicy.Default, IntakeOptions.Default, TimeProvider.System);
+            new SqlInvoiceMatcher(db), new EfIntakeStore(db), MatchingPolicy.Default, IntakeOptions.Default, TimeProvider.System,
+            new DisabledInvoiceExtractor());
         return intake.SubmitAsync(new UploadedFile("invoice.xml", content), "clerk@test", CancellationToken.None)
             .ContinueWith(t => { db.Dispose(); return t.Result; }, TaskScheduler.Default);
     }

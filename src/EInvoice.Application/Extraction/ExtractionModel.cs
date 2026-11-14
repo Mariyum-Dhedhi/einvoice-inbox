@@ -30,6 +30,9 @@ public enum ExtractionErrorCode
 
     /// <summary>A value an invoice must have was not found.</summary>
     MissingField = 6,
+
+    /// <summary>AI extraction is switched off in the settings.</summary>
+    Disabled = 7,
 }
 
 /// <param name="Message">Safe to log and show: names the business term, never repeats document or model text.</param>
@@ -93,4 +96,11 @@ public sealed record PdfLimits(int MaxPages, int MaxCharacters)
 {
     /// <summary>An invoice is a few pages; anything far beyond that is not sent to a model.</summary>
     public static PdfLimits Default { get; } = new(MaxPages: 20, MaxCharacters: 60_000);
+}
+
+/// <summary>Used when AI is switched off (Ai:Enabled = false): every PDF is answered with <see cref="ExtractionErrorCode.Disabled"/>.</summary>
+public sealed class DisabledInvoiceExtractor : IInvoiceExtractor
+{
+    public Task<ExtractionResult> ExtractAsync(ReadOnlyMemory<byte> pdf, CancellationToken cancellationToken) =>
+        Task.FromResult(ExtractionResult.Failure(new ExtractionError(ExtractionErrorCode.Disabled, "AI extraction is switched off.")));
 }

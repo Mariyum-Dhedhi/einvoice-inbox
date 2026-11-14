@@ -19,6 +19,9 @@ public enum IntakeOutcome
 
     /// <summary>The vendor already has an invoice with this number; nothing is stored.</summary>
     DuplicateInvoiceNumber = 6,
+
+    /// <summary>A PDF needs the extraction model, which cannot be reached right now; nothing is stored, the same file can be sent again.</summary>
+    ExtractionUnavailable = 7,
 }
 
 /// <param name="InvoiceId">The new invoice, or for <see cref="IntakeOutcome.DuplicateFile"/> the existing one.</param>

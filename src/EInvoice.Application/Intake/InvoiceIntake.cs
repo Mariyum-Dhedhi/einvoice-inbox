@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using EInvoice.Application.Extraction;
 using EInvoice.Application.Matching;
 using EInvoice.Application.Parsing;
 using EInvoice.Application.Validation;
@@ -9,7 +10,8 @@ using EInvoice.Domain.Shared;
 namespace EInvoice.Application.Intake;
 
 /// <summary>
-/// The upload pipeline: check the file, refuse duplicates, parse, validate, store the original with the invoice,
+/// The upload pipeline: check the file, refuse duplicates, read it (XML parser, or AI extraction for a plain PDF),
+/// validate, store the original with the invoice,
 /// then three-way match. Every accepted upload becomes an invoice whose status says how far it got:
 /// Matched (clean), Exception (a human decides, with reasons) or Failed (unreadable, kept for audit).
 /// </summary>
@@ -21,7 +23,8 @@ public sealed class InvoiceIntake(
     IIntakeStore store,
     MatchingPolicy policy,
     IntakeOptions options,
-    TimeProvider time) : IInvoiceIntake
+    TimeProvider time,
+    IInvoiceExtractor extractor) : IInvoiceIntake
 {
     private const string System = "system";
 
@@ -48,34 +51,59 @@ public sealed class InvoiceIntake(
             return new IntakeResult(IntakeOutcome.TooLarge, Detail: $"The file is larger than {options.MaxDocumentBytes} bytes.");
         }
 
-        switch (ContentSniffer.Detect(content))
+        var kind = ContentSniffer.Detect(content);
+        if (kind == DetectedContent.Unknown)
         {
-            case DetectedContent.Pdf:
-                return new IntakeResult(IntakeOutcome.UnsupportedType, Detail: "PDF invoices (ZUGFeRD and plain PDF) are not supported yet; upload XRechnung XML.");
-            case DetectedContent.Unknown:
-                return new IntakeResult(IntakeOutcome.UnsupportedType, Detail: "Only XRechnung XML files are accepted.");
+            return new IntakeResult(IntakeOutcome.UnsupportedType, Detail: "Only XRechnung XML and PDF invoices are accepted.");
         }
 
-        // 2. The same file again: point at the invoice it already created.
+        // 2. The same file again: point at the invoice it already created (before any model is asked about it).
         var hash = SHA256.HashData(content);
         if (await store.FindInvoiceIdByDocumentHashAsync(hash, cancellationToken).ConfigureAwait(false) is { } existing)
         {
             return new IntakeResult(IntakeOutcome.DuplicateFile, existing, Detail: "This file was uploaded before.");
         }
 
+        var isPdf = kind == DetectedContent.Pdf;
         var received = time.GetUtcNow();
-        var invoice = Invoice.Receive(SourceFormat.XRechnung, submittedBy, received);
-        var document = new InvoiceDocument(invoice.Id, UploadNames.Sanitize(file.FileName), "application/xml", content, hash, received);
+        var invoice = Invoice.Receive(isPdf ? SourceFormat.Pdf : SourceFormat.XRechnung, submittedBy, received);
+        var document = new InvoiceDocument(invoice.Id, UploadNames.Sanitize(file.FileName), isPdf ? "application/pdf" : "application/xml", content, hash, received);
 
-        // 3. Parse. An unreadable document is kept as Failed, with the reason, so nothing disappears silently.
-        var parsed = parser.Parse(new MemoryStream(content, writable: false));
-        if (!parsed.Succeeded)
+        // 3. Read the document: XML with the parser, PDF with AI extraction. Unreadable files are kept as Failed,
+        //    with the reason, so nothing disappears silently. A model that is switched off or down stores nothing.
+        ParsedDocument source;
+        IReadOnlyList<ValidationFinding> extractionFindings = [];
+        if (isPdf)
         {
-            invoice.TransitionTo(InvoiceStatus.Failed, System, time.GetUtcNow(), Truncate($"{parsed.Error!.Code}: {parsed.Error.Message}"));
-            return await StoreAsync(invoice, document, [], hash, cancellationToken).ConfigureAwait(false);
-        }
+            var extraction = await extractor.ExtractAsync(content, cancellationToken).ConfigureAwait(false);
+            if (!extraction.Succeeded)
+            {
+                switch (extraction.Error!.Code)
+                {
+                    case ExtractionErrorCode.Disabled:
+                        return new IntakeResult(IntakeOutcome.UnsupportedType, Detail: "PDF invoices are read by AI, which is switched off. Upload XRechnung XML.");
+                    case ExtractionErrorCode.ModelUnavailable:
+                        return new IntakeResult(IntakeOutcome.ExtractionUnavailable, Detail: "AI extraction is unavailable right now. Nothing was stored; try again later.");
+                    default:
+                        invoice.TransitionTo(InvoiceStatus.Failed, System, time.GetUtcNow(), Truncate($"{extraction.Error.Code}: {extraction.Error.Message}"));
+                        return await StoreAsync(invoice, document, [], hash, cancellationToken).ConfigureAwait(false);
+                }
+            }
 
-        var source = parsed.Document!;
+            source = extraction.Document!;
+            extractionFindings = ExtractionFindings(extraction);
+        }
+        else
+        {
+            var parsed = parser.Parse(new MemoryStream(content, writable: false));
+            if (!parsed.Succeeded)
+            {
+                invoice.TransitionTo(InvoiceStatus.Failed, System, time.GetUtcNow(), Truncate($"{parsed.Error!.Code}: {parsed.Error.Message}"));
+                return await StoreAsync(invoice, document, [], hash, cancellationToken).ConfigureAwait(false);
+            }
+
+            source = parsed.Document!;
+        }
         if (TooLongField(source) is { } tooLong)
         {
             invoice.TransitionTo(InvoiceStatus.Failed, System, time.GetUtcNow(), tooLong);
@@ -97,12 +125,22 @@ public sealed class InvoiceIntake(
         }
 
         // 4. Validate. A duplicate invoice number is refused outright: nothing is stored.
-        var validation = await validator.ValidateAsync(source, content, cancellationToken).ConfigureAwait(false);
-        if (validation.Findings.Any(f => f.RuleCode == RuleCodes.DuplicateNumber))
+        // The KoSIT conformance check reads XML; a PDF has none, and the document rules recompute its totals instead.
+        // No conditional on purpose: "isPdf ? null : content" has the type byte[], and a null byte[] converts to an
+        // EMPTY memory that counts as XML, even when assigned to a nullable. That sent every PDF to KoSIT.
+        ReadOnlyMemory<byte>? sourceXml = null;
+        if (!isPdf)
+        {
+            sourceXml = content;
+        }
+
+        var validated = await validator.ValidateAsync(source, sourceXml, cancellationToken).ConfigureAwait(false);
+        if (validated.Findings.Any(f => f.RuleCode == RuleCodes.DuplicateNumber))
         {
             return new IntakeResult(IntakeOutcome.DuplicateInvoiceNumber, Detail: "The vendor already has an invoice with this number.");
         }
 
+        var validation = new ValidationResult([.. validated.Findings, .. extractionFindings]);
         if (validation.IsValid)
         {
             invoice.TransitionTo(InvoiceStatus.Validated, System, time.GetUtcNow());
@@ -152,6 +190,48 @@ public sealed class InvoiceIntake(
             return new IntakeResult(IntakeOutcome.DuplicateInvoiceNumber, Detail: "The vendor already has an invoice with this number.");
         }
     }
+
+    /// <summary>
+    /// What a person has to look at in an AI-read invoice: every field the evidence check could not back, and hidden
+    /// text in the file. Messages name the business term; they never repeat the extracted value or the document text.
+    /// </summary>
+    private static List<ValidationFinding> ExtractionFindings(ExtractionResult extraction)
+    {
+        var findings = new List<ValidationFinding>();
+        if (extraction.HiddenTextFound)
+        {
+            findings.Add(new ValidationFinding(RuleCodes.HiddenText, FindingSeverity.Review,
+                "The PDF contains text that cannot be seen on the page. It was not used for reading the invoice; look at the file before approving."));
+        }
+
+        findings.AddRange(extraction.LowConfidenceFields.Select(f => new ValidationFinding(
+            RuleCodes.ExtractionUnconfirmed,
+            FindingSeverity.Review,
+            $"{f.Term} ({TermName(f.Term)}) needs confirming: {f.Reason}",
+            f.LinePosition)));
+        return findings;
+    }
+
+    private static string TermName(string term) => term switch
+    {
+        "BT-1" => "invoice number",
+        "BT-2" => "issue date",
+        "BT-5" => "currency",
+        "BT-13" => "purchase order",
+        "BT-27" => "seller name",
+        "BT-31" => "seller VAT id",
+        "BT-84" => "bank account",
+        "BT-109" => "net total",
+        "BT-110" => "VAT total",
+        "BT-112" => "gross total",
+        "BT-129" => "quantity",
+        "BT-131" => "line amount",
+        "BT-132" => "order line",
+        "BT-146" => "unit price",
+        "BT-152" => "VAT rate",
+        "BT-153" => "item name",
+        _ => "value",
+    };
 
     private static string? TooLongField(ParsedDocument source) =>
         source.InvoiceNumber.Length > MaxInvoiceNumber

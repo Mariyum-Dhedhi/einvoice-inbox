@@ -26,6 +26,7 @@ public sealed record InvoicePage(IReadOnlyList<InvoiceSummary> Items, int Page, 
 public sealed record InvoiceSummary(
     Guid Id,
     InvoiceStatus Status,
+    SourceFormat SourceFormat,
     string? InvoiceNumber,
     string? VendorName,
     DateOnly? IssueDate,

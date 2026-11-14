@@ -18,6 +18,12 @@ public static class RuleCodes
     public const string VendorInactive = "VENDOR_INACTIVE";
     public const string DuplicateNumber = "DUPLICATE_NUMBER";
     public const string PossibleDuplicate = "POSSIBLE_DUPLICATE";
+
+    /// <summary>A value read by AI from a PDF could not be backed by the document; a person confirms it.</summary>
+    public const string ExtractionUnconfirmed = "EXTRACTION_UNCONFIRMED";
+
+    /// <summary>The PDF contains text that cannot be seen on the page (a common way to hide instructions for a model).</summary>
+    public const string HiddenText = "HIDDEN_TEXT";
 }
 
 public enum FindingSeverity
