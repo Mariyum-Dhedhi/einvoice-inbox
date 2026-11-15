@@ -8,7 +8,7 @@ purchase orders and goods receipts, and sends anything doubtful to a person with
 
 > **Status:** in development, built in public, one
 > [work package](https://github.com/Mariyum-Dhedhi/einvoice-inbox/issues) per pull request.
-> Done: upload pipeline, validation (incl. the official KoSIT validator), matching, API, UI, AI extraction, sign-in and roles.
+> Done: upload pipeline, validation (incl. the official KoSIT validator), matching, API, UI, AI extraction, sign-in and roles, approval workflow.
 
 ## AI extraction, measured
 

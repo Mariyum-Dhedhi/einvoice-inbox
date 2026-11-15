@@ -64,12 +64,17 @@
         _failed = true;
     }
 
-    /// <summary>The inbox, or the user list for an admin, who has no invoice pages.</summary>
+    /// <summary>The approval queue for an approver, the user list for an admin (no invoice pages), else the inbox.</summary>
     private async Task<string> StartPageAsync(string userName)
     {
         var user = await SignIn.UserManager.FindByNameAsync(userName);
         var roles = user is null ? [] : await SignIn.UserManager.GetRolesAsync(user);
         var readsInvoices = roles.Any(r => r is Roles.Clerk or Roles.Approver or Roles.Auditor);
+        if (roles.Contains(Roles.Approver))
+        {
+            return "/approvals"; // the queue of invoices waiting for them
+        }
+
         return !readsInvoices && roles.Contains(Roles.Admin) ? "/admin/users" : "/";
     }
 

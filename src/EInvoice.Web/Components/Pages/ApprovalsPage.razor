@@ -1,0 +1,114 @@
+@page "/approvals"
+@attribute [Authorize(Policy = Policies.DecideInvoices)]
+@using EInvoice.Application.Approval
+@using Microsoft.Extensions.Options
+@using EInvoice.Web.Configuration
+@inject Operations Operations
+@inject IOptions<ApprovalSettings> Settings
+
+<PageTitle>Approvals – E-Invoice Inbox</PageTitle>
+
+<MudText Typo="Typo.h4" HtmlTag="h1" Class="mb-1">Approvals</MudText>
+<MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
+    Invoices waiting for a decision, the one waiting longest first. Open an invoice to approve or reject it.
+</MudText>
+
+@if (_queue is null || _approver is null)
+{
+    <MudProgressLinear Indeterminate="true" aria-label="Loading the approval queue" />
+}
+else if (_queue.TotalCount == 0)
+{
+    <MudText data-testid="queue-empty">Nothing is waiting for a decision.</MudText>
+}
+else
+{
+    <MudPaper Elevation="0" Outlined="true">
+        <MudSimpleTable Elevation="0" Dense="true" Hover="true">
+            <thead>
+                <tr>
+                    <th scope="col">Received</th>
+                    <th scope="col">Invoice</th>
+                    <th scope="col">Vendor</th>
+                    <th scope="col" class="text-right">Gross</th>
+                    <th scope="col">Status</th>
+                    <th scope="col">You</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in _queue.Items)
+                {
+                    var (state, icon, text) = Describe(item, _approver);
+                    <tr data-testid="queue-row">
+                        <td class="nowrap">@Formats.Timestamp(item.ReceivedAt)</td>
+                        <td><MudLink Href="@($"/invoices/{item.Id}")" Underline="Underline.Always">@(item.InvoiceNumber ?? "(no number)")</MudLink></td>
+                        <td class="break-all">@(item.VendorName ?? "Unknown vendor")</td>
+                        <td class="text-right nowrap">@Formats.Money(item.GrossTotal, item.Currency)</td>
+                        <td><StatusChip Status="item.Status" /></td>
+                        <td>
+                            @* What this approver can do, in words with an icon: never colour alone. *@
+                            <span data-testid="decision-state" data-state="@state" class="d-inline-flex align-center gap-1">
+                                <MudIcon Icon="@icon" Size="Size.Small" aria-hidden="true" />
+                                @text
+                            </span>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    </MudPaper>
+
+    <nav aria-label="Pages" class="d-flex align-center justify-end gap-2 mt-2">
+        @if (_queue.Page > 1)
+        {
+            <MudButton Href="@Link(_queue.Page - 1)" Size="Size.Small" Variant="Variant.Text" StartIcon="@Icons.Material.Outlined.ChevronLeft"
+                       data-testid="page-prev">Previous</MudButton>
+        }
+        @if (_queue.Page * _queue.PageSize < _queue.TotalCount)
+        {
+            <MudButton Href="@Link(_queue.Page + 1)" Size="Size.Small" Variant="Variant.Text" EndIcon="@Icons.Material.Outlined.ChevronRight"
+                       data-testid="page-next">Next</MudButton>
+        }
+    </nav>
+}
+
+@code {
+    private const int PageSize = 25;
+
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthState { get; set; } = default!;
+
+    /// <summary>The address is user input: anything but a positive whole number means page 1.</summary>
+    [SupplyParameterFromQuery(Name = "page")]
+    public string? PageQuery { get; set; }
+
+    private ApprovalQueuePage? _queue;
+    private Approver? _approver;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var page = int.TryParse(PageQuery, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var p) && p > 0 ? p : 1;
+        _approver = ApproverOf.User((await AuthState).User, Settings.Value.DefaultLimitEur);
+        _queue = await Operations.RunAsync<IInvoiceQueries, ApprovalQueuePage>(q => q.ApprovalQueueAsync(page, PageSize, CancellationToken.None));
+    }
+
+    private static string Link(int page) => page == 1 ? "/approvals" : $"/approvals?page={page}";
+
+    /// <summary>The same rules the server applies (ApprovalRules), said in advance.</summary>
+    private static (string State, string Icon, string Text) Describe(ApprovalQueueItem item, Approver approver)
+    {
+        if (ApprovalRules.IsOwn(item.SubmittedBy, approver))
+        {
+            return ("own", Icons.Material.Outlined.PersonOff, "Submitted by you: someone else decides");
+        }
+
+        return ApprovalRules.WhyNotApprove(approver, item.GrossTotal, item.Currency, item.HasBlockingFindings)?.Outcome switch
+        {
+            null => ("ready", Icons.Material.Outlined.TaskAlt, "Ready to decide"),
+            DecisionOutcome.OverLimit => ("over-limit", Icons.Material.Outlined.Block,
+                string.Create(System.Globalization.CultureInfo.InvariantCulture, $"Above your limit of {approver.LimitEur:#,##0.00} EUR: you can only reject")),
+            DecisionOutcome.CurrencyNotSupported => ("currency", Icons.Material.Outlined.CurrencyExchange, "Not in EUR: you can only reject"),
+            _ => ("blocked", Icons.Material.Outlined.GppBad, "Only rejection: a finding blocks payment"),
+        };
+    }
+}
