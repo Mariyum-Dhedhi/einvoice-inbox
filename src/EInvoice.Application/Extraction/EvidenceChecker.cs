@@ -16,6 +16,8 @@ public static partial class EvidenceChecker
     private const string Missing = "No value was extracted.";
     private const string LeftOut = "The document appears to state a value, but none was extracted.";
     private const string NotAddingUp = "The value is in the document, but the amounts do not add up.";
+    private const string LineNotAddingUp = "The line amount does not equal quantity x price, so this value may be wrong.";
+    private const string SwallowedNumbers = "The item name contains the line's own quantity, price or amount; it was probably read together with them.";
 
     private static readonly CultureInfo German = CultureInfo.GetCultureInfo("de-DE");
     private static readonly CultureInfo English = CultureInfo.GetCultureInfo("en-US");
@@ -30,6 +32,7 @@ public static partial class EvidenceChecker
         ArgumentNullException.ThrowIfNull(ibansInDocument);
 
         var text = Normalize(visibleText);
+        var rows = visibleText.Split('\n').Select(Normalize).ToList();
         var compact = Whitespace().Replace(visibleText, string.Empty).ToUpperInvariant();
         var lines = invoice.Lines ?? [];
         var fields = new List<FieldConfidence>
@@ -58,15 +61,27 @@ public static partial class EvidenceChecker
         {
             FieldConfidence Line(string term, string? reason) => new(term, position, reason is null, reason);
 
-            fields.Add(Line("BT-153", line.Description is null ? Missing : HasToken(text, line.Description) ? null : NotFound));
-            fields.Add(Line("BT-129", line.Quantity is not { } quantity ? Missing : AmountIsPrinted(text, quantity) ? null : NotFound));
-            fields.Add(Line("BT-146", line.UnitPrice is not { } price ? Missing : AmountIsPrinted(text, price) ? null : NotFound));
+            // Quantity x price must give the line amount. When it does not, the arithmetic cannot tell which of the
+            // three values is wrong (a "12" taken from "crate 12 x 1 l" is in the document too), so all three are in doubt.
+            var lineAddsUp = line.Quantity is { } q && line.UnitPrice is { } p && line.NetAmount is { } a
+                && Math.Abs(decimal.Round(q * p, 2, MidpointRounding.AwayFromZero) - a) <= Tolerance;
+
+            fields.Add(Line("BT-153", line.Description is null ? Missing
+                : !HasToken(text, line.Description) ? NotFound
+                : SwallowedOwnNumbers(Normalize(line.Description), line) ? SwallowedNumbers : null));
+            fields.Add(Line("BT-129", line.Quantity is not { } quantity ? Missing
+                : !AmountIsPrinted(text, quantity) ? NotFound
+                : lineAddsUp || line.NetAmount is null || line.UnitPrice is null ? null : LineNotAddingUp));
+            fields.Add(Line("BT-146", line.UnitPrice is not { } price ? Missing
+                : !AmountIsPrinted(text, price) ? NotFound
+                : lineAddsUp || line.NetAmount is null || line.Quantity is null ? null : LineNotAddingUp));
             fields.Add(Line("BT-131", line.NetAmount is not { } amount ? Missing
                 : !AmountIsPrinted(text, amount) ? NotFound
-                : line.Quantity is null || line.UnitPrice is null
-                  || Math.Abs(decimal.Round(line.Quantity.Value * line.UnitPrice.Value, 2, MidpointRounding.AwayFromZero) - amount) > Tolerance ? NotAddingUp : null));
+                : lineAddsUp ? null : NotAddingUp));
             fields.Add(Line("BT-152", line.TaxRatePercent is not { } rate ? Missing : AmountIsPrinted(text, rate) ? null : NotFound));
-            fields.Add(Line("BT-132", line.OrderLineReference is null || HasToken(text, line.OrderLineReference) ? null : NotFound));
+            fields.Add(Line("BT-132", line.OrderLineReference is null
+                ? (invoice.PurchaseOrderReference is not null && OrderLineLabel().IsMatch(text) && !NoReferencePrinted(rows, line) ? LeftOut : null)
+                : HasToken(text, line.OrderLineReference) ? null : NotFound));
         }
 
         return fields;
@@ -178,6 +193,47 @@ public static partial class EvidenceChecker
         var symbol = code switch { "EUR" => "€", "USD" => "$", "GBP" => "£", "CHF" => "FR.", _ => null };
         return HasToken(text, code) || (symbol is not null && text.Contains(symbol, StringComparison.Ordinal));
     }
+
+    /// <summary>
+    /// The item name holds the line's own unit price or amount, in decimal notation ("Laptop 14 Zoll, 2 x 1.265,00 EUR"):
+    /// the model read past the end of the name. Numbers that belong to the product ("crate 12 x 1 l") are not affected.
+    /// </summary>
+    private static bool SwallowedOwnNumbers(string description, ExtractedLine line) =>
+        new[] { line.UnitPrice, line.NetAmount }.OfType<decimal>()
+            .SelectMany(Notations)
+            .Where(n => n.Contains(',', StringComparison.Ordinal) || n.Contains('.', StringComparison.Ordinal))
+            .Any(n => ContainsNumber(description, n));
+
+    private static bool ContainsNumber(string text, string number)
+    {
+        for (var at = text.IndexOf(number, StringComparison.Ordinal); at >= 0; at = text.IndexOf(number, at + 1, StringComparison.Ordinal))
+        {
+            if (!ContinuesNumber(text, at - 1, -1) && !ContinuesNumber(text, at + number.Length, 1))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// The item's own row shows that it has no order line: it ends with "-" (an empty column) or with its VAT rate
+    /// (no reference after it). Rows are found by the item name; when the row cannot be found, nothing is assumed.
+    /// </summary>
+    private static bool NoReferencePrinted(IReadOnlyList<string> rows, ExtractedLine line)
+    {
+        if (line.Description is null)
+        {
+            return false;
+        }
+
+        var row = rows.FirstOrDefault(r => r.Contains(Normalize(line.Description), StringComparison.Ordinal));
+        return row is not null && (row.EndsWith('-') || row.EndsWith('–') || row.EndsWith('%'));
+    }
+
+    [GeneratedRegex(@"PO LINE|ORDER LINE|BESTELLPOSITION|BEST\.-POS|BESTELLPOS")]
+    private static partial Regex OrderLineLabel();
 
     [GeneratedRegex(@"\s+")]
     private static partial Regex Whitespace();

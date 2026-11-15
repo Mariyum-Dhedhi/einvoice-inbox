@@ -62,7 +62,9 @@ public static partial class SensitiveDataMasker
     [GeneratedRegex(@"\b[A-Z]{2}\d{2}(?: ?[A-Z0-9]{4}){2,7}(?: ?[A-Z0-9]{1,3})?\b")]
     private static partial Regex IbanPattern();
 
-    [GeneratedRegex(@"^([ \t]*(?:Ihre?[ \t]+)?(?:Ansprechpartner(?:in)?|Kontakt(?:person)?|Contact(?:[ \t]person)?|Sachbearbeiter(?:in)?|Attn\.?|z\.[ \t]?Hd\.?)[ \t]*:?[ \t]*)\S.*$", RegexOptions.Multiline | RegexOptions.IgnoreCase)]
+    // A contact label at the start of a line or after a separator ("Firma | Ansprechpartner: Max Mustermann | Tel.: ..."),
+    // then the name, up to the next separator or the end of the line.
+    [GeneratedRegex(@"((?:^|[|·;,])[ \t]*(?:Ihre?[ \t]+)?(?:Ansprechpartner(?:in)?|Kontakt(?:person)?|Contact(?:[ \t]person)?|Sachbearbeiter(?:in)?|Attn\.?|z\.[ \t]?Hd\.?)[ \t]*:?[ \t]*)[^|·;\r\n]+?(?=[ \t]*(?:[|·;]|\r?$))", RegexOptions.Multiline | RegexOptions.IgnoreCase)]
     private static partial Regex ContactLine();
 
     [GeneratedRegex(@"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")]
