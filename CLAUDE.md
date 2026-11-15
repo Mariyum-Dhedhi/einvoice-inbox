@@ -73,6 +73,8 @@ db/                          stored procedures, views, seed data
 - The oracle run (OracleRunTests, CI) must reach all expected answers; a failure there means the answer key or the scoring is wrong, not a model.
 - README AI numbers come only from full real-model runs saved in testdata/ai-eval/results/, quoted with model, digest, Ollama version, date and the number of runs.
 - gitattributes has no {a,b} brace patterns: one line per extension.
+- Exception explanations (Application/Explanation): RuleBasedExplainer covers every match outcome and every RuleCodes constant; a new rule code needs a step there (a test reads RuleCodes).
+- The AI explainer sees ExplanationFacts only (codes, numbers, rule messages; never invoice number, item names or other supplier text). Any number in its reply that is not in the facts discards the reply (rule-based text shown, with the reason). It is a suggestion; a person decides.
 - All XML is read through Infrastructure/Parsing/SafeXml (DTD prohibited, no resolver, size limit). Never create an XmlReader or XDocument from untrusted input anywhere else.
 - Parse errors name the business term (BT-n) and never repeat document content.
 - testdata/**/kosit holds official files byte-exact; never edit them. Build modified variants in the test instead.
