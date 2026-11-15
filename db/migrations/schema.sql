@@ -288,7 +288,7 @@ IF NOT EXISTS (
 )
 BEGIN
     INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
-    VALUES (N'20261112230731_InitialSchema', N'10.0.14');
+    VALUES (N'20261112230731_InitialSchema', N'10.0.15');
 END;
 
 COMMIT;
@@ -340,7 +340,7 @@ IF NOT EXISTS (
 )
 BEGIN
     INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
-    VALUES (N'20261113185401_AddVendorBankAccountAndVatIdIndex', N'10.0.14');
+    VALUES (N'20261113185401_AddVendorBankAccountAndVatIdIndex', N'10.0.15');
 END;
 
 COMMIT;
@@ -388,7 +388,7 @@ IF NOT EXISTS (
 )
 BEGIN
     INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
-    VALUES (N'20261113192242_AddMatchResult', N'10.0.14');
+    VALUES (N'20261113192242_AddMatchResult', N'10.0.15');
 END;
 
 COMMIT;
@@ -463,7 +463,7 @@ IF NOT EXISTS (
 )
 BEGIN
     INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
-    VALUES (N'20261114002726_AddInvoiceDocumentAndFindings', N'10.0.14');
+    VALUES (N'20261114002726_AddInvoiceDocumentAndFindings', N'10.0.15');
 END;
 
 COMMIT;
