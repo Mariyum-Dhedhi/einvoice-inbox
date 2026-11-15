@@ -53,6 +53,18 @@ public class SensitiveDataMaskerTests
     }
 
     [Fact]
+    public void Contact_name_inside_a_footer_line_is_masked_up_to_the_next_separator()
+    {
+        // Typical German footer: everything on one line. Found while building layout B of the evaluation set.
+        var masked = SensitiveDataMasker.Mask("Beispiel GmbH | USt-IdNr.: DE000000001 | Ansprechpartner: Max Mustermann | Tel.: 040 9876543");
+
+        Assert.DoesNotContain("Mustermann", masked.Text, StringComparison.Ordinal);
+        Assert.Contains("Ansprechpartner: [CONTACT] |", masked.Text, StringComparison.Ordinal);
+        Assert.Contains("USt-IdNr.: DE000000001", masked.Text, StringComparison.Ordinal); // the rest of the line stays
+        Assert.Contains("Beispiel GmbH", masked.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Email_addresses_and_phone_numbers_are_masked()
     {
         var masked = SensitiveDataMasker.Mask("E-Mail: erika.mustermann@beispiel.example\nTel.: +49 30 1234567\nMobil: 0170 1234567\nFax +49 (30) 123 45 68");

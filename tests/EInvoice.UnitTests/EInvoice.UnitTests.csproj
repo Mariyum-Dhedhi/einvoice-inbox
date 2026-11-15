@@ -24,6 +24,7 @@
     <ProjectReference Include="..\..\src\EInvoice.Domain\EInvoice.Domain.csproj" />
     <ProjectReference Include="..\..\src\EInvoice.Application\EInvoice.Application.csproj" />
     <ProjectReference Include="..\..\src\EInvoice.Infrastructure\EInvoice.Infrastructure.csproj" />
+    <ProjectReference Include="..\EInvoice.AiEvaluation\EInvoice.AiEvaluation.csproj" />
   </ItemGroup>
 
 </Project>

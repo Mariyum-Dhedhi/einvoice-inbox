@@ -836,6 +836,13 @@
           "xunit.extensibility.core": "[2.9.3]"
         }
       },
+      "einvoice.aievaluation": {
+        "type": "Project",
+        "dependencies": {
+          "EInvoice.Infrastructure": "[1.0.0, )",
+          "Testcontainers.MsSql": "[4.16.0, )"
+        }
+      },
       "einvoice.application": {
         "type": "Project",
         "dependencies": {
