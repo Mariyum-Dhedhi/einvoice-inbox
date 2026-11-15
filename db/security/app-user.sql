@@ -24,5 +24,7 @@ GRANT EXECUTE ON SCHEMA::dbo TO einvoice_app;   -- stored procedures (package 6)
 DENY ALTER ON SCHEMA::dbo TO einvoice_app;
 DENY CREATE TABLE, CREATE VIEW, CREATE PROCEDURE, CREATE FUNCTION TO einvoice_app;
 DENY INSERT, UPDATE, DELETE ON dbo.__EFMigrationsHistory TO einvoice_app;
+-- The audit trail is append-only for the application: it adds events and reads them, never changes or removes one.
+DENY UPDATE, DELETE ON dbo.AuditEvent TO einvoice_app;
 
 PRINT 'App user einvoice_app ready (read/write data, no schema changes).';

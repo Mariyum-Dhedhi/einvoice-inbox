@@ -40,7 +40,7 @@ public class DatabaseModelTests
         Assert.Equal(
             new[]
             {
-                "AppRole", "AppRoleClaim", "AppUser", "AppUserClaim", "AppUserLogin", "AppUserRole", "AppUserToken",
+                "AppRole", "AppRoleClaim", "AppUser", "AppUserClaim", "AppUserLogin", "AppUserRole", "AppUserToken", "AuditEvent",
                 "GoodsReceipt", "GoodsReceiptLine", "Invoice", "InvoiceDocument", "InvoiceFinding", "InvoiceLine", "InvoiceStatusChange", "MatchResult",
                 "PurchaseOrder", "PurchaseOrderLine", "Vendor", "VendorBankAccount",
             },
@@ -306,5 +306,17 @@ public class DatabaseModelTests
         Assert.Equal("Version", version.Name);
         Assert.Equal("rowversion", version.GetColumnType());
         Assert.Equal(ValueGenerated.OnAddOrUpdate, version.ValueGenerated);
+    }
+
+    [Fact]
+    public void Audit_events_have_one_place_each_in_the_chain_and_fixed_size_hashes()
+    {
+        var audit = Model.GetEntityTypes().Single(e => e.GetTableName() == "AuditEvent");
+
+        var sequence = Assert.Single(audit.GetIndexes(), i => i.Properties.Single().Name == "Sequence");
+        Assert.True(sequence.IsUnique); // two writers can never both append event n
+        Assert.Equal("binary(32)", audit.FindProperty("Hash")!.GetColumnType());
+        Assert.Equal("binary(32)", audit.FindProperty("PreviousHash")!.GetColumnType());
+        Assert.Empty(audit.GetForeignKeys()); // the trail outlives what it describes
     }
 }
