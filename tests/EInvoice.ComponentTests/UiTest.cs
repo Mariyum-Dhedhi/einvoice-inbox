@@ -1,3 +1,4 @@
+using EInvoice.Application.Explanation;
 using EInvoice.Application.Intake;
 using EInvoice.Application.Matching;
 using EInvoice.Application.Queries;
@@ -27,6 +28,7 @@ public abstract class UiTest : BunitContext, IAsyncLifetime
         Services.AddSingleton<IInvoiceQueries>(Queries);
         Services.AddSingleton<IInvoiceIntake>(Intake);
         Services.AddSingleton<IInvoiceRematch>(Rematch);
+        Services.AddSingleton<IExceptionExplainer>(Explainer);
         Services.AddSingleton(new IntakeOptions(MaxBytes));
         Services.AddSingleton<ICurrentUser>(new FixedUser("clerk@test"));
         Services.AddSingleton<Operations>();
@@ -39,6 +41,8 @@ public abstract class UiTest : BunitContext, IAsyncLifetime
     protected FakeIntake Intake { get; } = new();
 
     protected FakeRematch Rematch { get; } = new();
+
+    protected FakeExplainer Explainer { get; } = new();
 
     protected string CurrentUri => Services.GetRequiredService<Microsoft.AspNetCore.Components.NavigationManager>().Uri;
 
@@ -101,6 +105,21 @@ public sealed class FakeRematch : IInvoiceRematch
     {
         Calls.Add((invoiceId, actor));
         AfterRematch?.Invoke(invoiceId);
+        return Task.FromResult(Result);
+    }
+}
+
+public sealed class FakeExplainer : IExceptionExplainer
+{
+    public bool UsesAi { get; set; } = true;
+
+    public int Calls { get; private set; }
+
+    public Explanation Result { get; set; } = new("Line 1 was billed 2.5 % above the order price.", "Ask the supplier for a credit note.", ExplanationSource.Ai);
+
+    public Task<Explanation> ExplainAsync(InvoiceDetail invoice, CancellationToken cancellationToken)
+    {
+        Calls++;
         return Task.FromResult(Result);
     }
 }

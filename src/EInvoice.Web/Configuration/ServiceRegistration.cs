@@ -1,3 +1,4 @@
+using EInvoice.Application.Explanation;
 using EInvoice.Application.Extraction;
 using EInvoice.Application.Intake;
 using EInvoice.Application.Matching;
@@ -5,6 +6,7 @@ using EInvoice.Application.Parsing;
 using EInvoice.Application.Queries;
 using EInvoice.Application.Validation;
 using EInvoice.Domain.Matching;
+using EInvoice.Infrastructure.Explanation;
 using EInvoice.Infrastructure.Extraction;
 using EInvoice.Infrastructure.Intake;
 using EInvoice.Infrastructure.Matching;
@@ -69,17 +71,14 @@ internal static class ServiceRegistration
             http.BaseAddress = new Uri(ai.OllamaUrl!, UriKind.Absolute);
             http.Timeout = TimeSpan.FromSeconds(ai.TimeoutSeconds);
         });
-        services.AddSingleton<IInvoiceExtractor>(sp =>
-        {
-            var ai = sp.GetRequiredService<IOptions<AiSettings>>().Value;
-            if (!ai.Enabled)
-            {
-                return new DisabledInvoiceExtractor();
-            }
+        services.AddSingleton<IInvoiceExtractor>(sp => AiEnabled(sp)
+            ? new LlmInvoiceExtractor(new PdfTextReader(PdfLimits.Default), Model(sp))
+            : new DisabledInvoiceExtractor());
 
-            IChatClient model = new OllamaApiClient(sp.GetRequiredService<IHttpClientFactory>().CreateClient("ollama"), ai.Model!);
-            return new LlmInvoiceExtractor(new PdfTextReader(PdfLimits.Default), model);
-        });
+        // Exception explanations: rule-based always; with AI on, a checked AI suggestion on request.
+        services.AddSingleton<IExceptionExplainer>(sp => AiEnabled(sp)
+            ? new LlmExceptionExplainer(Model(sp))
+            : new RuleBasedExceptionExplainer());
         services.AddSingleton<IInvoiceDocumentParser>(_ => new XRechnungParser()); // default XML limits
 
         services.AddScoped<IValidationDataSource, EfValidationDataSource>();
@@ -95,4 +94,10 @@ internal static class ServiceRegistration
         services.AddSingleton<ICurrentUser, AnonymousUser>();
         return services;
     }
+
+    private static bool AiEnabled(IServiceProvider sp) => sp.GetRequiredService<IOptions<AiSettings>>().Value.Enabled;
+
+    /// <summary>The local model (Ollama), only built when AI is switched on.</summary>
+    private static IChatClient Model(IServiceProvider sp) =>
+        new OllamaApiClient(sp.GetRequiredService<IHttpClientFactory>().CreateClient("ollama"), sp.GetRequiredService<IOptions<AiSettings>>().Value.Model!);
 }

@@ -55,6 +55,13 @@ and harmless, because vendors are identified by VAT id. In every run, the visibl
 | Unknown vendor | 1 | 1 / 1 | 1 / 1 |
 | Prompt injection | 3 | 2 / 3 | 2 / 3 |
 
+**Exception explanations.** Every invoice in the exception queue shows why, in plain words, with a suggested next
+step: rule-based text for every match outcome and every validation rule, always available. With AI switched on,
+"Explain with AI" adds a suggestion written by the same local model from the structured result only (codes and
+numbers, never document text, so injected instructions cannot reach it). Any number in that text that is not in
+the result discards it, and the rule-based text is shown with the reason. A person decides either way. (Not part of
+the measured evaluation above.)
+
 Speed varies with the laptop's GPU state (one invoice in a "before" run took 28 minutes, most likely the laptop
 pausing); the evidence check itself adds only a few text searches per invoice.
 Full reports: [`testdata/ai-eval/results`](testdata/ai-eval/results). Reproduce:
