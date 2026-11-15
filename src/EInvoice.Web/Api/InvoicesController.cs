@@ -1,11 +1,14 @@
+using EInvoice.Application.Approval;
 using EInvoice.Application.Intake;
 using EInvoice.Application.Matching;
 using EInvoice.Application.Queries;
 using EInvoice.Domain.Invoices;
 using EInvoice.Domain.Matching;
+using EInvoice.Web.Configuration;
 using EInvoice.Web.Security;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
 
 namespace EInvoice.Web.Api;
 
@@ -23,6 +26,11 @@ public sealed class InvoicesController : ControllerBase
     public sealed record UploadResponse(Guid InvoiceId, InvoiceStatus Status);
 
     public sealed record RematchResponse(Guid InvoiceId, RematchOutcome Outcome, InvoiceStatus Status, IReadOnlyList<MatchOutcome> Reasons);
+
+    /// <param name="Version">The "version" from the invoice detail.</param>
+    public sealed record DecisionBody(string? Version, string? Reason);
+
+    public sealed record DecisionResponse(Guid InvoiceId, InvoiceStatus Status);
 
     /// <summary>Upload one XRechnung XML file, or a plain PDF invoice (read by AI when it is switched on), as multipart/form-data field "file".</summary>
     /// <response code="201">Stored; the status says how far it got (Matched, Exception or Failed).</response>
@@ -173,6 +181,58 @@ public sealed class InvoicesController : ControllerBase
             RematchOutcome.NotAllowed => Problem(statusCode: StatusCodes.Status409Conflict, detail: result.Detail),
             _ => throw new InvalidOperationException($"Unhandled re-match outcome {result.Outcome}."),
         };
+    }
+
+    /// <summary>
+    /// Approve an invoice waiting for a decision (Matched or Exception). Send the "version" from the detail: the decision
+    /// applies only to that version. Approving an Exception needs a "reason".
+    /// </summary>
+    [HttpPost("{id:guid}/approve")]
+    [Authorize(Policy = Policies.DecideInvoices)]
+    [ProducesResponseType<DecisionResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden, "application/problem+json")]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound, "application/problem+json")]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict, "application/problem+json")]
+    public Task<IActionResult> Approve(
+        Guid id, [FromBody] DecisionBody? body, [FromServices] IInvoiceApproval approval, [FromServices] IOptions<ApprovalSettings> settings, CancellationToken cancellationToken) =>
+        DecideAsync(id, Decision.Approve, body, approval, settings.Value, cancellationToken);
+
+    /// <summary>Reject an invoice waiting for a decision. Send the "version" from the detail and a "reason".</summary>
+    [HttpPost("{id:guid}/reject")]
+    [Authorize(Policy = Policies.DecideInvoices)]
+    [ProducesResponseType<DecisionResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden, "application/problem+json")]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound, "application/problem+json")]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict, "application/problem+json")]
+    public Task<IActionResult> Reject(
+        Guid id, [FromBody] DecisionBody? body, [FromServices] IInvoiceApproval approval, [FromServices] IOptions<ApprovalSettings> settings, CancellationToken cancellationToken) =>
+        DecideAsync(id, Decision.Reject, body, approval, settings.Value, cancellationToken);
+
+    private async Task<IActionResult> DecideAsync(
+        Guid id, Decision decision, DecisionBody? body, IInvoiceApproval approval, ApprovalSettings settings, CancellationToken cancellationToken)
+    {
+        var approver = ApproverOf.User(User, settings.DefaultLimitEur);
+        var result = await approval.DecideAsync(new DecisionRequest(id, decision, body?.Version ?? string.Empty, body?.Reason), approver, cancellationToken)
+            .ConfigureAwait(false);
+        var status = result.Outcome switch
+        {
+            DecisionOutcome.Approved or DecisionOutcome.Rejected => StatusCodes.Status200OK,
+            DecisionOutcome.NotFound => StatusCodes.Status404NotFound,
+            DecisionOutcome.ReasonRequired or DecisionOutcome.ReasonTooLong or DecisionOutcome.VersionRequired => StatusCodes.Status400BadRequest,
+            DecisionOutcome.OwnInvoice or DecisionOutcome.OverLimit or DecisionOutcome.CurrencyNotSupported => StatusCodes.Status403Forbidden,
+            DecisionOutcome.Conflict or DecisionOutcome.NotAllowed or DecisionOutcome.BlockingFindings => StatusCodes.Status409Conflict,
+            _ => throw new InvalidOperationException($"Unhandled decision outcome {result.Outcome}."),
+        };
+        if (status == StatusCodes.Status200OK)
+        {
+            return Ok(new DecisionResponse(id, result.Status!.Value));
+        }
+
+        var problem = ProblemDetailsFactory.CreateProblemDetails(HttpContext, status, detail: result.Detail);
+        problem.Extensions["outcome"] = result.Outcome.ToString();
+        return new ObjectResult(problem) { StatusCode = status, ContentTypes = { "application/problem+json" } };
     }
 
     /// <summary>The extraction model is down: nothing was stored, so the client can simply send the same file again later.</summary>

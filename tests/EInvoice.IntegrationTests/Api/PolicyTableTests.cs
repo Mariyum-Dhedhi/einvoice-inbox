@@ -19,6 +19,7 @@ public sealed class PolicyTableTests
         ["UploadInvoices"] = ["Clerk"],
         ["RematchInvoices"] = ["Clerk"],
         ["ExplainWithAi"] = ["Clerk", "Approver"],
+        ["DecideInvoices"] = ["Approver"], // approve and reject; a clerk who uploads never decides
         ["ManageUsers"] = ["Admin"],
     };
 

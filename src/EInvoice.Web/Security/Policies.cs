@@ -19,6 +19,9 @@ public static class Policies
     /// <summary>Asking the language model for an explanation (a suggestion for whoever decides).</summary>
     public const string ExplainWithAi = nameof(ExplainWithAi);
 
+    /// <summary>Approve or reject an invoice. Not the clerk who uploads: separated duties.</summary>
+    public const string DecideInvoices = nameof(DecideInvoices);
+
     /// <summary>The user list (read-only in package 9).</summary>
     public const string ManageUsers = nameof(ManageUsers);
 
@@ -27,5 +30,6 @@ public static class Policies
         .AddPolicy(UploadInvoices, p => p.RequireRole(Roles.Clerk))
         .AddPolicy(RematchInvoices, p => p.RequireRole(Roles.Clerk))
         .AddPolicy(ExplainWithAi, p => p.RequireRole(Roles.Clerk, Roles.Approver))
+        .AddPolicy(DecideInvoices, p => p.RequireRole(Roles.Approver))
         .AddPolicy(ManageUsers, p => p.RequireRole(Roles.Admin));
 }

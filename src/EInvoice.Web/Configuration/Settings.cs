@@ -38,6 +38,15 @@ public sealed class MatchingSettings
     public decimal PriceTolerancePercent { get; set; } = 2.00m;
 }
 
+/// <summary>Approval:DefaultLimitEur: the gross amount an approver may approve when their account has no own limit.</summary>
+public sealed class ApprovalSettings
+{
+    public const string Section = "Approval";
+
+    [Range(typeof(decimal), "0", "1000000000", ParseLimitsInInvariantCulture = true, ConvertValueInInvariantCulture = true)]
+    public decimal DefaultLimitEur { get; set; } = 10_000m;
+}
+
 internal sealed class DatabaseSettingsValidator : IValidateOptions<DatabaseSettings>
 {
     public ValidateOptionsResult Validate(string? name, DatabaseSettings options) =>
