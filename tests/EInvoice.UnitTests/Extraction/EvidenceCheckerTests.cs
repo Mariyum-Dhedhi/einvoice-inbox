@@ -182,6 +182,19 @@ public class EvidenceCheckerTests
     }
 
     [Fact]
+    public void A_whole_number_price_that_is_also_part_of_the_name_is_not_mistaken_for_swallowed_numbers()
+    {
+        // "set of 4" at 4,00 EUR each: the bare 4 in the name is the product, not the price.
+        const string description = "Whiteboard markers, set of 4";
+        var text = Text.Replace("HDMI cable 2 m | 10 | 7,41 | 74,10", $"{description} | 10 | 4,00 | 40,00", StringComparison.Ordinal);
+        var invoice = Invoice(i => i with { Lines = [i.Lines![0] with { Description = description, UnitPrice = 4.00m, NetAmount = 40.00m }, i.Lines[1]] });
+
+        var fields = EvidenceChecker.Check(invoice, text, [Iban]);
+
+        Assert.True(Field(fields, "BT-153", 1).Confident, Field(fields, "BT-153", 1).Reason);
+    }
+
+    [Fact]
     public void Dropped_order_line_reference_is_not_confident_when_the_invoice_has_an_order_and_an_order_line_column()
     {
         // E12: the table has a "PO line" column, the invoice names an order, and the reply left the reference out.
