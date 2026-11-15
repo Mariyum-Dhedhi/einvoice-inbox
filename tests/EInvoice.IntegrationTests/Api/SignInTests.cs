@@ -50,6 +50,33 @@ public sealed class SignInTests(SqlServerFixture fixture) : IAsyncLifetime
         Assert.Equal(HttpStatusCode.OK, api.StatusCode);
     }
 
+    [Theory]
+    [InlineData("Clerk", "/")]
+    [InlineData("Approver", "/")]
+    [InlineData("Auditor", "/")]
+    [InlineData("Admin", "/admin/users")] // the admin has no invoice pages: starts on the user list
+    public async Task Without_a_return_address_each_role_starts_on_its_own_page(string role, string start)
+    {
+        var (user, password) = await TestUsers.CreateAsync(_factory, role);
+        using var browser = Browser();
+
+        using var response = await SignInForm.SignInAsync(browser, user, password);
+
+        Assert.Equal(start, SignInForm.Target(response));
+    }
+
+    [Fact]
+    public async Task An_admin_who_asked_for_a_page_still_goes_there()
+    {
+        // Where they wanted to go wins; the access check there decides, not the login page.
+        var (user, password) = await TestUsers.CreateAsync(_factory, "Admin");
+        using var browser = Browser();
+
+        using var response = await SignInForm.SignInAsync(browser, user, password, returnUrl: "/account/access-denied");
+
+        Assert.Equal("/account/access-denied", SignInForm.Target(response));
+    }
+
     [Fact]
     public async Task Unknown_user_wrong_password_and_locked_account_get_the_same_answer()
     {

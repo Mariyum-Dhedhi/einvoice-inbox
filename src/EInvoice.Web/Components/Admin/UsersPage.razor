@@ -1,0 +1,65 @@
+@page "/admin/users"
+@attribute [Authorize(Policy = Policies.ManageUsers)]
+@using EInvoice.Application.Security
+@inject Operations Operations
+
+<PageTitle>Users – E-Invoice Inbox</PageTitle>
+
+<MudText Typo="Typo.h4" HtmlTag="h1" Class="mb-1">Users</MudText>
+<MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
+    Every account with its roles. Read-only: creating, changing and unlocking accounts is not part of this version.
+</MudText>
+
+@if (_users is null)
+{
+    <MudProgressLinear Indeterminate="true" aria-label="Loading users" />
+}
+else if (_users.Count == 0)
+{
+    <MudText data-testid="no-users">No accounts yet.</MudText>
+}
+else
+{
+    <MudSimpleTable Elevation="0" Dense="true" Hover="true">
+        <thead>
+            <tr>
+                <th scope="col">User name</th>
+                <th scope="col">Roles</th>
+                <th scope="col">Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var user in _users)
+            {
+                <tr data-testid="user-row">
+                    <td class="break-all">@user.UserName</td>
+                    <td>@(user.Roles.Count == 0 ? "No role" : string.Join(", ", user.Roles))</td>
+                    <td>
+                        @* Status in words with an icon, never colour alone. *@
+                        @if (user.LockedUntil is { } until)
+                        {
+                            <span data-testid="user-status" data-status="locked" class="d-inline-flex align-center gap-1">
+                                <MudIcon Icon="@Icons.Material.Outlined.Lock" Size="Size.Small" Color="Color.Warning" aria-hidden="true" />
+                                Locked until @Formats.Timestamp(until)
+                            </span>
+                        }
+                        else
+                        {
+                            <span data-testid="user-status" data-status="active" class="d-inline-flex align-center gap-1">
+                                <MudIcon Icon="@Icons.Material.Outlined.CheckCircle" Size="Size.Small" Color="Color.Success" aria-hidden="true" />
+                                Active
+                            </span>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </MudSimpleTable>
+}
+
+@code {
+    private IReadOnlyList<UserSummary>? _users;
+
+    protected override async Task OnInitializedAsync() =>
+        _users = await Operations.RunAsync<IUserDirectory, IReadOnlyList<UserSummary>>(d => d.ListAsync(CancellationToken.None));
+}

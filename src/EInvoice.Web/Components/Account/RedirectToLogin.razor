@@ -1,11 +1,19 @@
 @inject NavigationManager Navigation
 
-@* A page needs sign-in, but the user is not (or no longer) signed in: full reload to the login page and back. *@
+@*
+    A page the user may not see, inside an open session: signed out (or the sign-in expired) goes to the login page,
+    signed in without the role goes to "No access". Both come back to this address afterwards.
+*@
 
 @code {
-    protected override void OnInitialized()
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthState { get; set; } = default!;
+
+    protected override async Task OnInitializedAsync()
     {
+        var signedIn = (await AuthState).User.Identity?.IsAuthenticated == true;
         var here = "/" + Navigation.ToBaseRelativePath(Navigation.Uri);
-        Navigation.NavigateTo($"{SignInSetup.LoginPath}?ReturnUrl={Uri.EscapeDataString(here)}", forceLoad: true);
+        var target = signedIn ? SignInSetup.AccessDeniedPath : SignInSetup.LoginPath;
+        Navigation.NavigateTo($"{target}?ReturnUrl={Uri.EscapeDataString(here)}", forceLoad: true);
     }
 }

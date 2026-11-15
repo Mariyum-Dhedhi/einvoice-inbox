@@ -4,6 +4,7 @@ using EInvoice.Application.Queries;
 using EInvoice.Domain.Invoices;
 using EInvoice.Domain.Matching;
 using EInvoice.Web.Security;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EInvoice.Web.Api;
@@ -12,6 +13,7 @@ namespace EInvoice.Web.Api;
 /// Upload, list, detail, re-match and download of supplier invoices. Every error is RFC 9457 problem details
 /// (application/problem+json) with a safe explanation; refusals carry the outcome name for clients to branch on.
 /// </summary>
+/// <remarks>Each action names its policy (see <see cref="Policies"/>); there is no class-wide default.</remarks>
 [ApiController]
 [Route("api/invoices")]
 public sealed class InvoicesController : ControllerBase
@@ -25,7 +27,9 @@ public sealed class InvoicesController : ControllerBase
     /// <summary>Upload one XRechnung XML file, or a plain PDF invoice (read by AI when it is switched on), as multipart/form-data field "file".</summary>
     /// <response code="201">Stored; the status says how far it got (Matched, Exception or Failed).</response>
     [HttpPost]
-    [Consumes("multipart/form-data")]
+    [Authorize(Policy = Policies.UploadInvoices)]
+    // No [Consumes]: it is checked while the endpoint is chosen, before authorization, and would tell a caller who
+    // may not upload what the endpoint expects (415 instead of 403). The action checks the content type itself.
     [DisableFormValueModelBinding]
     [ProducesResponseType<UploadResponse>(StatusCodes.Status201Created)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")]
@@ -86,6 +90,7 @@ public sealed class InvoicesController : ControllerBase
 
     /// <summary>Invoices, newest first. Filter by status name; pages of at most 100.</summary>
     [HttpGet]
+    [Authorize(Policy = Policies.ReadInvoices)]
     [ProducesResponseType<InvoicePage>(StatusCodes.Status200OK)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")]
     public async Task<IActionResult> List(
@@ -130,6 +135,7 @@ public sealed class InvoicesController : ControllerBase
 
     /// <summary>One invoice with its lines, status history, findings, match results and file information.</summary>
     [HttpGet("{id:guid}")]
+    [Authorize(Policy = Policies.ReadInvoices)]
     [ProducesResponseType<InvoiceDetail>(StatusCodes.Status200OK)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound, "application/problem+json")]
     public async Task<IActionResult> Get([FromServices] IInvoiceQueries queries, Guid id, CancellationToken cancellationToken) =>
@@ -137,6 +143,7 @@ public sealed class InvoicesController : ControllerBase
 
     /// <summary>The original file, byte for byte, always as a download.</summary>
     [HttpGet("{id:guid}/document")]
+    [Authorize(Policy = Policies.ReadInvoices)]
     [ProducesResponseType<byte[]>(StatusCodes.Status200OK, "application/xml")]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound, "application/problem+json")]
     public async Task<IActionResult> Document([FromServices] IInvoiceQueries queries, Guid id, CancellationToken cancellationToken)
@@ -152,6 +159,7 @@ public sealed class InvoicesController : ControllerBase
 
     /// <summary>Match again, for an invoice in Exception because of its match (for example after a late goods receipt).</summary>
     [HttpPost("{id:guid}/match")]
+    [Authorize(Policy = Policies.RematchInvoices)]
     [ProducesResponseType<RematchResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound, "application/problem+json")]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict, "application/problem+json")]

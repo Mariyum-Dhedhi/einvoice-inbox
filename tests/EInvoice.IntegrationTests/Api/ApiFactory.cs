@@ -32,7 +32,7 @@ internal sealed class ApiFactory(
 {
     public const long MaxDocumentBytes = 64 * 1024;
 
-    /// <summary>The user a test client is signed in as, unless the test names another one.</summary>
+    /// <summary>The user a test client is signed in as, unless the test names another one: a clerk.</summary>
     public const string DefaultUser = "clerk@test";
 
     public static readonly Uri BaseAddress = new("https://localhost");
@@ -69,9 +69,17 @@ internal sealed class ApiFactory(
         });
     }
 
-    /// <summary>A client signed in as <paramref name="user"/> (with the given roles); null for an anonymous client with a cookie jar.</summary>
+    /// <summary>
+    /// A client signed in as <paramref name="user"/> with the given roles; null for an anonymous client with a cookie jar.
+    /// The default user is a clerk (upload, read, re-match); any other name has exactly the roles given.
+    /// </summary>
     public HttpClient CreateApiClient(string? user = DefaultUser, params string[] roles)
     {
+        if (user == DefaultUser && roles.Length == 0)
+        {
+            roles = ["Clerk"];
+        }
+
         var client = CreateClient(new WebApplicationFactoryClientOptions { BaseAddress = BaseAddress, AllowAutoRedirect = false });
         if (user is not null)
         {
