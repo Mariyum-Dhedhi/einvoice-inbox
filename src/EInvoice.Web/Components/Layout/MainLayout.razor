@@ -10,6 +10,16 @@
         <MudLink Href="/" Color="Color.Inherit" Underline="Underline.None" Typo="Typo.h6" Class="app-title">E-Invoice Inbox</MudLink>
         <MudSpacer />
         <MudText Typo="Typo.body2" Class="app-subtitle">Accounts payable</MudText>
+        <AuthorizeView>
+            <Authorized>
+                <span class="signed-in" data-testid="signed-in-user">@context.User.Identity?.Name</span>
+                @* A POST form with a token, not a link: another site or an <img> cannot sign anyone out. *@
+                <form method="post" action="@SignInSetup.LogoutPath" data-testid="sign-out" class="sign-out">
+                    <AntiforgeryToken />
+                    <button type="submit">Sign out</button>
+                </form>
+            </Authorized>
+        </AuthorizeView>
     </MudAppBar>
     <MudMainContent>
         <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="py-4">

@@ -1,11 +1,17 @@
 using System.Net.Http.Headers;
+using System.Security.Claims;
+using System.Text.Encodings.Web;
 using System.Text.Json;
 using EInvoice.Application.Validation;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace EInvoice.IntegrationTests.Api;
 
@@ -13,6 +19,11 @@ namespace EInvoice.IntegrationTests.Api;
 /// The real web application in memory. Settings go in through UseSetting, exactly like environment variables would,
 /// so the same startup validation runs. The KoSIT validator is replaced by a stand-in that accepts everything.
 /// Runs as Production unless a test says otherwise: error responses must be safe there.
+/// <para>
+/// Sign-in: a client from <see cref="CreateApiClient"/> is signed in as a test user through a request header that
+/// only this test project knows (<see cref="TestUserHandler"/>). Without the header, requests go through the real
+/// sign-in cookie, so anonymous requests and the login page behave exactly as in production.
+/// </para>
 /// </summary>
 internal sealed class ApiFactory(
     IReadOnlyDictionary<string, string?> settings,
@@ -20,6 +31,11 @@ internal sealed class ApiFactory(
     Action<IServiceCollection>? services = null) : WebApplicationFactory<Program>
 {
     public const long MaxDocumentBytes = 64 * 1024;
+
+    /// <summary>The user a test client is signed in as, unless the test names another one.</summary>
+    public const string DefaultUser = "clerk@test";
+
+    public static readonly Uri BaseAddress = new("https://localhost");
 
     public static Dictionary<string, string?> Settings(string connectionString) => new()
     {
@@ -42,17 +58,63 @@ internal sealed class ApiFactory(
         {
             s.RemoveAll<IConformanceValidator>();
             s.AddSingleton<IConformanceValidator, AcceptAll>();
+
+            s.AddAuthentication()
+                .AddScheme<AuthenticationSchemeOptions, TestUserHandler>(TestUserHandler.SchemeName, null)
+                .AddPolicyScheme(TestUserHandler.HeaderOrCookie, null, p => p.ForwardDefaultSelector = context =>
+                    context.Request.Headers.ContainsKey(TestUserHandler.UserHeader) ? TestUserHandler.SchemeName : IdentityConstants.ApplicationScheme);
+            s.PostConfigure<AuthenticationOptions>(o => o.DefaultAuthenticateScheme = TestUserHandler.HeaderOrCookie);
+
             services?.Invoke(s);
         });
     }
 
-    public HttpClient CreateApiClient() =>
-        CreateClient(new WebApplicationFactoryClientOptions { BaseAddress = new Uri("https://localhost"), AllowAutoRedirect = false });
+    /// <summary>A client signed in as <paramref name="user"/> (with the given roles); null for an anonymous client with a cookie jar.</summary>
+    public HttpClient CreateApiClient(string? user = DefaultUser, params string[] roles)
+    {
+        var client = CreateClient(new WebApplicationFactoryClientOptions { BaseAddress = BaseAddress, AllowAutoRedirect = false });
+        if (user is not null)
+        {
+            client.DefaultRequestHeaders.Add(TestUserHandler.UserHeader, user);
+            if (roles.Length > 0)
+            {
+                client.DefaultRequestHeaders.Add(TestUserHandler.RolesHeader, string.Join(',', roles));
+            }
+        }
+
+        return client;
+    }
 
     private sealed class AcceptAll : IConformanceValidator
     {
         public Task<ConformanceResult> CheckAsync(ReadOnlyMemory<byte> xml, CancellationToken cancellationToken) =>
             Task.FromResult(ConformanceResult.Accepted);
+    }
+}
+
+/// <summary>Test-only sign-in: the user name (and roles) come from request headers. Exists only in the test project.</summary>
+internal sealed class TestUserHandler(IOptionsMonitor<AuthenticationSchemeOptions> options, ILoggerFactory logger, UrlEncoder encoder)
+    : AuthenticationHandler<AuthenticationSchemeOptions>(options, logger, encoder)
+{
+    public const string SchemeName = "Test";
+    public const string HeaderOrCookie = "TestHeaderOrCookie";
+    public const string UserHeader = "X-Test-User";
+    public const string RolesHeader = "X-Test-Roles";
+
+    protected override Task<AuthenticateResult> HandleAuthenticateAsync()
+    {
+        var name = Request.Headers[UserHeader].ToString();
+        if (string.IsNullOrEmpty(name))
+        {
+            return Task.FromResult(AuthenticateResult.NoResult());
+        }
+
+        var claims = new List<Claim> { new(ClaimTypes.Name, name) };
+        claims.AddRange(Request.Headers[RolesHeader].ToString()
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(role => new Claim(ClaimTypes.Role, role)));
+        var principal = new ClaimsPrincipal(new ClaimsIdentity(claims, SchemeName));
+        return Task.FromResult(AuthenticateResult.Success(new AuthenticationTicket(principal, SchemeName)));
     }
 }
 

@@ -3,6 +3,7 @@ using EInvoice.Application.Matching;
 using EInvoice.Application.Queries;
 using EInvoice.Domain.Invoices;
 using EInvoice.Domain.Matching;
+using EInvoice.Web.Security;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EInvoice.Web.Api;
@@ -13,7 +14,7 @@ namespace EInvoice.Web.Api;
 /// </summary>
 [ApiController]
 [Route("api/invoices")]
-public sealed class InvoicesController(ICurrentUser user) : ControllerBase
+public sealed class InvoicesController : ControllerBase
 {
     private const string FileField = "file";
 
@@ -70,7 +71,7 @@ public sealed class InvoicesController(ICurrentUser user) : ControllerBase
             await stream.ReadExactlyAsync(content, cancellationToken).ConfigureAwait(false);
         }
 
-        var result = await intake.SubmitAsync(new UploadedFile(file.FileName, content), user.Name, cancellationToken).ConfigureAwait(false);
+        var result = await intake.SubmitAsync(new UploadedFile(file.FileName, content), SignedInUser.Name(User), cancellationToken).ConfigureAwait(false);
         return result.Outcome switch
         {
             IntakeOutcome.Created => Created($"/api/invoices/{result.InvoiceId}", new UploadResponse(result.InvoiceId!.Value, result.Status!.Value)),
@@ -156,7 +157,7 @@ public sealed class InvoicesController(ICurrentUser user) : ControllerBase
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict, "application/problem+json")]
     public async Task<IActionResult> Rematch([FromServices] IInvoiceRematch rematch, Guid id, CancellationToken cancellationToken)
     {
-        var result = await rematch.RematchAsync(id, user.Name, cancellationToken).ConfigureAwait(false);
+        var result = await rematch.RematchAsync(id, SignedInUser.Name(User), cancellationToken).ConfigureAwait(false);
         return result.Outcome switch
         {
             RematchOutcome.Matched or RematchOutcome.StillException => Ok(new RematchResponse(id, result.Outcome, result.Status!.Value, result.Reasons)),

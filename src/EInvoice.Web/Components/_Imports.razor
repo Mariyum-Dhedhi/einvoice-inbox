@@ -1,5 +1,7 @@
 ﻿@using System.Net.Http
 @using System.Net.Http.Json
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.AspNetCore.Components.Routing
 @using Microsoft.AspNetCore.Components.Web
@@ -8,9 +10,11 @@
 @using Microsoft.JSInterop
 @using EInvoice.Web
 @using EInvoice.Web.Components
+@using EInvoice.Web.Components.Account
 @using EInvoice.Web.Components.Layout
 @using MudBlazor
 @using EInvoice.Application.Queries
 @using EInvoice.Domain.Invoices
 @using EInvoice.Domain.Matching
 @using EInvoice.Web.Components.Shared
+@using EInvoice.Web.Security
