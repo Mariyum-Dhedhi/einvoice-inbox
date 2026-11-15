@@ -1,4 +1,3 @@
-using System.Globalization;
 using EInvoice.Application.Matching;
 using EInvoice.Domain.Invoices;
 
@@ -83,8 +82,6 @@ public interface IInvoiceApproval
 /// </summary>
 public sealed class InvoiceApproval(IApprovalStore store, TimeProvider time) : IInvoiceApproval
 {
-    private static readonly CultureInfo Invariant = CultureInfo.InvariantCulture;
-
     public async Task<DecisionResult> DecideAsync(DecisionRequest request, Approver approver, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
@@ -108,18 +105,17 @@ public sealed class InvoiceApproval(IApprovalStore store, TimeProvider time) : I
             return Refused(DecisionOutcome.Conflict, invoice.Status, "The invoice changed since you opened it. Reload it and decide again.");
         }
 
-        if (invoice.Status is not (InvoiceStatus.Matched or InvoiceStatus.Exception))
+        if (!ApprovalRules.IsWaiting(invoice.Status))
         {
             return Refused(DecisionOutcome.NotAllowed, invoice.Status, $"Only Matched and Exception invoices wait for a decision; this one is {invoice.Status}.");
         }
 
-        if (string.Equals(invoice.SubmittedBy, approver.Name, StringComparison.OrdinalIgnoreCase))
+        if (ApprovalRules.IsOwn(invoice.SubmittedBy, approver))
         {
             return Refused(DecisionOutcome.OwnInvoice, invoice.Status, "You submitted this invoice; someone else has to decide it.");
         }
 
-        var reasonRequired = request.Decision == Decision.Reject || invoice.Status == InvoiceStatus.Exception;
-        var (reason, problem) = Reason(request.Reason, reasonRequired);
+        var (reason, problem) = Reason(request.Reason, ApprovalRules.ReasonRequired(request.Decision, invoice.Status));
         if (problem is { } refusal)
         {
             return refusal with { Status = invoice.Status };
@@ -127,25 +123,10 @@ public sealed class InvoiceApproval(IApprovalStore store, TimeProvider time) : I
 
         if (request.Decision == Decision.Approve)
         {
-            if (await store.HasBlockingFindingsAsync(invoice.Id, cancellationToken).ConfigureAwait(false))
+            var hasBlockingFindings = await store.HasBlockingFindingsAsync(invoice.Id, cancellationToken).ConfigureAwait(false);
+            if (ApprovalRules.WhyNotApprove(approver, invoice.GrossTotal?.Amount, invoice.GrossTotal?.Currency, hasBlockingFindings) is { } block)
             {
-                return Refused(DecisionOutcome.BlockingFindings, invoice.Status, "The invoice has a finding that blocks payment; it can only be rejected.");
-            }
-
-            if (invoice.GrossTotal is not { } gross)
-            {
-                return Refused(DecisionOutcome.NotAllowed, invoice.Status, "The invoice has no total to approve.");
-            }
-
-            if (gross.Currency != ApprovalLimits.Currency)
-            {
-                return Refused(DecisionOutcome.CurrencyNotSupported, invoice.Status, "Approval limits are in EUR; invoices in other currencies cannot be approved yet.");
-            }
-
-            if (gross.Amount > approver.LimitEur)
-            {
-                return Refused(DecisionOutcome.OverLimit, invoice.Status,
-                    string.Create(Invariant, $"The gross amount is above your approval limit of {approver.LimitEur:#,##0.00} EUR; someone with a higher limit has to approve it."));
+                return Refused(block.Outcome, invoice.Status, block.Detail);
             }
         }
 
