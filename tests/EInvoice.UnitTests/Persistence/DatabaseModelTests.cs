@@ -38,7 +38,12 @@ public class DatabaseModelTests
         var tables = Model.GetEntityTypes().Select(e => e.GetTableName() ?? "(none)").Distinct().Order().ToList();
 
         Assert.Equal(
-            new[] { "GoodsReceipt", "GoodsReceiptLine", "Invoice", "InvoiceDocument", "InvoiceFinding", "InvoiceLine", "InvoiceStatusChange", "MatchResult", "PurchaseOrder", "PurchaseOrderLine", "Vendor", "VendorBankAccount" },
+            new[]
+            {
+                "AppRole", "AppRoleClaim", "AppUser", "AppUserClaim", "AppUserLogin", "AppUserRole", "AppUserToken",
+                "GoodsReceipt", "GoodsReceiptLine", "Invoice", "InvoiceDocument", "InvoiceFinding", "InvoiceLine", "InvoiceStatusChange", "MatchResult",
+                "PurchaseOrder", "PurchaseOrderLine", "Vendor", "VendorBankAccount",
+            },
             tables);
     }
 
@@ -185,6 +190,7 @@ public class DatabaseModelTests
             Assert.NotNull(rowId);
             Assert.Equal(typeof(long), rowId.ClrType);
             Assert.Equal(ValueGenerated.OnAdd, rowId.ValueGenerated);
+            Assert.Equal(PropertySaveBehavior.Ignore, rowId.GetAfterSaveBehavior()); // an Update() must never send it
             Assert.Contains(e.GetIndexes(), i => i.IsClustered() == true && i.Properties.Single() == rowId);
         });
     }
@@ -199,6 +205,14 @@ public class DatabaseModelTests
         ("Invoice", "InvoiceFinding"),
         ("PurchaseOrder", "PurchaseOrderLine"),
         ("GoodsReceipt", "GoodsReceiptLine"),
+
+        // An account's own sign-in data (role memberships, claims, external logins, tokens) goes with it.
+        ("AppUser", "AppUserRole"),
+        ("AppUser", "AppUserClaim"),
+        ("AppUser", "AppUserLogin"),
+        ("AppUser", "AppUserToken"),
+        ("AppRole", "AppUserRole"),
+        ("AppRole", "AppRoleClaim"),
     ];
 
     [Fact]
@@ -246,5 +260,40 @@ public class DatabaseModelTests
 
         Assert.All(strings, p => Assert.True(p.GetMaxLength() is not null || p.GetColumnType().StartsWith("char", StringComparison.Ordinal),
             $"{p.DeclaringType.DisplayName()}.{p.Name} has no max length (would be nvarchar(max))"));
+    }
+
+    [Fact]
+    public void Users_and_roles_have_guid_keys_like_every_other_table()
+    {
+        Assert.Equal(typeof(Guid), Entity<EInvoice.Infrastructure.Identity.AppUser>().FindPrimaryKey()!.Properties.Single().ClrType);
+        Assert.Equal(typeof(Guid), Entity<EInvoice.Infrastructure.Identity.AppRole>().FindPrimaryKey()!.Properties.Single().ClrType);
+    }
+
+    [Fact]
+    public void A_user_name_belongs_to_one_account()
+    {
+        // Sign-in looks accounts up by the normalised name; the actor recorded on invoices is this name.
+        var index = Assert.Single(Entity<EInvoice.Infrastructure.Identity.AppUser>().GetIndexes(),
+            i => i.Properties.Single().Name == "NormalizedUserName");
+
+        Assert.True(index.IsUnique);
+        Assert.Equal(256, index.Properties.Single().GetMaxLength());
+    }
+
+    [Fact]
+    public void The_four_roles_are_part_of_the_schema_with_fixed_ids()
+    {
+        var seeded = Entity<EInvoice.Infrastructure.Identity.AppRole>().GetSeedData().ToList();
+
+        Assert.Equal(
+            EInvoice.Application.Security.Roles.All.Order(StringComparer.Ordinal),
+            seeded.Select(r => (string)r["Name"]!).Order(StringComparer.Ordinal));
+        Assert.All(seeded, r =>
+        {
+            Assert.NotEqual(Guid.Empty, (Guid)r["Id"]!);
+            Assert.Equal(((string)r["Name"]!).ToUpperInvariant(), r["NormalizedName"]);
+            Assert.NotNull(r["ConcurrencyStamp"]); // fixed, or every migration would rewrite the roles
+        });
+        Assert.Equal(seeded.Count, seeded.Select(r => r["Id"]).Distinct().Count());
     }
 }

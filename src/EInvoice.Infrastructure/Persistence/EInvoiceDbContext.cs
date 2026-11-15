@@ -1,11 +1,14 @@
 using EInvoice.Domain.Invoices;
 using EInvoice.Domain.Purchasing;
 using EInvoice.Domain.Vendors;
+using EInvoice.Infrastructure.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace EInvoice.Infrastructure.Persistence;
 
-public sealed class EInvoiceDbContext(DbContextOptions<EInvoiceDbContext> options) : DbContext(options)
+/// <summary>Business data and the sign-in tables (users, roles) in one database and one migration history.</summary>
+public sealed class EInvoiceDbContext(DbContextOptions<EInvoiceDbContext> options) : IdentityDbContext<AppUser, AppRole, Guid>(options)
 {
     public DbSet<Vendor> Vendors => Set<Vendor>();
 
@@ -27,6 +30,7 @@ public sealed class EInvoiceDbContext(DbContextOptions<EInvoiceDbContext> option
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasDefaultSchema("dbo");
+        base.OnModelCreating(modelBuilder); // Identity's model first; our configurations then rename and constrain it
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(EInvoiceDbContext).Assembly);
     }
 }
