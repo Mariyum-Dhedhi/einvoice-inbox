@@ -81,6 +81,67 @@ public sealed class RoleVisibilityTests : UiTest
     }
 }
 
+/// <summary>
+/// A role withdrawn while the page is open: the button is still on screen, but the server's own check refuses.
+/// (Hiding a button is a convenience; this check is the protection.)
+/// </summary>
+public sealed class ServerCheckTests : UiTest
+{
+    private readonly Guid _id = Guid.NewGuid();
+
+    private IRenderedComponent<InvoiceDetailPage> ShowException()
+    {
+        Queries.Details[_id] = Views.Detail(_id, InvoiceStatus.Exception, matches: [Views.Match(1, MatchOutcome.NoGoodsReceipt)]);
+        return Render<InvoiceDetailPage>(p => p.Add(c => c.Id, _id));
+    }
+
+    [Fact]
+    public void Match_again_after_the_role_was_withdrawn_does_nothing()
+    {
+        var cut = ShowException();
+        var button = cut.Find("[data-testid=rematch]");
+
+        Auth.SetPolicies(AuditorPolicies); // the role changes; the open page still shows the button
+        button.Click();
+
+        Assert.Empty(Rematch.Calls);
+    }
+
+    [Fact]
+    public void Ai_explanation_after_the_role_was_withdrawn_does_nothing()
+    {
+        var cut = ShowException();
+        var button = cut.Find("[data-testid=explain-ai]");
+
+        Auth.SetPolicies(AuditorPolicies);
+        button.Click();
+
+        Assert.Equal(0, Explainer.Calls);
+    }
+
+    [Fact]
+    public void Upload_after_the_role_was_withdrawn_stores_nothing()
+    {
+        var cut = Render<Inbox>();
+        var input = cut.FindComponent<Microsoft.AspNetCore.Components.Forms.InputFile>();
+
+        Auth.SetPolicies(ApproverPolicies);
+        input.UploadFiles(Bunit.InputFileContent.CreateFromText("<Invoice/>", "invoice.xml"));
+
+        Assert.Empty(Intake.Calls);
+    }
+
+    [Fact]
+    public void With_the_role_the_same_clicks_work()
+    {
+        var cut = ShowException();
+
+        cut.Find("[data-testid=rematch]").Click();
+
+        Assert.Single(Rematch.Calls); // the check above refuses because of the role, not because clicks never work
+    }
+}
+
 /// <summary>The page a signed-in user sees when their role may not open a page.</summary>
 public sealed class AccessDeniedTests : UiTest
 {
