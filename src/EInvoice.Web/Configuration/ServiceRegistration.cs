@@ -1,3 +1,4 @@
+using EInvoice.Application.Approval;
 using EInvoice.Application.Explanation;
 using EInvoice.Application.Extraction;
 using EInvoice.Application.Intake;
@@ -7,6 +8,7 @@ using EInvoice.Application.Queries;
 using EInvoice.Application.Security;
 using EInvoice.Application.Validation;
 using EInvoice.Domain.Matching;
+using EInvoice.Infrastructure.Approval;
 using EInvoice.Infrastructure.Explanation;
 using EInvoice.Infrastructure.Extraction;
 using EInvoice.Infrastructure.Identity;
@@ -47,6 +49,7 @@ internal static class ServiceRegistration
         services.AddOptions<KositSettings>().BindConfiguration(KositSettings.Section).ValidateDataAnnotations().ValidateOnStart();
         services.AddSingleton<IValidateOptions<KositSettings>, KositSettingsValidator>();
         services.AddOptions<MatchingSettings>().BindConfiguration(MatchingSettings.Section).ValidateDataAnnotations().ValidateOnStart();
+        services.AddOptions<ApprovalSettings>().BindConfiguration(ApprovalSettings.Section).ValidateDataAnnotations().ValidateOnStart();
         services.AddOptions<AiSettings>().BindConfiguration(AiSettings.Section).ValidateOnStart();
         services.AddSingleton<IValidateOptions<AiSettings>, AiSettingsValidator>();
 
@@ -93,6 +96,8 @@ internal static class ServiceRegistration
         services.AddScoped<IUserDirectory, EfUserDirectory>();
         services.AddScoped<IInvoiceIntake, InvoiceIntake>();
         services.AddScoped<IInvoiceRematch, InvoiceRematch>();
+        services.AddScoped<IApprovalStore, EfApprovalStore>();
+        services.AddScoped<IInvoiceApproval, InvoiceApproval>();
         services.AddSingleton<Operations>();
 
         services.AddEInvoiceSignIn();

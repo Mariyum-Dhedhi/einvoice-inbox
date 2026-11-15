@@ -17,6 +17,8 @@ internal sealed class InvoiceConfiguration : IEntityTypeConfiguration<Invoice>
         });
         builder.HasKey(i => i.Id).IsClustered(false);
         builder.UseClusteredRowId("Invoice");
+        // Optimistic concurrency: SQL Server changes it on every update; a save that expects an older value fails.
+        builder.Property<byte[]>(MappingConventions.Version).IsRowVersion().IsRequired();
 
         builder.Property(i => i.SourceFormat);
         builder.Property(i => i.SubmittedBy).HasMaxLength(256);

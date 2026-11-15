@@ -34,6 +34,7 @@ public sealed record InvoiceSummary(
     string? Currency,
     DateTimeOffset ReceivedAt);
 
+/// <param name="Version">Opaque; changes with every change to the invoice. A decision sends it back (package 10).</param>
 public sealed record InvoiceDetail(
     Guid Id,
     InvoiceStatus Status,
@@ -52,7 +53,8 @@ public sealed record InvoiceDetail(
     IReadOnlyList<StatusChangeView> History,
     IReadOnlyList<FindingView> Findings,
     IReadOnlyList<MatchLineView> MatchResults,
-    DocumentInfo? Document);
+    DocumentInfo? Document,
+    string Version = "");
 
 public sealed record InvoiceLineView(
     int LineNumber,

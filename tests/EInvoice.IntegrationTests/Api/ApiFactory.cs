@@ -44,6 +44,7 @@ internal sealed class ApiFactory(
         ["Kosit:BaseUrl"] = "http://127.0.0.1:9/", // never called: replaced below
         ["Kosit:TimeoutSeconds"] = "5",
         ["Matching:PriceTolerancePercent"] = "2.00",
+        ["Approval:DefaultLimitEur"] = "10000.00",
     };
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -108,6 +109,7 @@ internal sealed class TestUserHandler(IOptionsMonitor<AuthenticationSchemeOption
     public const string HeaderOrCookie = "TestHeaderOrCookie";
     public const string UserHeader = "X-Test-User";
     public const string RolesHeader = "X-Test-Roles";
+    public const string ApprovalLimitHeader = "X-Test-Approval-Limit";
 
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()
     {
@@ -121,6 +123,12 @@ internal sealed class TestUserHandler(IOptionsMonitor<AuthenticationSchemeOption
         claims.AddRange(Request.Headers[RolesHeader].ToString()
             .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .Select(role => new Claim(ClaimTypes.Role, role)));
+        var limit = Request.Headers[ApprovalLimitHeader].ToString();
+        if (limit.Length > 0)
+        {
+            claims.Add(new Claim(EInvoice.Application.Approval.ApprovalLimits.ClaimType, limit));
+        }
+
         var principal = new ClaimsPrincipal(new ClaimsIdentity(claims, SchemeName));
         return Task.FromResult(AuthenticateResult.Success(new AuthenticationTicket(principal, SchemeName)));
     }

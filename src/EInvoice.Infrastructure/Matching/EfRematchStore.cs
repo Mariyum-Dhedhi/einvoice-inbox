@@ -7,8 +7,8 @@ using Microsoft.EntityFrameworkCore;
 namespace EInvoice.Infrastructure.Matching;
 
 /// <summary>
-/// Loads and saves invoices for re-matching. Two writers adding the same status history entry collide on its
-/// key (InvoiceId, Sequence); that unique violation becomes <see cref="ConcurrentStatusChangeException"/>.
+/// Loads and saves invoices for re-matching. Two writers collide on the invoice's rowversion, or on the status history
+/// key (InvoiceId, Sequence); either becomes <see cref="ConcurrentStatusChangeException"/>.
 /// </summary>
 public sealed class EfRematchStore(EInvoiceDbContext db) : IRematchStore
 {
@@ -24,7 +24,7 @@ public sealed class EfRematchStore(EInvoiceDbContext db) : IRematchStore
         {
             await db.SaveChangesAsync(cancellationToken).ConfigureAwait(false);
         }
-        catch (DbUpdateException ex) when (ex.InnerException is SqlException { Number: 2601 or 2627 })
+        catch (DbUpdateException ex) when (ex is DbUpdateConcurrencyException || ex.InnerException is SqlException { Number: 2601 or 2627 })
         {
             // Nothing was stored; forget the stale invoice so this context can still be used.
             db.ChangeTracker.Clear();

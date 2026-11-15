@@ -42,6 +42,8 @@ internal static partial class AccessTable
         ["GET /api/invoices/{id:guid}/document"] = Readers,
         ["POST /api/invoices"] = Access.Only("Clerk"),
         ["POST /api/invoices/{id:guid}/match"] = Access.Only("Clerk"),
+        ["POST /api/invoices/{id:guid}/approve"] = Access.Only("Approver"),
+        ["POST /api/invoices/{id:guid}/reject"] = Access.Only("Approver"),
         ["POST /account/logout"] = Access.SignedIn,
 
         // Pages

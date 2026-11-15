@@ -15,6 +15,11 @@ internal static class MappingConventions
     public const string CurrencyType = "char(3)";
     public const string RowId = "RowId";
 
+    /// <summary>The invoice's rowversion (shadow property): changes with every save, guards decisions (package 10).</summary>
+    public const string Version = "Version";
+
+    public static string VersionText(byte[] version) => Convert.ToBase64String(version);
+
     /// <summary>
     /// Keys are Guids (or Guid + line number) created by the domain, so entities are valid before they are saved.
     /// Random Guids make a poor clustered index (page splits), so the key is nonclustered and each table is

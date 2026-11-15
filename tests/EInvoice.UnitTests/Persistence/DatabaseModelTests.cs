@@ -296,4 +296,15 @@ public class DatabaseModelTests
         });
         Assert.Equal(seeded.Count, seeded.Select(r => r["Id"]).Distinct().Count());
     }
+
+    [Fact]
+    public void An_invoice_carries_a_rowversion_that_guards_every_save()
+    {
+        // Two decisions on the same version: the second save finds a newer version and fails (package 10).
+        var version = Assert.Single(Entity<Invoice>().GetProperties(), p => p.IsConcurrencyToken);
+
+        Assert.Equal("Version", version.Name);
+        Assert.Equal("rowversion", version.GetColumnType());
+        Assert.Equal(ValueGenerated.OnAddOrUpdate, version.ValueGenerated);
+    }
 }

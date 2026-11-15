@@ -15,7 +15,7 @@ public static class InvoiceStateMachine
             [InvoiceStatus.Received] = [InvoiceStatus.Parsed, InvoiceStatus.Failed],
             [InvoiceStatus.Parsed] = [InvoiceStatus.Validated, InvoiceStatus.Exception],
             [InvoiceStatus.Validated] = [InvoiceStatus.Matched, InvoiceStatus.Exception],
-            [InvoiceStatus.Matched] = [InvoiceStatus.Approved, InvoiceStatus.Exception],
+            [InvoiceStatus.Matched] = [InvoiceStatus.Approved, InvoiceStatus.Rejected, InvoiceStatus.Exception], // a clean match can still be wrong: the approver rejects it
             [InvoiceStatus.Exception] = [InvoiceStatus.Approved, InvoiceStatus.Rejected, InvoiceStatus.Matched], // re-match after a late goods receipt
             [InvoiceStatus.Approved] = [InvoiceStatus.Posted, InvoiceStatus.Failed],
             [InvoiceStatus.Failed] = [InvoiceStatus.Approved], // admin retries a failed posting
