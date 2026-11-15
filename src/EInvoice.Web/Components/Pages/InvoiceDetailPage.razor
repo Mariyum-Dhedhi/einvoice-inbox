@@ -1,10 +1,12 @@
 @page "/invoices/{Id:guid}"
 @implements IDisposable
+@using EInvoice.Application.Explanation
 @using EInvoice.Application.Matching
 @using EInvoice.Application.Validation
 @using EInvoice.Web.Api
 @inject Operations Operations
 @inject ICurrentUser CurrentUser
+@inject IExceptionExplainer Explainer
 
 @if (!_loaded)
 {
@@ -67,6 +69,47 @@ else
             <MudAlert Severity="_rematchSeverity" Class="mt-3" data-testid="rematch-result" role="status">@_rematchMessage</MudAlert>
         }
     </MudPaper>
+
+    @* ---- Why is this an exception? ------------------------------------------------------------------- *@
+    @if (invoice.Status == InvoiceStatus.Exception)
+    {
+        var rules = RuleBasedExplainer.Explain(invoice);
+        <MudPaper Outlined="true" Class="pa-4 mb-3" data-testid="explanation">
+            <div class="d-flex flex-wrap align-center gap-3 mb-2">
+                <MudText Typo="Typo.h6" HtmlTag="h2">Why is this an exception?</MudText>
+                <MudSpacer />
+                @if (Explainer.UsesAi)
+                {
+                    <MudButton Variant="Variant.Outlined" Size="Size.Small" StartIcon="@Icons.Material.Outlined.AutoAwesome" Disabled="_explaining"
+                               OnClick="ExplainWithAiAsync" data-testid="explain-ai">@(_explaining ? "Explaining…" : "Explain with AI")</MudButton>
+                }
+            </div>
+            @foreach (var line in rules.Text.Split('\n'))
+            {
+                <MudText Typo="Typo.body2">@line</MudText>
+            }
+            <MudText Typo="Typo.subtitle2" Class="mt-2">Suggested next step</MudText>
+            @foreach (var line in rules.SuggestedStep.Split('\n'))
+            {
+                <MudText Typo="Typo.body2">@line</MudText>
+            }
+
+            @if (_aiExplanation is { Source: ExplanationSource.Ai } ai)
+            {
+                <MudAlert Severity="Severity.Info" Icon="@Icons.Material.Outlined.AutoAwesome" Class="mt-3" data-testid="explanation-ai" role="status">
+                    <MudText Typo="Typo.subtitle2">AI suggestion · a person decides</MudText>
+                    <MudText Typo="Typo.body2">@ai.Text</MudText>
+                    <MudText Typo="Typo.body2" Class="mt-1"><strong>Suggested step:</strong> @ai.SuggestedStep</MudText>
+                </MudAlert>
+            }
+            else if (_aiExplanation is { FallbackReason: { } reason })
+            {
+                <MudAlert Severity="Severity.Normal" Class="mt-3" data-testid="explanation-fallback" role="status">
+                    The AI explanation was not used: @reason The explanation above applies.
+                </MudAlert>
+            }
+        </MudPaper>
+    }
 
     @* ---- Findings -------------------------------------------------------------------------------------- *@
     @if (invoice.Findings.Count > 0)
@@ -230,6 +273,8 @@ else
     private bool _rematching;
     private string? _rematchMessage;
     private Severity _rematchSeverity;
+    private Explanation? _aiExplanation;
+    private bool _explaining;
 
     [Parameter]
     public Guid Id { get; set; }
@@ -237,6 +282,7 @@ else
     protected override async Task OnParametersSetAsync()
     {
         _rematchMessage = null;
+        _aiExplanation = null;
         await LoadAsync();
     }
 
@@ -262,11 +308,31 @@ else
                 RematchOutcome.NotFound => (Severity.Error, "The invoice no longer exists."),
                 _ => (Severity.Error, result.Detail ?? "The invoice cannot be matched again."),
             };
+            _aiExplanation = null; // it described the invoice before the re-match
             await LoadAsync();
         }
         finally
         {
             _rematching = false;
+        }
+    }
+
+    /// <summary>On request only: the model runs for invoices someone actually looks at. The result is never stored.</summary>
+    private async Task ExplainWithAiAsync()
+    {
+        if (_invoice is null)
+        {
+            return;
+        }
+
+        _explaining = true;
+        try
+        {
+            _aiExplanation = await Explainer.ExplainAsync(_invoice, _disposed.Token);
+        }
+        finally
+        {
+            _explaining = false;
         }
     }
 

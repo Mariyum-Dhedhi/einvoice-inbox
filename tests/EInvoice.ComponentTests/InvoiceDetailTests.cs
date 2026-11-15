@@ -1,3 +1,4 @@
+using EInvoice.Application.Explanation;
 using EInvoice.Application.Matching;
 using EInvoice.Application.Queries;
 using EInvoice.Application.Validation;
@@ -267,5 +268,75 @@ public sealed class AiExtractedDetailTests : UiTest
         var finding = cut.Find("[data-testid=finding]");
         Assert.Contains("BT-153", finding.TextContent, StringComparison.Ordinal);
         Assert.Contains(RuleCodes.ExtractionUnconfirmed, finding.TextContent, StringComparison.Ordinal);
+    }
+}
+
+/// <summary>
+/// "Why is this an exception?": the rule-based explanation at once, and an AI explanation on request, clearly marked
+/// as a suggestion. A person decides either way.
+/// </summary>
+public sealed class ExplanationPanelTests : UiTest
+{
+    private IRenderedComponent<InvoiceDetailPage> Show(InvoiceStatus status)
+    {
+        var id = Guid.NewGuid();
+        Queries.Details[id] = Views.Detail(id, status, matches: status == InvoiceStatus.Exception
+            ? [Views.Match(1, MatchOutcome.PriceVariance, invoicePrice: 7.70m, orderPrice: 7.4125m, variancePercent: 3.878583m)]
+            : null);
+        return Render<InvoiceDetailPage>(p => p.Add(c => c.Id, id));
+    }
+
+    [Fact]
+    public void Exception_shows_the_rule_based_explanation_at_once_without_calling_the_model()
+    {
+        var cut = Show(InvoiceStatus.Exception);
+
+        var panel = cut.Find("[data-testid=explanation]");
+        Assert.Contains("Line 1", panel.TextContent, StringComparison.Ordinal);
+        Assert.Contains("credit note", panel.TextContent, StringComparison.Ordinal);
+        Assert.Equal(0, Explainer.Calls);
+    }
+
+    [Fact]
+    public void Ai_explanation_is_offered_only_when_ai_is_available()
+    {
+        Assert.NotEmpty(Show(InvoiceStatus.Exception).FindAll("[data-testid=explain-ai]"));
+
+        Explainer.UsesAi = false;
+        Assert.Empty(Show(InvoiceStatus.Exception).FindAll("[data-testid=explain-ai]"));
+    }
+
+    [Fact]
+    public void Ai_explanation_is_shown_as_a_suggestion_with_a_person_deciding()
+    {
+        var cut = Show(InvoiceStatus.Exception);
+
+        cut.Find("[data-testid=explain-ai]").Click();
+
+        cut.WaitForAssertion(() => Assert.Contains("2.5 % above", cut.Find("[data-testid=explanation-ai]").TextContent, StringComparison.Ordinal));
+        var panel = cut.Find("[data-testid=explanation-ai]").TextContent;
+        Assert.Contains("suggestion", panel, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("person decides", panel, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(1, Explainer.Calls);
+    }
+
+    [Fact]
+    public void Untrusted_ai_explanation_says_why_the_rule_based_text_is_shown()
+    {
+        Explainer.Result = new("Rule-based text.", "Rule-based step.", ExplanationSource.Rules, "The AI explanation contained numbers that are not in the match result.");
+        var cut = Show(InvoiceStatus.Exception);
+
+        cut.Find("[data-testid=explain-ai]").Click();
+
+        cut.WaitForAssertion(() => Assert.Contains("not in the match result", cut.Find("[data-testid=explanation-fallback]").TextContent, StringComparison.Ordinal));
+        Assert.Empty(cut.FindAll("[data-testid=explanation-ai]"));
+    }
+
+    [Theory]
+    [InlineData(InvoiceStatus.Matched)]
+    [InlineData(InvoiceStatus.Failed)]
+    public void No_explanation_panel_outside_the_exception_queue(InvoiceStatus status)
+    {
+        Assert.Empty(Show(status).FindAll("[data-testid=explanation]"));
     }
 }
