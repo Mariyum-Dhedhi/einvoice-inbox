@@ -746,3 +746,24 @@ END;
 COMMIT;
 GO
 
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261115204127_AddInvoiceVersion'
+)
+BEGIN
+    ALTER TABLE [dbo].[Invoice] ADD [Version] rowversion NOT NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261115204127_AddInvoiceVersion'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20261115204127_AddInvoiceVersion', N'10.0.14');
+END;
+
+COMMIT;
+GO
+

@@ -65,6 +65,12 @@ namespace EInvoice.Infrastructure.Persistence.Migrations
                     b.Property<Guid?>("VendorId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<byte[]>("Version")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
                     b.ComplexProperty(typeof(Dictionary<string, object>), "GrossTotal", "EInvoice.Domain.Invoices.Invoice.GrossTotal#Money", b1 =>
                         {
                             b1.Property<decimal>("Amount")

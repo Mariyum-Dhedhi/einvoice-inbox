@@ -48,11 +48,18 @@ public sealed class EfInvoiceQueries(EInvoiceDbContext db) : IInvoiceQueries
 
     public async Task<InvoiceDetail?> GetAsync(Guid id, CancellationToken cancellationToken)
     {
-        var invoice = await db.Invoices.AsNoTracking().SingleOrDefaultAsync(i => i.Id == id, cancellationToken).ConfigureAwait(false);
-        if (invoice is null)
+        // The invoice and its version in one read, so the version belongs to exactly what is shown.
+        var row = await db.Invoices.AsNoTracking()
+            .Where(i => i.Id == id)
+            .Select(i => new { Invoice = i, Version = EF.Property<byte[]>(i, MappingConventions.Version) })
+            .SingleOrDefaultAsync(cancellationToken)
+            .ConfigureAwait(false);
+        if (row is null)
         {
             return null;
         }
+
+        var invoice = row.Invoice;
 
         var vendorName = invoice.VendorId is { } vendorId
             ? await db.Vendors.Where(v => v.Id == vendorId).Select(v => v.Name).FirstOrDefaultAsync(cancellationToken).ConfigureAwait(false)
@@ -96,7 +103,8 @@ public sealed class EfInvoiceQueries(EInvoiceDbContext db) : IInvoiceQueries
             invoice.StatusHistory.Select(h => new StatusChangeView(h.Sequence, h.From, h.To, h.Actor, h.At, h.Reason)).ToList(),
             findings,
             matches,
-            document);
+            document,
+            MappingConventions.VersionText(row.Version));
     }
 
     public async Task<StoredDocument?> GetDocumentAsync(Guid id, CancellationToken cancellationToken) =>
