@@ -44,12 +44,14 @@ internal static partial class AccessTable
         ["POST /api/invoices/{id:guid}/match"] = Access.Only("Clerk"),
         ["POST /api/invoices/{id:guid}/approve"] = Access.Only("Approver"),
         ["POST /api/invoices/{id:guid}/reject"] = Access.Only("Approver"),
+        ["GET /api/audit/verify"] = Access.Only("Auditor"),
         ["POST /account/logout"] = Access.SignedIn,
 
         // Pages
         ["PAGE /"] = Readers,
         ["PAGE /invoices/{Id:guid}"] = Readers,
         ["PAGE /approvals"] = Access.Only("Approver"),
+        ["PAGE /audit"] = Access.Only("Auditor"),
         ["PAGE /admin/users"] = Access.Only("Admin"),
         ["PAGE /account/access-denied"] = Access.SignedIn,
         ["PAGE /account/login"] = Access.Open,

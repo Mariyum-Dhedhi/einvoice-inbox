@@ -1,4 +1,5 @@
 using EInvoice.Application.Approval;
+using EInvoice.Application.Audit;
 using EInvoice.Application.Explanation;
 using EInvoice.Application.Extraction;
 using EInvoice.Application.Intake;
@@ -9,6 +10,7 @@ using EInvoice.Application.Security;
 using EInvoice.Application.Validation;
 using EInvoice.Domain.Matching;
 using EInvoice.Infrastructure.Approval;
+using EInvoice.Infrastructure.Audit;
 using EInvoice.Infrastructure.Explanation;
 using EInvoice.Infrastructure.Extraction;
 using EInvoice.Infrastructure.Identity;
@@ -94,6 +96,7 @@ internal static class ServiceRegistration
         services.AddScoped<IRematchStore, EfRematchStore>();
         services.AddScoped<IInvoiceQueries, EfInvoiceQueries>();
         services.AddScoped<IUserDirectory, EfUserDirectory>();
+        services.AddScoped<IAuditLog, EfAuditLog>();
         services.AddScoped<IInvoiceIntake, InvoiceIntake>();
         services.AddScoped<IInvoiceRematch, InvoiceRematch>();
         services.AddScoped<IApprovalStore, EfApprovalStore>();

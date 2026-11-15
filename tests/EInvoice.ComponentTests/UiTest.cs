@@ -1,4 +1,5 @@
 using EInvoice.Application.Approval;
+using EInvoice.Application.Audit;
 using EInvoice.Application.Explanation;
 using EInvoice.Application.Intake;
 using EInvoice.Application.Matching;
@@ -37,6 +38,7 @@ public abstract class UiTest : BunitContext, IAsyncLifetime
         Services.AddSingleton(new IntakeOptions(MaxBytes));
         Services.AddSingleton<IUserDirectory>(Users);
         Services.AddSingleton<IInvoiceApproval>(Approval);
+        Services.AddSingleton<IAuditLog>(Audit);
         Services.AddSingleton(Microsoft.Extensions.Options.Options.Create(new ApprovalSettings { DefaultLimitEur = DefaultLimit }));
         Services.AddSingleton<Microsoft.AspNetCore.Components.Forms.AntiforgeryStateProvider>(new FixedAntiforgery());
         Auth = AddAuthorization();
@@ -72,6 +74,8 @@ public abstract class UiTest : BunitContext, IAsyncLifetime
 
     protected FakeApproval Approval { get; } = new();
 
+    protected FakeAuditLog Audit { get; } = new();
+
     protected FakeQueries Queries { get; } = new();
 
     protected FakeIntake Intake { get; } = new();
@@ -93,6 +97,32 @@ public abstract class UiTest : BunitContext, IAsyncLifetime
     {
         public override Microsoft.AspNetCore.Components.Forms.AntiforgeryRequestToken GetAntiforgeryToken() =>
             new(AntiforgeryToken, "__RequestVerificationToken");
+    }
+}
+
+public sealed class FakeAuditLog : IAuditLog
+{
+    /// <summary>Newest first, as the page receives them.</summary>
+    public List<AuditEventView> Events { get; } = [];
+
+    public List<(int Page, int PageSize)> ListCalls { get; } = [];
+
+    public AuditVerification Verification { get; set; } = new(true, 0, null, null, null, null);
+
+    public Task AppendAsync(AuditDraft draft, CancellationToken cancellationToken) => Task.CompletedTask;
+
+    public Task<AuditEventPage> ListAsync(int page, int pageSize, CancellationToken cancellationToken)
+    {
+        ListCalls.Add((page, pageSize));
+        return Task.FromResult(new AuditEventPage(Events.Skip((page - 1) * pageSize).Take(pageSize).ToList(), page, pageSize, Events.Count));
+    }
+
+    public Task<AuditVerification> VerifyAsync(CancellationToken cancellationToken) => Task.FromResult(Verification);
+
+    public async IAsyncEnumerable<AuditEntry> ReadInOrderAsync([System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        await Task.CompletedTask;
+        yield break;
     }
 }
 

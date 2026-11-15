@@ -1,0 +1,124 @@
+@page "/audit"
+@attribute [Authorize(Policy = Policies.ReadAudit)]
+@using EInvoice.Application.Audit
+@inject Operations Operations
+
+<PageTitle>Audit trail – E-Invoice Inbox</PageTitle>
+
+<div class="d-flex flex-wrap align-center justify-space-between gap-3 mb-1">
+    <MudText Typo="Typo.h4" HtmlTag="h1">Audit trail</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Outlined.VerifiedUser" Disabled="_verifying"
+               OnClick="VerifyAsync" data-testid="verify">@(_verifying ? "Verifying…" : "Verify now")</MudButton>
+</div>
+<MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3" data-testid="audit-limit">
+    Every event is linked to the one before it by a hash, so a changed, removed or reordered event is found.
+    A chain cannot show that its newest events were cut off: note down the event count and latest hash after
+    verifying, and compare them next time.
+</MudText>
+
+@if (_verification is { } v)
+{
+    <MudAlert Severity="@(v.IsIntact ? Severity.Success : Severity.Error)" Class="mb-3" role="status"
+              data-testid="verify-result" data-state="@(v.IsIntact ? "intact" : "broken")"
+              Icon="@(v.IsIntact ? Icons.Material.Outlined.VerifiedUser : Icons.Material.Outlined.GppBad)">
+        @if (v.IsIntact)
+        {
+            <span>Intact: all @v.Count events checked. Latest hash: <code class="break-all">@(v.LastHash ?? "none (empty)")</code></span>
+        }
+        else
+        {
+            <span>Broken at event @v.BrokenAt: @Problem(v.Problem). @v.Count events before it are intact.</span>
+        }
+    </MudAlert>
+}
+
+@if (_page is null)
+{
+    <MudProgressLinear Indeterminate="true" aria-label="Loading the audit trail" />
+}
+else if (_page.TotalCount == 0)
+{
+    <MudText data-testid="audit-empty">No events yet.</MudText>
+}
+else
+{
+    <MudPaper Elevation="0" Outlined="true">
+        <MudSimpleTable Elevation="0" Dense="true">
+            <thead>
+                <tr>
+                    <th scope="col">#</th>
+                    <th scope="col">When</th>
+                    <th scope="col">Who</th>
+                    <th scope="col">What</th>
+                    <th scope="col">About</th>
+                    <th scope="col">Details</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var e in _page.Items)
+                {
+                    <tr data-testid="audit-row">
+                        <td class="tabular">@e.Sequence</td>
+                        <td class="nowrap">@Formats.Timestamp(e.At)</td>
+                        <td class="break-all">@e.Actor</td>
+                        <td>@e.Action</td>
+                        <td class="break-all">@e.Subject</td>
+                        <td class="break-all"><code>@e.Details</code></td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    </MudPaper>
+
+    <nav aria-label="Pages" class="d-flex align-center justify-end gap-2 mt-2">
+        @if (_page.Page > 1)
+        {
+            <MudButton Href="@Link(_page.Page - 1)" Size="Size.Small" Variant="Variant.Text" StartIcon="@Icons.Material.Outlined.ChevronLeft">Newer</MudButton>
+        }
+        @if (_page.Page * _page.PageSize < _page.TotalCount)
+        {
+            <MudButton Href="@Link(_page.Page + 1)" Size="Size.Small" Variant="Variant.Text" EndIcon="@Icons.Material.Outlined.ChevronRight">Older</MudButton>
+        }
+    </nav>
+}
+
+@code {
+    private const int PageSize = 50;
+
+    /// <summary>The address is user input: anything but a positive whole number means page 1.</summary>
+    [SupplyParameterFromQuery(Name = "page")]
+    public string? PageQuery { get; set; }
+
+    private AuditEventPage? _page;
+    private AuditVerification? _verification;
+    private bool _verifying;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var page = int.TryParse(PageQuery, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var p) && p > 0 ? p : 1;
+        _page = await Operations.RunAsync<IAuditLog, AuditEventPage>(a => a.ListAsync(page, PageSize, CancellationToken.None));
+    }
+
+    private async Task VerifyAsync()
+    {
+        _verifying = true;
+        try
+        {
+            _verification = await Operations.RunAsync<IAuditLog, AuditVerification>(a => a.VerifyAsync(CancellationToken.None));
+        }
+        finally
+        {
+            _verifying = false;
+        }
+    }
+
+    private static string Link(int page) => page == 1 ? "/audit" : $"/audit?page={page}";
+
+    private static string Problem(AuditProblem? problem) => problem switch
+    {
+        AuditProblem.HashMismatch => "the event was changed after it was written",
+        AuditProblem.ChainBroken => "the event does not follow the event before it",
+        AuditProblem.SequenceGap => "an event before it is missing",
+        _ => "unknown problem",
+    };
+}
