@@ -1,5 +1,5 @@
 @page "/invoices/{Id:guid}"
-@attribute [Authorize]
+@attribute [Authorize(Policy = Policies.ReadInvoices)]
 @implements IDisposable
 @using EInvoice.Application.Explanation
 @using EInvoice.Application.Matching
@@ -7,6 +7,7 @@
 @using EInvoice.Web.Api
 @inject Operations Operations
 @inject IExceptionExplainer Explainer
+@inject IAuthorizationService Authorization
 
 @if (!_loaded)
 {
@@ -43,8 +44,10 @@ else
             <MudSpacer />
             @if (CanRematch(invoice))
             {
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Outlined.Sync" Disabled="_rematching"
-                           OnClick="RematchAsync" data-testid="rematch">@(_rematching ? "Matching…" : "Match again")</MudButton>
+                <AuthorizeView Policy="@Policies.RematchInvoices" Context="auth">
+                    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Outlined.Sync" Disabled="_rematching"
+                               OnClick="RematchAsync" data-testid="rematch">@(_rematching ? "Matching…" : "Match again")</MudButton>
+                </AuthorizeView>
             }
         </div>
 
@@ -80,8 +83,10 @@ else
                 <MudSpacer />
                 @if (Explainer.UsesAi)
                 {
-                    <MudButton Variant="Variant.Outlined" Size="Size.Small" StartIcon="@Icons.Material.Outlined.AutoAwesome" Disabled="_explaining"
-                               OnClick="ExplainWithAiAsync" data-testid="explain-ai">@(_explaining ? "Explaining…" : "Explain with AI")</MudButton>
+                    <AuthorizeView Policy="@Policies.ExplainWithAi" Context="auth">
+                        <MudButton Variant="Variant.Outlined" Size="Size.Small" StartIcon="@Icons.Material.Outlined.AutoAwesome" Disabled="_explaining"
+                                   OnClick="ExplainWithAiAsync" data-testid="explain-ai">@(_explaining ? "Explaining…" : "Explain with AI")</MudButton>
+                    </AuthorizeView>
                 }
             </div>
             @foreach (var line in rules.Text.Split('\n'))
@@ -270,6 +275,10 @@ else
     /// <summary>Who is signed in: recorded as the actor of what this page does.</summary>
     [CascadingParameter]
     private Task<AuthenticationState> AuthState { get; set; } = default!;
+
+    /// <summary>The server's own check before an action: a hidden button is a convenience, not the protection.</summary>
+    private async Task<bool> MayAsync(string policy) =>
+        (await Authorization.AuthorizeAsync((await AuthState).User, policy)).Succeeded;
     private readonly CancellationTokenSource _disposed = new();
     private InvoiceDetail? _invoice;
     private bool _loaded;
@@ -300,6 +309,11 @@ else
 
     private async Task RematchAsync()
     {
+        if (!await MayAsync(Policies.RematchInvoices))
+        {
+            return;
+        }
+
         _rematching = true;
         try
         {
@@ -324,7 +338,7 @@ else
     /// <summary>On request only: the model runs for invoices someone actually looks at. The result is never stored.</summary>
     private async Task ExplainWithAiAsync()
     {
-        if (_invoice is null)
+        if (_invoice is null || !await MayAsync(Policies.ExplainWithAi))
         {
             return;
         }

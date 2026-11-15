@@ -8,6 +8,14 @@
 <MudLayout>
     <MudAppBar Elevation="0" Dense="true">
         <MudLink Href="/" Color="Color.Inherit" Underline="Underline.None" Typo="Typo.h6" Class="app-title">E-Invoice Inbox</MudLink>
+        <nav aria-label="Main" class="app-nav">
+            <AuthorizeView Policy="@Policies.ReadInvoices" Context="nav">
+                <MudLink Href="/" Color="Color.Inherit" data-testid="nav-inbox">Inbox</MudLink>
+            </AuthorizeView>
+            <AuthorizeView Policy="@Policies.ManageUsers" Context="nav">
+                <MudLink Href="/admin/users" Color="Color.Inherit" data-testid="nav-users">Users</MudLink>
+            </AuthorizeView>
+        </nav>
         <MudSpacer />
         <MudText Typo="Typo.body2" Class="app-subtitle">Accounts payable</MudText>
         <AuthorizeView>

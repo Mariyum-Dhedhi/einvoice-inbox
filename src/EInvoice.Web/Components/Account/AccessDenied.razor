@@ -1,0 +1,30 @@
+@page "/account/access-denied"
+@attribute [Authorize]
+@using System.Security.Claims
+
+@* Any signed-in user may see this page: it explains why another page is closed to them. *@
+
+<PageTitle>No access – E-Invoice Inbox</PageTitle>
+
+<AuthorizeView Context="auth">
+    <section class="sign-in" aria-labelledby="denied-title">
+        <h1 id="denied-title">No access to this page</h1>
+        <p>
+            You are signed in as <strong data-testid="denied-user">@auth.User.Identity?.Name</strong>,
+            <span data-testid="denied-roles">@RolesText(auth.User)</span>.
+            This page needs a role you do not have. If you need it, ask an administrator.
+        </p>
+        <form method="post" action="@SignInSetup.LogoutPath" data-testid="sign-out">
+            <AntiforgeryToken />
+            <button type="submit">Sign in as someone else</button>
+        </form>
+    </section>
+</AuthorizeView>
+
+@code {
+    private static string RolesText(ClaimsPrincipal user)
+    {
+        var roles = user.FindAll(ClaimTypes.Role).Select(r => r.Value).Order(StringComparer.Ordinal).ToList();
+        return roles.Count == 0 ? "with no role" : $"with the role {string.Join(", ", roles)}";
+    }
+}

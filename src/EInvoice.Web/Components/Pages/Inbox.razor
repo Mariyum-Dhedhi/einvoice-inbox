@@ -1,11 +1,12 @@
 @page "/"
-@attribute [Authorize]
+@attribute [Authorize(Policy = Policies.ReadInvoices)]
 @implements IDisposable
 @using EInvoice.Application.Intake
 @using EInvoice.Web.Api
 @inject Operations Operations
 @inject IntakeOptions IntakeOptions
 @inject NavigationManager Navigation
+@inject IAuthorizationService Authorization
 
 <PageTitle>Inbox – E-Invoice Inbox</PageTitle>
 
@@ -13,13 +14,15 @@
     <MudText Typo="Typo.h4" HtmlTag="h1">Inbox</MudText>
 
     @* The real file input stays focusable (visually hidden); the button is its label. Type checks happen on the server. *@
-    <div class="upload">
-        <InputFile id="upload-input" class="visually-hidden" OnChange="UploadAsync" accept=".xml,application/xml,text/xml,.pdf,application/pdf" disabled="@(!CanUpload)" />
-        <MudButton HtmlTag="label" for="upload-input" Variant="Variant.Filled" Color="Color.Primary" Disabled="!CanUpload"
-                   StartIcon="@Icons.Material.Outlined.UploadFile">
-            @(_uploading ? "Uploading…" : "Upload invoice")
-        </MudButton>
-    </div>
+    <AuthorizeView Policy="@Policies.UploadInvoices">
+        <div class="upload">
+            <InputFile id="upload-input" class="visually-hidden" OnChange="UploadAsync" accept=".xml,application/xml,text/xml,.pdf,application/pdf" disabled="@(!CanUpload)" />
+            <MudButton HtmlTag="label" for="upload-input" Variant="Variant.Filled" Color="Color.Primary" Disabled="!CanUpload"
+                       StartIcon="@Icons.Material.Outlined.UploadFile">
+                @(_uploading ? "Uploading…" : "Upload invoice")
+            </MudButton>
+        </div>
+    </AuthorizeView>
 </div>
 
 @if (_uploadError is not null)
@@ -113,6 +116,10 @@ else
     /// <summary>Who is signed in: recorded as the actor of what this page does.</summary>
     [CascadingParameter]
     private Task<AuthenticationState> AuthState { get; set; } = default!;
+
+    /// <summary>The server's own check before an action: a hidden button is a convenience, not the protection.</summary>
+    private async Task<bool> MayAsync(string policy) =>
+        (await Authorization.AuthorizeAsync((await AuthState).User, policy)).Succeeded;
     // Statuses an invoice can have after intake and later in its life; Received/Parsed/Validated are only passed through.
     private static readonly InvoiceStatus[] FilterStatuses =
         [InvoiceStatus.Exception, InvoiceStatus.Matched, InvoiceStatus.Failed, InvoiceStatus.Approved, InvoiceStatus.Rejected, InvoiceStatus.Posted];
@@ -147,6 +154,11 @@ else
 
     private async Task UploadAsync(InputFileChangeEventArgs e)
     {
+        if (!await MayAsync(Policies.UploadInvoices))
+        {
+            return;
+        }
+
         _uploadError = null;
         _existingInvoice = null;
         var file = e.File;

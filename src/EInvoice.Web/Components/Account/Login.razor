@@ -1,5 +1,6 @@
 @page "/account/login"
 @using System.ComponentModel.DataAnnotations
+@using EInvoice.Application.Security
 @using EInvoice.Infrastructure.Identity
 @using Microsoft.AspNetCore.Identity
 @attribute [AllowAnonymous]
@@ -55,11 +56,21 @@
         var result = await SignIn.PasswordSignInAsync(Input!.UserName, Input.Password, isPersistent: false, lockoutOnFailure: true);
         if (result.Succeeded)
         {
-            Navigation.NavigateTo(SignInSetup.SafeReturnUrl(ReturnUrl));
+            var target = SignInSetup.SafeReturnUrl(ReturnUrl);
+            Navigation.NavigateTo(target == "/" ? await StartPageAsync(Input.UserName) : target);
             return;
         }
 
         _failed = true;
+    }
+
+    /// <summary>The inbox, or the user list for an admin, who has no invoice pages.</summary>
+    private async Task<string> StartPageAsync(string userName)
+    {
+        var user = await SignIn.UserManager.FindByNameAsync(userName);
+        var roles = user is null ? [] : await SignIn.UserManager.GetRolesAsync(user);
+        var readsInvoices = roles.Any(r => r is Roles.Clerk or Roles.Approver or Roles.Auditor);
+        return !readsInvoices && roles.Contains(Roles.Admin) ? "/admin/users" : "/";
     }
 
     private sealed class LoginInput

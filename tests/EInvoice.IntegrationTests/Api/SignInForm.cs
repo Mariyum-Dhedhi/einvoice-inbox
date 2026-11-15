@@ -92,8 +92,14 @@ internal static partial class SignInForm
 /// <summary>Real users in the test database, with unique names and random passwords, created through Identity.</summary>
 internal static class TestUsers
 {
+    /// <summary>A new account with the given roles; without any given, a clerk (like the default test client).</summary>
     public static async Task<(string UserName, string Password)> CreateAsync(ApiFactory factory, params string[] roles)
     {
+        if (roles.Length == 0)
+        {
+            roles = ["Clerk"];
+        }
+
         var userName = $"user-{Guid.NewGuid():N}@example.com";
         var password = $"Pw-{Guid.NewGuid():N}";
         await using var scope = factory.Services.CreateAsyncScope();

@@ -21,6 +21,7 @@ public static class SignInSetup
 
     public const string LoginPath = "/account/login";
     public const string LogoutPath = "/account/logout";
+    public const string AccessDeniedPath = "/account/access-denied";
 
     /// <summary>The same answer for an unknown user, a wrong password and a locked account: it reveals nothing.</summary>
     public const string FailureMessage = "Sign-in failed. Check your user name and password, or try again later.";
@@ -62,7 +63,7 @@ public static class SignInSetup
             cookie.ExpireTimeSpan = TimeSpan.FromHours(8); // a working day, then sign in again
             cookie.SlidingExpiration = false;
             cookie.LoginPath = LoginPath;
-            cookie.AccessDeniedPath = LoginPath;
+            cookie.AccessDeniedPath = AccessDeniedPath;
             cookie.Events.OnRedirectToLogin = context => Answer(context, StatusCodes.Status401Unauthorized);
             cookie.Events.OnRedirectToAccessDenied = context => Answer(context, StatusCodes.Status403Forbidden);
         });
@@ -71,7 +72,8 @@ public static class SignInSetup
         services.Configure<SecurityStampValidatorOptions>(o => o.ValidationInterval = TimeSpan.Zero);
 
         services.AddAuthorizationBuilder()
-            .SetFallbackPolicy(new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build());
+            .SetFallbackPolicy(new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build())
+            .AddEInvoicePolicies();
 
         // Pages: the sign-in as a cascading value, re-checked every minute while a page stays open.
         services.AddCascadingAuthenticationState();
@@ -84,7 +86,7 @@ public static class SignInSetup
     }
 
     /// <summary>The logout form's target: POST only, with an antiforgery token; ends every session of the account.</summary>
-    internal static void MapSignOut(this IEndpointRouteBuilder app) =>
+    internal static RouteHandlerBuilder MapSignOut(this IEndpointRouteBuilder app) =>
         app.MapPost(LogoutPath, async (HttpContext context, IAntiforgery antiforgery, UserManager<AppUser> users, SignInManager<AppUser> signIn) =>
         {
             if (!await antiforgery.IsRequestValidAsync(context).ConfigureAwait(false))
@@ -99,7 +101,7 @@ public static class SignInSetup
 
             await signIn.SignOutAsync().ConfigureAwait(false);
             return Results.LocalRedirect(LoginPath);
-        });
+        }).RequireAuthorization(); // any signed-in user, stated rather than left to the default
 
     /// <summary>Only addresses on this site ("/..."), never "//host", "/\host" or a full URL: no open redirect.</summary>
     public static string SafeReturnUrl(string? returnUrl) =>

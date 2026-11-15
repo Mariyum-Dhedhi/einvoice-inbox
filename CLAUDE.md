@@ -54,6 +54,9 @@ db/                          stored procedures, views, seed data
 - OpenAPI (/openapi/v1.json) is mapped in Development only.
 - Sign-in is ASP.NET Core Identity with the cookie __Host-einvoice (HttpOnly, Secure, SameSite=Lax, 8 h, not sliding). Every endpoint requires sign-in (fallback policy); only the login page, static files and error pages are [AllowAnonymous]. The API answers 401/403 as problem details, never a redirect.
 - Roles (Application/Security/Roles): Clerk, Approver, Auditor, Admin. Separated duties: the uploader cannot approve, the auditor only reads, the admin never touches invoices.
+- Endpoints and pages name a policy (Web/Security/Policies), never a role list; every one declares its access ([Authorize(Policy = ...)] or [AllowAnonymous]). A new endpoint must be added to tests/.../Api/AccessTable.cs (hand-written, independent of Policies) or EndpointInventoryTests fails; RoleMatrixTests calls each one as every role, no role and nobody.
+- Wrong role: API 403 problem details; pages go to /account/access-denied. Buttons appear only for roles that may use them, and every action checks its policy again on the server (MayAsync).
+- No [Consumes] on endpoints: it is checked before authorization and answers 415 to callers who should get 403. Actions check the content type themselves.
 - Every failed sign-in gets the same message (unknown user, wrong password, locked). Lockout: 5 failures, 15 minutes. Return addresses are local only (SignInSetup.SafeReturnUrl).
 - The security stamp is checked on every request (ValidationInterval zero) and open pages re-check every minute (SignInRevalidator). Sign-out is a POST with an antiforgery token and renews the stamp, so every copy of the cookie stops working.
 - The login page is static server rendering ([ExcludeFromInteractiveRouting]); only a normal HTTP response can set the cookie. The password field is never bound for output.

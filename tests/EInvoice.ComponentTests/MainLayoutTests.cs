@@ -75,6 +75,28 @@ public sealed class MainLayoutTests : BunitContext, IAsyncLifetime
         Assert.Empty(cut.FindAll("form[data-testid=sign-out]"));
     }
 
+    [Fact]
+    public void Readers_get_the_inbox_link_but_not_the_user_list()
+    {
+        Auth.SetPolicies(EInvoice.Web.Security.Policies.ReadInvoices);
+
+        var cut = RenderLayout();
+
+        Assert.NotEmpty(cut.FindAll("a[data-testid=nav-inbox]"));
+        Assert.Empty(cut.FindAll("a[data-testid=nav-users]"));
+    }
+
+    [Fact]
+    public void Admin_gets_the_user_list_link_but_not_the_inbox()
+    {
+        Auth.SetPolicies(EInvoice.Web.Security.Policies.ManageUsers);
+
+        var cut = RenderLayout();
+
+        Assert.Equal("/admin/users", cut.Find("a[data-testid=nav-users]").GetAttribute("href"));
+        Assert.Empty(cut.FindAll("a[data-testid=nav-inbox]"));
+    }
+
     private sealed class FixedAntiforgery : AntiforgeryStateProvider
     {
         public override AntiforgeryRequestToken GetAntiforgeryToken() => new(Token, "__RequestVerificationToken");

@@ -2,11 +2,13 @@ using EInvoice.Application.Explanation;
 using EInvoice.Application.Intake;
 using EInvoice.Application.Matching;
 using EInvoice.Application.Queries;
+using EInvoice.Application.Security;
 using EInvoice.Application.Validation;
 using EInvoice.Domain.Invoices;
 using EInvoice.Domain.Matching;
 using EInvoice.Web.Api;
 using EInvoice.Web.Components.Shared;
+using EInvoice.Web.Security;
 using Microsoft.Extensions.DependencyInjection;
 using Bunit.TestDoubles;
 using MudBlazor;
@@ -31,8 +33,12 @@ public abstract class UiTest : BunitContext, IAsyncLifetime
         Services.AddSingleton<IInvoiceRematch>(Rematch);
         Services.AddSingleton<IExceptionExplainer>(Explainer);
         Services.AddSingleton(new IntakeOptions(MaxBytes));
+        Services.AddSingleton<IUserDirectory>(Users);
+        Services.AddSingleton<Microsoft.AspNetCore.Components.Forms.AntiforgeryStateProvider>(new FixedAntiforgery());
         Auth = AddAuthorization();
         Auth.SetAuthorized(SignedInUser);
+        Auth.SetRoles(Roles.Clerk);
+        Auth.SetPolicies(ClerkPolicies);
         Services.AddSingleton<Operations>();
         SetRendererInfo(new Microsoft.AspNetCore.Components.RendererInfo("Server", isInteractive: true));
         Render<MudPopoverProvider>();
@@ -41,7 +47,21 @@ public abstract class UiTest : BunitContext, IAsyncLifetime
     /// <summary>Pages read the actor from the sign-in, as in the app (cascading authentication state).</summary>
     public const string SignedInUser = "clerk@test";
 
+    /// <summary>
+    /// What a clerk may do. bUnit does not map roles to policies; that mapping is tested end to end in RoleMatrixTests.
+    /// Here a test sets the policies of the role it plays.
+    /// </summary>
+    public static readonly string[] ClerkPolicies = [Policies.ReadInvoices, Policies.UploadInvoices, Policies.RematchInvoices, Policies.ExplainWithAi];
+
+    public static readonly string[] ApproverPolicies = [Policies.ReadInvoices, Policies.ExplainWithAi];
+
+    public static readonly string[] AuditorPolicies = [Policies.ReadInvoices];
+
+    public const string AntiforgeryToken = "test-antiforgery-token";
+
     protected BunitAuthorizationContext Auth { get; }
+
+    protected FakeUserDirectory Users { get; } = new();
 
     protected FakeQueries Queries { get; } = new();
 
@@ -59,6 +79,20 @@ public abstract class UiTest : BunitContext, IAsyncLifetime
 
     /// <summary>MudBlazor services can only be disposed asynchronously; xUnit v2 calls this before the synchronous Dispose.</summary>
     async Task IAsyncLifetime.DisposeAsync() => await DisposeAsync();
+
+    private sealed class FixedAntiforgery : Microsoft.AspNetCore.Components.Forms.AntiforgeryStateProvider
+    {
+        public override Microsoft.AspNetCore.Components.Forms.AntiforgeryRequestToken GetAntiforgeryToken() =>
+            new(AntiforgeryToken, "__RequestVerificationToken");
+    }
+}
+
+public sealed class FakeUserDirectory : IUserDirectory
+{
+    public List<UserSummary> Accounts { get; } = [];
+
+    public Task<IReadOnlyList<UserSummary>> ListAsync(CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyList<UserSummary>>(Accounts);
 }
 
 public sealed class FakeQueries : IInvoiceQueries
