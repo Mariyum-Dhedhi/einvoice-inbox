@@ -11,7 +11,7 @@ using static Microsoft.Playwright.Assertions;
 namespace EInvoice.IntegrationTests.E2E;
 
 /// <summary>
-/// The package's "done when", in a real browser: upload an invoice on the inbox page and see its result.
+/// The package's "done when", in a real browser: sign in, upload an invoice on the inbox page and see its result.
 /// The app runs on Kestrel against the test database. Needs Chromium: pwsh bin/.../playwright.ps1 install chromium.
 /// Runs as Development, where the static web assets of packages (MudBlazor) are served from the build output.
 /// </summary>
@@ -67,8 +67,15 @@ public sealed class UploadInBrowserTests(SqlServerFixture fixture) : IAsyncLifet
         page.PageError += (_, error) => problems.Add($"page: {error}");
         page.RequestFailed += (_, request) => problems.Add($"request: {request.Url}");
 
+        // Not signed in: the inbox sends the browser to the login page, and back after signing in.
+        var (userName, password) = await TestUsers.CreateAsync(_factory);
         await page.GotoAsync(_baseUrl);
+        await page.WaitForURLAsync("**/account/login?**");
+        await page.GetByLabel("User name").FillAsync(userName);
+        await page.GetByLabel("Password").FillAsync(password);
+        await page.GetByRole(AriaRole.Button, new() { Name = "Sign in" }).ClickAsync();
         await Expect(page.GetByRole(AriaRole.Heading, new() { Name = "Inbox" })).ToBeVisibleAsync();
+        await Expect(page.Locator("[data-testid=signed-in-user]")).ToHaveTextAsync(userName);
         await Expect(page.Locator("input[type=file]")).ToBeEnabledAsync(); // the page is interactive now
         await page.Locator("input[type=file]").SetInputFilesAsync(new FilePayload { Name = "invoice.xml", MimeType = "application/xml", Buffer = xml });
 
@@ -76,6 +83,12 @@ public sealed class UploadInBrowserTests(SqlServerFixture fixture) : IAsyncLifet
         await Expect(page.Locator("h1")).ToHaveTextAsync(invoiceNumber);
         await Expect(page.Locator("[data-testid=status]").First).ToHaveAttributeAsync("data-status", "Matched");
         await Expect(page.Locator("[data-testid=match-row]")).ToHaveAttributeAsync("data-outcome", "FullMatch");
+
+        // Signing out ends the session: the inbox is closed again.
+        await page.Locator("form[data-testid=sign-out] button").ClickAsync();
+        await page.WaitForURLAsync("**/account/login**");
+        await page.GotoAsync(_baseUrl);
+        await page.WaitForURLAsync("**/account/login?**");
         Assert.Empty(problems);
     }
 }

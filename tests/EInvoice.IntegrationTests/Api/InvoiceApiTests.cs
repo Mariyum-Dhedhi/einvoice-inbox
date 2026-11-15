@@ -237,7 +237,7 @@ public sealed class InvoiceApiTests(SqlServerFixture fixture) : IAsyncLifetime
         Assert.Equal("Beispiel Bürobedarf GmbH", detail.GetProperty("vendorName").GetString());
         Assert.Equal(scenario.PurchaseOrderNumber, detail.GetProperty("purchaseOrderNumber").GetString());
         Assert.Equal("EUR", detail.GetProperty("currency").GetString());
-        Assert.Equal("anonymous", detail.GetProperty("submittedBy").GetString()); // until sign-in (package 9)
+        Assert.Equal(ApiFactory.DefaultUser, detail.GetProperty("submittedBy").GetString()); // the signed-in user
 
         var lines = detail.GetProperty("lines").EnumerateArray().ToList();
         Assert.Equal([1, 2], lines.Select(l => l.GetProperty("lineNumber").GetInt32()));

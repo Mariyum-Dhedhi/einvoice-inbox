@@ -30,6 +30,19 @@ public class ArchitectureTests
         Assert.Empty(packages);
     }
 
+    [Theory]
+    [InlineData("EInvoice.Domain")]
+    [InlineData("EInvoice.Application")]
+    public void Sign_in_machinery_stays_out_of_the_inner_layers(string project)
+    {
+        // Use cases receive the actor as a name; only Infrastructure (store) and Web (cookies, forms) know Identity.
+        var references = LoadProject(project).Descendants()
+            .Where(e => e.Name.LocalName is "PackageReference" or "FrameworkReference")
+            .Select(e => (string?)e.Attribute("Include") ?? string.Empty);
+
+        Assert.DoesNotContain(references, r => r.Contains("Identity", StringComparison.OrdinalIgnoreCase) || r.StartsWith("Microsoft.AspNetCore", StringComparison.Ordinal));
+    }
+
     private static IEnumerable<string> ProjectReferences(string project) =>
         LoadProject(project)
             .Descendants("ProjectReference")

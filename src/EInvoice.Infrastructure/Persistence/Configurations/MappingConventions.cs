@@ -1,5 +1,6 @@
 using EInvoice.Domain.Shared;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace EInvoice.Infrastructure.Persistence.Configurations;
@@ -22,7 +23,8 @@ internal static class MappingConventions
     public static void UseClusteredRowId<T>(this EntityTypeBuilder<T> builder, string table)
         where T : class
     {
-        builder.Property<long>(RowId).UseIdentityColumn();
+        // Never written after insert: Identity saves accounts with Update(), which would otherwise send RowId too.
+        builder.Property<long>(RowId).UseIdentityColumn().Metadata.SetAfterSaveBehavior(PropertySaveBehavior.Ignore);
         builder.HasIndex(RowId).IsClustered().HasDatabaseName($"CX_{table}_RowId");
     }
 

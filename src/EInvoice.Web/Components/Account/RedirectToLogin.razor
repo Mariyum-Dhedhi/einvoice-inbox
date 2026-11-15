@@ -1,0 +1,11 @@
+@inject NavigationManager Navigation
+
+@* A page needs sign-in, but the user is not (or no longer) signed in: full reload to the login page and back. *@
+
+@code {
+    protected override void OnInitialized()
+    {
+        var here = "/" + Navigation.ToBaseRelativePath(Navigation.Uri);
+        Navigation.NavigateTo($"{SignInSetup.LoginPath}?ReturnUrl={Uri.EscapeDataString(here)}", forceLoad: true);
+    }
+}

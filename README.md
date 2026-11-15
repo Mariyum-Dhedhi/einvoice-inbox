@@ -8,7 +8,7 @@ purchase orders and goods receipts, and sends anything doubtful to a person with
 
 > **Status:** in development, built in public, one
 > [work package](https://github.com/Mariyum-Dhedhi/einvoice-inbox/issues) per pull request.
-> Done: upload pipeline, validation (incl. the official KoSIT validator), matching, API, UI, AI extraction.
+> Done: upload pipeline, validation (incl. the official KoSIT validator), matching, API, UI, AI extraction, sign-in.
 
 ## AI extraction, measured
 
@@ -78,6 +78,16 @@ docker compose up -d          # SQL Server 2022 on localhost:1433
 dotnet build --warnaserror
 dotnet test
 ```
+
+To use the app in the browser, set a demo password once and start it in Development. This creates one demo
+user per role (`clerk@example.com`, `approver@example.com`, `auditor@example.com`, `admin@example.com`):
+
+```bash
+dotnet user-secrets set "DemoUsers:Password" "<a passphrase of at least 12 characters>" --project src/EInvoice.Web
+dotnet run --project src/EInvoice.Web
+```
+
+Demo users exist only in Development; with a demo password set anywhere else, the app refuses to start.
 
 ## Stack
 

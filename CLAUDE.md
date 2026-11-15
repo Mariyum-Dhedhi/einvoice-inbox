@@ -52,6 +52,14 @@ db/                          stored procedures, views, seed data
 - Settings are bound to options classes and validated at startup (ValidateOnStart); a wrong value stops the app. Connection strings come from user secrets or environment variables.
 - Every response sends X-Content-Type-Options: nosniff; API responses are no-store. Stored files are only served as attachments.
 - OpenAPI (/openapi/v1.json) is mapped in Development only.
+- Sign-in is ASP.NET Core Identity with the cookie __Host-einvoice (HttpOnly, Secure, SameSite=Lax, 8 h, not sliding). Every endpoint requires sign-in (fallback policy); only the login page, static files and error pages are [AllowAnonymous]. The API answers 401/403 as problem details, never a redirect.
+- Roles (Application/Security/Roles): Clerk, Approver, Auditor, Admin. Separated duties: the uploader cannot approve, the auditor only reads, the admin never touches invoices.
+- Every failed sign-in gets the same message (unknown user, wrong password, locked). Lockout: 5 failures, 15 minutes. Return addresses are local only (SignInSetup.SafeReturnUrl).
+- The security stamp is checked on every request (ValidationInterval zero) and open pages re-check every minute (SignInRevalidator). Sign-out is a POST with an antiforgery token and renews the stamp, so every copy of the cookie stops working.
+- The login page is static server rendering ([ExcludeFromInteractiveRouting]); only a normal HTTP response can set the cookie. The password field is never bound for output.
+- The actor recorded on invoices is the signed-in user name (SignedInUser.Name); there is no placeholder user.
+- Demo users (clerk@, approver@, auditor@, admin@example.com) exist only in Development, only when DemoUsers:Password is set in user secrets; set outside Development, the app does not start.
+- API tests sign in with ApiFactory.CreateApiClient(user, roles) through a header scheme that only the test project has; CreateApiClient(user: null) is anonymous and uses the real cookie. Real sign-in is tested in SignInTests against the database.
 - Re-match only clears match problems: an invoice in Exception with validation findings stays for a human.
 - Committed test invoices for the same vendor need distinct amounts or dates, or the POSSIBLE_DUPLICATE rule (correctly) flags invoices in other tests.
 - UI pages run operations through Operations (one DI scope per operation): never inject DbContext-backed services straight into a Blazor Server component.

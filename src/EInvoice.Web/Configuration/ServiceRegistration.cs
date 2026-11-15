@@ -16,6 +16,7 @@ using EInvoice.Infrastructure.Queries;
 using EInvoice.Infrastructure.Validation;
 using EInvoice.Web.Api;
 using EInvoice.Web.Components.Shared;
+using EInvoice.Web.Security;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.EntityFrameworkCore;
@@ -91,7 +92,7 @@ internal static class ServiceRegistration
         services.AddScoped<IInvoiceRematch, InvoiceRematch>();
         services.AddSingleton<Operations>();
 
-        services.AddSingleton<ICurrentUser, AnonymousUser>();
+        services.AddEInvoiceSignIn();
         return services;
     }
 

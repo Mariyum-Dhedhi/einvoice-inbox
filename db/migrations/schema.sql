@@ -469,3 +469,280 @@ END;
 COMMIT;
 GO
 
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261115151424_AddSignIn'
+)
+BEGIN
+    CREATE SEQUENCE [dbo].[AppRoleClaimId] START WITH 1 INCREMENT BY 1 NO CYCLE;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261115151424_AddSignIn'
+)
+BEGIN
+    CREATE SEQUENCE [dbo].[AppUserClaimId] START WITH 1 INCREMENT BY 1 NO CYCLE;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261115151424_AddSignIn'
+)
+BEGIN
+    CREATE TABLE [dbo].[AppRole] (
+        [Id] uniqueidentifier NOT NULL,
+        [RowId] bigint NOT NULL IDENTITY,
+        [Name] nvarchar(256) NULL,
+        [NormalizedName] nvarchar(256) NULL,
+        [ConcurrencyStamp] varchar(64) NULL,
+        CONSTRAINT [PK_AppRole] PRIMARY KEY NONCLUSTERED ([Id])
+    );
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261115151424_AddSignIn'
+)
+BEGIN
+    CREATE TABLE [dbo].[AppUser] (
+        [Id] uniqueidentifier NOT NULL,
+        [RowId] bigint NOT NULL IDENTITY,
+        [UserName] nvarchar(256) NULL,
+        [NormalizedUserName] nvarchar(256) NULL,
+        [Email] nvarchar(256) NULL,
+        [NormalizedEmail] nvarchar(256) NULL,
+        [EmailConfirmed] bit NOT NULL,
+        [PasswordHash] varchar(256) NULL,
+        [SecurityStamp] varchar(64) NULL,
+        [ConcurrencyStamp] varchar(64) NULL,
+        [PhoneNumber] nvarchar(50) NULL,
+        [PhoneNumberConfirmed] bit NOT NULL,
+        [TwoFactorEnabled] bit NOT NULL,
+        [LockoutEnd] datetimeoffset NULL,
+        [LockoutEnabled] bit NOT NULL,
+        [AccessFailedCount] int NOT NULL,
+        CONSTRAINT [PK_AppUser] PRIMARY KEY NONCLUSTERED ([Id])
+    );
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261115151424_AddSignIn'
+)
+BEGIN
+    CREATE TABLE [dbo].[AppRoleClaim] (
+        [Id] int NOT NULL DEFAULT (NEXT VALUE FOR [dbo].[AppRoleClaimId]),
+        [RoleId] uniqueidentifier NOT NULL,
+        [ClaimType] nvarchar(256) NULL,
+        [ClaimValue] nvarchar(512) NULL,
+        [RowId] bigint NOT NULL IDENTITY,
+        CONSTRAINT [PK_AppRoleClaim] PRIMARY KEY NONCLUSTERED ([Id]),
+        CONSTRAINT [FK_AppRoleClaim_AppRole_RoleId] FOREIGN KEY ([RoleId]) REFERENCES [dbo].[AppRole] ([Id]) ON DELETE CASCADE
+    );
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261115151424_AddSignIn'
+)
+BEGIN
+    CREATE TABLE [dbo].[AppUserClaim] (
+        [Id] int NOT NULL DEFAULT (NEXT VALUE FOR [dbo].[AppUserClaimId]),
+        [UserId] uniqueidentifier NOT NULL,
+        [ClaimType] nvarchar(256) NULL,
+        [ClaimValue] nvarchar(512) NULL,
+        [RowId] bigint NOT NULL IDENTITY,
+        CONSTRAINT [PK_AppUserClaim] PRIMARY KEY NONCLUSTERED ([Id]),
+        CONSTRAINT [FK_AppUserClaim_AppUser_UserId] FOREIGN KEY ([UserId]) REFERENCES [dbo].[AppUser] ([Id]) ON DELETE CASCADE
+    );
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261115151424_AddSignIn'
+)
+BEGIN
+    CREATE TABLE [dbo].[AppUserLogin] (
+        [LoginProvider] nvarchar(128) NOT NULL,
+        [ProviderKey] nvarchar(128) NOT NULL,
+        [ProviderDisplayName] nvarchar(256) NULL,
+        [UserId] uniqueidentifier NOT NULL,
+        [RowId] bigint NOT NULL IDENTITY,
+        CONSTRAINT [PK_AppUserLogin] PRIMARY KEY NONCLUSTERED ([LoginProvider], [ProviderKey]),
+        CONSTRAINT [FK_AppUserLogin_AppUser_UserId] FOREIGN KEY ([UserId]) REFERENCES [dbo].[AppUser] ([Id]) ON DELETE CASCADE
+    );
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261115151424_AddSignIn'
+)
+BEGIN
+    CREATE TABLE [dbo].[AppUserRole] (
+        [UserId] uniqueidentifier NOT NULL,
+        [RoleId] uniqueidentifier NOT NULL,
+        [RowId] bigint NOT NULL IDENTITY,
+        CONSTRAINT [PK_AppUserRole] PRIMARY KEY NONCLUSTERED ([UserId], [RoleId]),
+        CONSTRAINT [FK_AppUserRole_AppRole_RoleId] FOREIGN KEY ([RoleId]) REFERENCES [dbo].[AppRole] ([Id]) ON DELETE CASCADE,
+        CONSTRAINT [FK_AppUserRole_AppUser_UserId] FOREIGN KEY ([UserId]) REFERENCES [dbo].[AppUser] ([Id]) ON DELETE CASCADE
+    );
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261115151424_AddSignIn'
+)
+BEGIN
+    CREATE TABLE [dbo].[AppUserToken] (
+        [UserId] uniqueidentifier NOT NULL,
+        [LoginProvider] nvarchar(128) NOT NULL,
+        [Name] nvarchar(128) NOT NULL,
+        [Value] nvarchar(1024) NULL,
+        [RowId] bigint NOT NULL IDENTITY,
+        CONSTRAINT [PK_AppUserToken] PRIMARY KEY NONCLUSTERED ([UserId], [LoginProvider], [Name]),
+        CONSTRAINT [FK_AppUserToken_AppUser_UserId] FOREIGN KEY ([UserId]) REFERENCES [dbo].[AppUser] ([Id]) ON DELETE CASCADE
+    );
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261115151424_AddSignIn'
+)
+BEGIN
+    IF EXISTS (SELECT * FROM [sys].[identity_columns] WHERE [name] IN (N'Id', N'ConcurrencyStamp', N'Name', N'NormalizedName') AND [object_id] = OBJECT_ID(N'[dbo].[AppRole]'))
+        SET IDENTITY_INSERT [dbo].[AppRole] ON;
+    EXEC(N'INSERT INTO [dbo].[AppRole] ([Id], [ConcurrencyStamp], [Name], [NormalizedName])
+    VALUES (''6f1c2a35-2f61-4d4e-9a0b-1b7a3f0c1001'', ''6f1c2a352f614d4e9a0b1b7a3f0c1001'', N''Clerk'', N''CLERK''),
+    (''6f1c2a35-2f61-4d4e-9a0b-1b7a3f0c1002'', ''6f1c2a352f614d4e9a0b1b7a3f0c1002'', N''Approver'', N''APPROVER''),
+    (''6f1c2a35-2f61-4d4e-9a0b-1b7a3f0c1003'', ''6f1c2a352f614d4e9a0b1b7a3f0c1003'', N''Auditor'', N''AUDITOR''),
+    (''6f1c2a35-2f61-4d4e-9a0b-1b7a3f0c1004'', ''6f1c2a352f614d4e9a0b1b7a3f0c1004'', N''Admin'', N''ADMIN'')');
+    IF EXISTS (SELECT * FROM [sys].[identity_columns] WHERE [name] IN (N'Id', N'ConcurrencyStamp', N'Name', N'NormalizedName') AND [object_id] = OBJECT_ID(N'[dbo].[AppRole]'))
+        SET IDENTITY_INSERT [dbo].[AppRole] OFF;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261115151424_AddSignIn'
+)
+BEGIN
+    CREATE CLUSTERED INDEX [CX_AppRole_RowId] ON [dbo].[AppRole] ([RowId]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261115151424_AddSignIn'
+)
+BEGIN
+    EXEC(N'CREATE UNIQUE INDEX [RoleNameIndex] ON [dbo].[AppRole] ([NormalizedName]) WHERE [NormalizedName] IS NOT NULL');
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261115151424_AddSignIn'
+)
+BEGIN
+    CREATE CLUSTERED INDEX [CX_AppRoleClaim_RowId] ON [dbo].[AppRoleClaim] ([RowId]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261115151424_AddSignIn'
+)
+BEGIN
+    CREATE INDEX [IX_AppRoleClaim_RoleId] ON [dbo].[AppRoleClaim] ([RoleId]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261115151424_AddSignIn'
+)
+BEGIN
+    CREATE CLUSTERED INDEX [CX_AppUser_RowId] ON [dbo].[AppUser] ([RowId]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261115151424_AddSignIn'
+)
+BEGIN
+    CREATE INDEX [EmailIndex] ON [dbo].[AppUser] ([NormalizedEmail]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261115151424_AddSignIn'
+)
+BEGIN
+    EXEC(N'CREATE UNIQUE INDEX [UserNameIndex] ON [dbo].[AppUser] ([NormalizedUserName]) WHERE [NormalizedUserName] IS NOT NULL');
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261115151424_AddSignIn'
+)
+BEGIN
+    CREATE CLUSTERED INDEX [CX_AppUserClaim_RowId] ON [dbo].[AppUserClaim] ([RowId]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261115151424_AddSignIn'
+)
+BEGIN
+    CREATE INDEX [IX_AppUserClaim_UserId] ON [dbo].[AppUserClaim] ([UserId]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261115151424_AddSignIn'
+)
+BEGIN
+    CREATE CLUSTERED INDEX [CX_AppUserLogin_RowId] ON [dbo].[AppUserLogin] ([RowId]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261115151424_AddSignIn'
+)
+BEGIN
+    CREATE INDEX [IX_AppUserLogin_UserId] ON [dbo].[AppUserLogin] ([UserId]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261115151424_AddSignIn'
+)
+BEGIN
+    CREATE CLUSTERED INDEX [CX_AppUserRole_RowId] ON [dbo].[AppUserRole] ([RowId]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261115151424_AddSignIn'
+)
+BEGIN
+    CREATE INDEX [IX_AppUserRole_RoleId] ON [dbo].[AppUserRole] ([RoleId]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261115151424_AddSignIn'
+)
+BEGIN
+    CREATE CLUSTERED INDEX [CX_AppUserToken_RowId] ON [dbo].[AppUserToken] ([RowId]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261115151424_AddSignIn'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20261115151424_AddSignIn', N'10.0.14');
+END;
+
+COMMIT;
+GO
+

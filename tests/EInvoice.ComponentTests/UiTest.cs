@@ -8,6 +8,7 @@ using EInvoice.Domain.Matching;
 using EInvoice.Web.Api;
 using EInvoice.Web.Components.Shared;
 using Microsoft.Extensions.DependencyInjection;
+using Bunit.TestDoubles;
 using MudBlazor;
 using MudBlazor.Services;
 
@@ -30,11 +31,17 @@ public abstract class UiTest : BunitContext, IAsyncLifetime
         Services.AddSingleton<IInvoiceRematch>(Rematch);
         Services.AddSingleton<IExceptionExplainer>(Explainer);
         Services.AddSingleton(new IntakeOptions(MaxBytes));
-        Services.AddSingleton<ICurrentUser>(new FixedUser("clerk@test"));
+        Auth = AddAuthorization();
+        Auth.SetAuthorized(SignedInUser);
         Services.AddSingleton<Operations>();
         SetRendererInfo(new Microsoft.AspNetCore.Components.RendererInfo("Server", isInteractive: true));
         Render<MudPopoverProvider>();
     }
+
+    /// <summary>Pages read the actor from the sign-in, as in the app (cascading authentication state).</summary>
+    public const string SignedInUser = "clerk@test";
+
+    protected BunitAuthorizationContext Auth { get; }
 
     protected FakeQueries Queries { get; } = new();
 
@@ -52,11 +59,6 @@ public abstract class UiTest : BunitContext, IAsyncLifetime
 
     /// <summary>MudBlazor services can only be disposed asynchronously; xUnit v2 calls this before the synchronous Dispose.</summary>
     async Task IAsyncLifetime.DisposeAsync() => await DisposeAsync();
-
-    private sealed class FixedUser(string name) : ICurrentUser
-    {
-        public string Name => name;
-    }
 }
 
 public sealed class FakeQueries : IInvoiceQueries

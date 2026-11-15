@@ -1,0 +1,75 @@
+@page "/account/login"
+@using System.ComponentModel.DataAnnotations
+@using EInvoice.Infrastructure.Identity
+@using Microsoft.AspNetCore.Identity
+@attribute [AllowAnonymous]
+@attribute [ExcludeFromInteractiveRouting]
+@inject SignInManager<AppUser> SignIn
+@inject NavigationManager Navigation
+
+@*
+    Server-rendered form, no WebSocket connection: only a normal HTTP response can set the sign-in cookie.
+    SignInManager is injected here because this page lives for exactly one request (not an interactive component).
+*@
+
+<PageTitle>Sign in · E-Invoice Inbox</PageTitle>
+
+<section class="sign-in" aria-labelledby="sign-in-title">
+    <h1 id="sign-in-title">Sign in</h1>
+
+    @if (_failed)
+    {
+        <p class="sign-in-error" role="alert" data-testid="login-error">@SignInSetup.FailureMessage</p>
+    }
+
+    <EditForm Model="Input" method="post" OnValidSubmit="SignInAsync" FormName="login">
+        <DataAnnotationsValidator />
+
+        <label for="username">User name</label>
+        <InputText id="username" @bind-Value="Input!.UserName" autocomplete="username" required aria-required="true" />
+        <ValidationMessage For="() => Input!.UserName" />
+
+        <label for="password">Password</label>
+        @* Not bound for output: a re-shown form never writes the password back into the page. *@
+        <input id="password" name="Input.Password" type="password" autocomplete="current-password" required aria-required="true" />
+        <ValidationMessage For="() => Input!.Password" />
+
+        <button type="submit">Sign in</button>
+    </EditForm>
+</section>
+
+@code {
+    [SupplyParameterFromForm]
+    private LoginInput? Input { get; set; }
+
+    [SupplyParameterFromQuery]
+    private string? ReturnUrl { get; set; }
+
+    private bool _failed;
+
+    protected override void OnInitialized() => Input ??= new();
+
+    private async Task SignInAsync()
+    {
+        // Lockout counts failures; the answer is the same for every kind of failure.
+        var result = await SignIn.PasswordSignInAsync(Input!.UserName, Input.Password, isPersistent: false, lockoutOnFailure: true);
+        if (result.Succeeded)
+        {
+            Navigation.NavigateTo(SignInSetup.SafeReturnUrl(ReturnUrl));
+            return;
+        }
+
+        _failed = true;
+    }
+
+    private sealed class LoginInput
+    {
+        [Required(ErrorMessage = "Enter your user name.")]
+        [MaxLength(256)]
+        public string UserName { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Enter your password.")]
+        [MaxLength(256)]
+        public string Password { get; set; } = string.Empty;
+    }
+}

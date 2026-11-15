@@ -1,11 +1,11 @@
 @page "/invoices/{Id:guid}"
+@attribute [Authorize]
 @implements IDisposable
 @using EInvoice.Application.Explanation
 @using EInvoice.Application.Matching
 @using EInvoice.Application.Validation
 @using EInvoice.Web.Api
 @inject Operations Operations
-@inject ICurrentUser CurrentUser
 @inject IExceptionExplainer Explainer
 
 @if (!_loaded)
@@ -267,6 +267,9 @@ else
 }
 
 @code {
+    /// <summary>Who is signed in: recorded as the actor of what this page does.</summary>
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthState { get; set; } = default!;
     private readonly CancellationTokenSource _disposed = new();
     private InvoiceDetail? _invoice;
     private bool _loaded;
@@ -300,7 +303,8 @@ else
         _rematching = true;
         try
         {
-            var result = await Operations.RunAsync<IInvoiceRematch, RematchResult>(r => r.RematchAsync(Id, CurrentUser.Name, _disposed.Token));
+            var actor = await SignedInUser.NameAsync(AuthState);
+            var result = await Operations.RunAsync<IInvoiceRematch, RematchResult>(r => r.RematchAsync(Id, actor, _disposed.Token));
             (_rematchSeverity, _rematchMessage) = result.Outcome switch
             {
                 RematchOutcome.Matched => (Severity.Success, "Matched again: the invoice now matches its order and goods receipts."),

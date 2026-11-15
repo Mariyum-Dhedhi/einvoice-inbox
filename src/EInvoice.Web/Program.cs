@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using EInvoice.Web.Components;
 using EInvoice.Web.Configuration;
+using EInvoice.Web.Security;
 using MudBlazor.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -60,6 +61,10 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+// Who is calling, then whether they may: every endpoint requires sign-in unless it allows anonymous callers.
+app.UseAuthentication();
+app.UseAuthorization();
+
 app.UseAntiforgery();
 
 if (app.Environment.IsDevelopment())
@@ -68,7 +73,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.MapControllers();
-app.MapStaticAssets();
+app.MapStaticAssets().AllowAnonymous(); // stylesheets and scripts of the login page
+app.MapSignOut();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
