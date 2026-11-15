@@ -138,6 +138,70 @@ public class EvidenceCheckerTests
         Assert.True(Field(fields, "BT-131", 2).Confident);
     }
 
+    // ---- Found by the evaluation (package 13c) -----------------------------------------------------------------
+
+    [Fact]
+    public void Line_that_does_not_add_up_puts_quantity_and_price_in_doubt_too()
+    {
+        // E15: "crate 12 x 1 l" read as quantity 12. The 12 is in the document, so on its own it looked confident;
+        // only the arithmetic shows something is wrong, and it cannot tell which of the three values it is.
+        var fields = Check(Invoice(i => i with { Lines = [i.Lines![0] with { Quantity = 4m }, i.Lines[1]] }));
+
+        Assert.False(Field(fields, "BT-129", 1).Confident);
+        Assert.False(Field(fields, "BT-146", 1).Confident);
+        Assert.Contains("does not equal quantity x price", Field(fields, "BT-129", 1).Reason, StringComparison.Ordinal);
+        Assert.True(Field(fields, "BT-129", 2).Confident); // the other line is untouched
+    }
+
+    [Theory]
+    [InlineData("HDMI cable 2 m, 10 x 7,41 EUR")]   // quantity x price swallowed (layout B sentence style)
+    [InlineData("HDMI cable 2 m 7,41")]             // the line's own unit price
+    [InlineData("HDMI cable 2 m = 74,10 EUR")]      // the line's own amount
+    public void Item_name_that_swallowed_its_own_numbers_is_not_confident(string description)
+    {
+        var text = Text.Replace("HDMI cable 2 m |", $"{description} |", StringComparison.Ordinal);
+
+        var fields = EvidenceChecker.Check(Invoice(i => i with { Lines = [i.Lines![0] with { Description = description }, i.Lines[1]] }), text, [Iban]);
+
+        var name = Field(fields, "BT-153", 1);
+        Assert.False(name.Confident);
+        Assert.Contains("quantity, price or amount", name.Reason, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("Mineral water, crate 12 x 1 l")] // numbers that belong to the product are fine
+    [InlineData("Cat6 patch cable 5 m")]
+    [InlineData("Whiteboard markers, set of 4")]
+    public void Item_name_with_its_own_product_numbers_stays_confident(string description)
+    {
+        var text = Text.Replace("HDMI cable 2 m |", $"{description} |", StringComparison.Ordinal);
+
+        var fields = EvidenceChecker.Check(Invoice(i => i with { Lines = [i.Lines![0] with { Description = description }, i.Lines[1]] }), text, [Iban]);
+
+        Assert.True(Field(fields, "BT-153", 1).Confident);
+    }
+
+    [Fact]
+    public void Dropped_order_line_reference_is_not_confident_when_the_invoice_has_an_order_and_an_order_line_column()
+    {
+        // E12: the table has a "PO line" column, the invoice names an order, and the reply left the reference out.
+        var fields = Check(Invoice(i => i with { Lines = [i.Lines![0] with { OrderLineReference = null }, i.Lines[1]] }));
+
+        Assert.False(Field(fields, "BT-132", 1).Confident);
+        Assert.True(Field(fields, "BT-132", 2).Confident); // line 2 prints "-": no reference is right
+    }
+
+    [Fact]
+    public void Missing_order_line_reference_is_fine_when_the_invoice_has_no_order()
+    {
+        var text = Text.Replace("Purchase order: PO-0042\n", string.Empty, StringComparison.Ordinal);
+
+        var fields = EvidenceChecker.Check(
+            Invoice(i => i with { PurchaseOrderReference = null, Lines = [i.Lines![0] with { OrderLineReference = null }, i.Lines[1]] }), text, [Iban]);
+
+        Assert.True(Field(fields, "BT-132", 1).Confident);
+    }
+
     [Fact]
     public void Line_description_and_price_must_come_from_the_document()
     {
