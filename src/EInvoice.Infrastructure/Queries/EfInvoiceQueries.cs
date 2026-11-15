@@ -1,4 +1,5 @@
 using EInvoice.Application.Queries;
+using EInvoice.Application.Validation;
 using EInvoice.Domain.Invoices;
 using EInvoice.Infrastructure.Persistence;
 using EInvoice.Infrastructure.Persistence.Configurations;
@@ -105,6 +106,35 @@ public sealed class EfInvoiceQueries(EInvoiceDbContext db) : IInvoiceQueries
             matches,
             document,
             MappingConventions.VersionText(row.Version));
+    }
+
+    public async Task<ApprovalQueuePage> ApprovalQueueAsync(int page, int pageSize, CancellationToken cancellationToken)
+    {
+        ArgumentOutOfRangeException.ThrowIfLessThan(page, 1);
+        ArgumentOutOfRangeException.ThrowIfLessThan(pageSize, 1);
+        ArgumentOutOfRangeException.ThrowIfGreaterThan(pageSize, InvoiceListQuery.MaxPageSize);
+
+        var waiting = db.Invoices.AsNoTracking().IgnoreAutoIncludes()
+            .Where(i => i.Status == InvoiceStatus.Matched || i.Status == InvoiceStatus.Exception);
+        var total = await waiting.CountAsync(cancellationToken).ConfigureAwait(false);
+        var items = await waiting
+            .OrderBy(i => EF.Property<long>(i, MappingConventions.RowId)) // insert order: oldest first, never ambiguous
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(i => new ApprovalQueueItem(
+                i.Id,
+                i.Status,
+                i.InvoiceNumber,
+                db.Vendors.Where(v => v.Id == i.VendorId).Select(v => v.Name).FirstOrDefault(),
+                i.GrossTotal == null ? null : i.GrossTotal.Amount,
+                i.GrossTotal == null ? null : i.GrossTotal.Currency,
+                i.SubmittedBy,
+                i.StatusHistory.Where(h => h.Sequence == 1).Select(h => h.At).First(),
+                db.InvoiceFindings.Any(f => f.InvoiceId == i.Id && f.Severity == FindingSeverity.Blocking)))
+            .ToListAsync(cancellationToken)
+            .ConfigureAwait(false);
+
+        return new ApprovalQueuePage(items, page, pageSize, total);
     }
 
     public async Task<StoredDocument?> GetDocumentAsync(Guid id, CancellationToken cancellationToken) =>

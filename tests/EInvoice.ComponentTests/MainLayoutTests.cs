@@ -97,6 +97,22 @@ public sealed class MainLayoutTests : BunitContext, IAsyncLifetime
         Assert.Empty(cut.FindAll("a[data-testid=nav-inbox]"));
     }
 
+    [Fact]
+    public void Approvers_get_the_approvals_link()
+    {
+        Auth.SetPolicies(EInvoice.Web.Security.Policies.ReadInvoices, EInvoice.Web.Security.Policies.DecideInvoices);
+
+        Assert.Equal("/approvals", RenderLayout().Find("a[data-testid=nav-approvals]").GetAttribute("href"));
+    }
+
+    [Fact]
+    public void Readers_who_do_not_decide_get_no_approvals_link()
+    {
+        Auth.SetPolicies(EInvoice.Web.Security.Policies.ReadInvoices);
+
+        Assert.Empty(RenderLayout().FindAll("a[data-testid=nav-approvals]"));
+    }
+
     private sealed class FixedAntiforgery : AntiforgeryStateProvider
     {
         public override AntiforgeryRequestToken GetAntiforgeryToken() => new(Token, "__RequestVerificationToken");

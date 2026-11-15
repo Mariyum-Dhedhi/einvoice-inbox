@@ -1,3 +1,4 @@
+using EInvoice.Application.Approval;
 using EInvoice.Application.Explanation;
 using EInvoice.Application.Intake;
 using EInvoice.Application.Matching;
@@ -8,6 +9,7 @@ using EInvoice.Domain.Invoices;
 using EInvoice.Domain.Matching;
 using EInvoice.Web.Api;
 using EInvoice.Web.Components.Shared;
+using EInvoice.Web.Configuration;
 using EInvoice.Web.Security;
 using Microsoft.Extensions.DependencyInjection;
 using Bunit.TestDoubles;
@@ -34,6 +36,8 @@ public abstract class UiTest : BunitContext, IAsyncLifetime
         Services.AddSingleton<IExceptionExplainer>(Explainer);
         Services.AddSingleton(new IntakeOptions(MaxBytes));
         Services.AddSingleton<IUserDirectory>(Users);
+        Services.AddSingleton<IInvoiceApproval>(Approval);
+        Services.AddSingleton(Microsoft.Extensions.Options.Options.Create(new ApprovalSettings { DefaultLimitEur = DefaultLimit }));
         Services.AddSingleton<Microsoft.AspNetCore.Components.Forms.AntiforgeryStateProvider>(new FixedAntiforgery());
         Auth = AddAuthorization();
         Auth.SetAuthorized(SignedInUser);
@@ -53,7 +57,10 @@ public abstract class UiTest : BunitContext, IAsyncLifetime
     /// </summary>
     public static readonly string[] ClerkPolicies = [Policies.ReadInvoices, Policies.UploadInvoices, Policies.RematchInvoices, Policies.ExplainWithAi];
 
-    public static readonly string[] ApproverPolicies = [Policies.ReadInvoices, Policies.ExplainWithAi];
+    public static readonly string[] ApproverPolicies = [Policies.ReadInvoices, Policies.ExplainWithAi, Policies.DecideInvoices];
+
+    /// <summary>The approval limit when the account has none (Approval:DefaultLimitEur).</summary>
+    public const decimal DefaultLimit = 5_000m;
 
     public static readonly string[] AuditorPolicies = [Policies.ReadInvoices];
 
@@ -62,6 +69,8 @@ public abstract class UiTest : BunitContext, IAsyncLifetime
     protected BunitAuthorizationContext Auth { get; }
 
     protected FakeUserDirectory Users { get; } = new();
+
+    protected FakeApproval Approval { get; } = new();
 
     protected FakeQueries Queries { get; } = new();
 
@@ -87,6 +96,23 @@ public abstract class UiTest : BunitContext, IAsyncLifetime
     }
 }
 
+public sealed class FakeApproval : IInvoiceApproval
+{
+    public List<(DecisionRequest Request, Approver Approver)> Calls { get; } = [];
+
+    public DecisionResult Result { get; set; } = new(DecisionOutcome.Approved, InvoiceStatus.Approved);
+
+    /// <summary>Called after a decision, so the page shows the invoice as it is now.</summary>
+    public Action<Guid>? AfterDecision { get; set; }
+
+    public Task<DecisionResult> DecideAsync(DecisionRequest request, Approver approver, CancellationToken cancellationToken)
+    {
+        Calls.Add((request, approver));
+        AfterDecision?.Invoke(request.InvoiceId);
+        return Task.FromResult(Result);
+    }
+}
+
 public sealed class FakeUserDirectory : IUserDirectory
 {
     public List<UserSummary> Accounts { get; } = [];
@@ -102,6 +128,16 @@ public sealed class FakeQueries : IInvoiceQueries
     public InvoicePage Page { get; set; } = new([], 1, InvoiceListQuery.DefaultPageSize, 0);
 
     public Dictionary<Guid, InvoiceDetail> Details { get; } = [];
+
+    public List<ApprovalQueueItem> Queue { get; } = [];
+
+    public List<(int Page, int PageSize)> QueueCalls { get; } = [];
+
+    public Task<ApprovalQueuePage> ApprovalQueueAsync(int page, int pageSize, CancellationToken cancellationToken)
+    {
+        QueueCalls.Add((page, pageSize));
+        return Task.FromResult(new ApprovalQueuePage(Queue.Skip((page - 1) * pageSize).Take(pageSize).ToList(), page, pageSize, Queue.Count));
+    }
 
     public Task<InvoicePage> ListAsync(InvoiceListQuery query, CancellationToken cancellationToken)
     {
@@ -216,4 +252,11 @@ public static class Views
             quantity, available, available is null ? null : quantity - available, 2.00m, Received.AddSeconds(3));
 
     public static FindingView Finding(string code, FindingSeverity severity, string message) => new(code, severity, message, null);
+
+    public const string Version = "AAAAAAAAB9E=";
+
+    public static ApprovalQueueItem QueueItem(
+        string number, InvoiceStatus status = InvoiceStatus.Matched, decimal gross = 1234.56m, string currency = "EUR",
+        string submittedBy = "clerk@test", bool blocking = false) =>
+        new(Guid.NewGuid(), status, number, "Beispiel Bürobedarf GmbH", gross, currency, submittedBy, Received, blocking);
 }

@@ -1,13 +1,17 @@
 @page "/invoices/{Id:guid}"
 @attribute [Authorize(Policy = Policies.ReadInvoices)]
 @implements IDisposable
+@using EInvoice.Application.Approval
 @using EInvoice.Application.Explanation
 @using EInvoice.Application.Matching
 @using EInvoice.Application.Validation
 @using EInvoice.Web.Api
+@using EInvoice.Web.Configuration
+@using Microsoft.Extensions.Options
 @inject Operations Operations
 @inject IExceptionExplainer Explainer
 @inject IAuthorizationService Authorization
+@inject IOptions<ApprovalSettings> ApprovalSettings
 
 @if (!_loaded)
 {
@@ -72,6 +76,57 @@ else
             <MudAlert Severity="_rematchSeverity" Class="mt-3" data-testid="rematch-result" role="status">@_rematchMessage</MudAlert>
         }
     </MudPaper>
+
+    @* ---- Decision ----------------------------------------------------------------------------------------- *@
+    @if (_decisionMessage is not null)
+    {
+        <MudAlert Severity="_decisionSeverity" Class="mb-3" data-testid="decision-result" role="status">
+            @_decisionMessage
+            @if (_decisionConflict)
+            {
+                <MudButton Variant="Variant.Text" Size="Size.Small" OnClick="ReloadAsync" data-testid="decision-reload" Class="ml-2">Reload</MudButton>
+            }
+        </MudAlert>
+    }
+
+    @if (ApprovalRules.IsWaiting(invoice.Status) && _approver is { } approver)
+    {
+        <AuthorizeView Policy="@Policies.DecideInvoices" Context="auth">
+            <MudPaper Outlined="true" Class="pa-4 mb-3" data-testid="decision">
+                <MudText Typo="Typo.h6" HtmlTag="h2" Class="mb-2">Decision</MudText>
+                @if (ApprovalRules.IsOwn(invoice.SubmittedBy, approver))
+                {
+                    <MudText>You submitted this invoice, so someone else has to decide it.</MudText>
+                }
+                else
+                {
+                    var approveBlock = ApprovalRules.WhyNotApprove(approver, invoice.GrossTotal, invoice.Currency,
+                        invoice.Findings.Any(f => f.Severity == FindingSeverity.Blocking));
+                    var reasonMissing = string.IsNullOrWhiteSpace(_reason);
+                    var approveNeedsReason = ApprovalRules.ReasonRequired(Decision.Approve, invoice.Status);
+                    <div data-testid="decision-reason">
+                        <MudTextField T="string" @bind-Value="_reason" Immediate="true" Lines="3" MaxLength="@ApprovalLimits.MaxReasonLength"
+                                      Counter="@ApprovalLimits.MaxReasonLength" Variant="Variant.Outlined" Label="Reason"
+                                      HelperText="@ReasonHelp(approveNeedsReason)" />
+                    </div>
+                    @if (approveBlock is not null)
+                    {
+                        <MudText Typo="Typo.body2" Class="mt-2 d-flex align-center gap-1" data-testid="approve-blocked">
+                            <MudIcon Icon="@Icons.Material.Outlined.Info" Size="Size.Small" aria-hidden="true" /> @approveBlock.Detail
+                        </MudText>
+                    }
+                    <div class="d-flex flex-wrap gap-2 mt-3">
+                        <MudButton Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Outlined.Check" data-testid="approve"
+                                   Disabled="@(_deciding || approveBlock is not null || (approveNeedsReason && reasonMissing))"
+                                   OnClick="() => DecideAsync(Decision.Approve)">Approve</MudButton>
+                        <MudButton Variant="Variant.Outlined" Color="Color.Error" StartIcon="@Icons.Material.Outlined.Close" data-testid="reject"
+                                   Disabled="@(_deciding || reasonMissing)"
+                                   OnClick="() => DecideAsync(Decision.Reject)">Reject</MudButton>
+                    </div>
+                }
+            </MudPaper>
+        </AuthorizeView>
+    }
 
     @* ---- Why is this an exception? ------------------------------------------------------------------- *@
     @if (invoice.Status == InvoiceStatus.Exception)
@@ -285,6 +340,12 @@ else
     private bool _rematching;
     private string? _rematchMessage;
     private Severity _rematchSeverity;
+    private Approver? _approver;
+    private string? _reason;
+    private bool _deciding;
+    private string? _decisionMessage;
+    private Severity _decisionSeverity;
+    private bool _decisionConflict;
     private Explanation? _aiExplanation;
     private bool _explaining;
 
@@ -295,14 +356,65 @@ else
     {
         _rematchMessage = null;
         _aiExplanation = null;
+        _decisionMessage = null;
+        _reason = null;
         await LoadAsync();
     }
 
     private async Task LoadAsync()
     {
         _invoice = await Operations.RunAsync<IInvoiceQueries, InvoiceDetail?>(q => q.GetAsync(Id, _disposed.Token));
+        var user = (await AuthState).User;
+        _approver = user.Identity?.IsAuthenticated == true ? ApproverOf.User(user, ApprovalSettings.Value.DefaultLimitEur) : null;
         _loaded = true;
     }
+
+    /// <summary>
+    /// Sends the decision with the version this page shows: if the invoice changed since it was loaded, the server
+    /// refuses with a conflict and the page offers a reload instead of deciding on something not seen.
+    /// </summary>
+    private async Task DecideAsync(Decision decision)
+    {
+        if (_invoice is null || !await MayAsync(Policies.DecideInvoices))
+        {
+            return;
+        }
+
+        _deciding = true;
+        try
+        {
+            var approver = ApproverOf.User((await AuthState).User, ApprovalSettings.Value.DefaultLimitEur);
+            var request = new DecisionRequest(Id, decision, _invoice.Version, string.IsNullOrWhiteSpace(_reason) ? null : _reason);
+            var result = await Operations.RunAsync<IInvoiceApproval, DecisionResult>(a => a.DecideAsync(request, approver, _disposed.Token));
+            _decisionConflict = result.Outcome == DecisionOutcome.Conflict;
+            (_decisionSeverity, _decisionMessage) = result.Outcome switch
+            {
+                DecisionOutcome.Approved => (Severity.Success, "Approved. The invoice is ready for posting."),
+                DecisionOutcome.Rejected => (Severity.Success, "Rejected. The reason is in the history."),
+                DecisionOutcome.Conflict => (Severity.Warning, result.Detail ?? "The invoice changed since you opened it."),
+                _ => (Severity.Error, result.Detail ?? "The decision was refused."),
+            };
+            if (result.Outcome is DecisionOutcome.Approved or DecisionOutcome.Rejected)
+            {
+                _reason = null;
+                await LoadAsync();
+            }
+        }
+        finally
+        {
+            _deciding = false;
+        }
+    }
+
+    private async Task ReloadAsync()
+    {
+        _decisionMessage = null;
+        _decisionConflict = false;
+        await LoadAsync();
+    }
+
+    private static string ReasonHelp(bool approveNeedsReason) =>
+        approveNeedsReason ? "Required for either decision: why it is fine, or why not." : "Required to reject; kept in the history.";
 
     /// <summary>Same rule as the use case: only an exception that comes from the match, not from findings.</summary>
     private static bool CanRematch(InvoiceDetail invoice) => invoice.Status == InvoiceStatus.Exception && invoice.Findings.Count == 0;

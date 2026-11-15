@@ -52,7 +52,7 @@ public sealed class SignInTests(SqlServerFixture fixture) : IAsyncLifetime
 
     [Theory]
     [InlineData("Clerk", "/")]
-    [InlineData("Approver", "/")]
+    [InlineData("Approver", "/approvals")] // the queue of invoices waiting for them
     [InlineData("Auditor", "/")]
     [InlineData("Admin", "/admin/users")] // the admin has no invoice pages: starts on the user list
     public async Task Without_a_return_address_each_role_starts_on_its_own_page(string role, string start)

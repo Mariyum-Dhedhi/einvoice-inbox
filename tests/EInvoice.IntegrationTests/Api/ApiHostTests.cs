@@ -24,6 +24,8 @@ public sealed class ApiHostTests
         public Task<InvoiceDetail?> GetAsync(Guid id, CancellationToken cancellationToken) => throw new InvalidOperationException(Secret);
 
         public Task<StoredDocument?> GetDocumentAsync(Guid id, CancellationToken cancellationToken) => throw new InvalidOperationException(Secret);
+
+        public Task<ApprovalQueuePage> ApprovalQueueAsync(int page, int pageSize, CancellationToken cancellationToken) => throw new InvalidOperationException(Secret);
     }
 
     [Fact]

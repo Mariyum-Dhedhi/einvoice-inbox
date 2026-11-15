@@ -11,6 +11,9 @@ public interface IInvoiceQueries
 
     Task<InvoiceDetail?> GetAsync(Guid id, CancellationToken cancellationToken);
 
+    /// <summary>Invoices waiting for a decision (Matched, Exception), oldest first: the one waiting longest comes first.</summary>
+    Task<ApprovalQueuePage> ApprovalQueueAsync(int page, int pageSize, CancellationToken cancellationToken);
+
     Task<StoredDocument?> GetDocumentAsync(Guid id, CancellationToken cancellationToken);
 }
 
@@ -22,6 +25,20 @@ public sealed record InvoiceListQuery(InvoiceStatus? Status, int Page, int PageS
 }
 
 public sealed record InvoicePage(IReadOnlyList<InvoiceSummary> Items, int Page, int PageSize, int TotalCount);
+
+public sealed record ApprovalQueuePage(IReadOnlyList<ApprovalQueueItem> Items, int Page, int PageSize, int TotalCount);
+
+/// <summary>One invoice in the approval queue, with what the screen needs to say what an approver can do with it.</summary>
+public sealed record ApprovalQueueItem(
+    Guid Id,
+    InvoiceStatus Status,
+    string? InvoiceNumber,
+    string? VendorName,
+    decimal? GrossTotal,
+    string? Currency,
+    string SubmittedBy,
+    DateTimeOffset ReceivedAt,
+    bool HasBlockingFindings);
 
 public sealed record InvoiceSummary(
     Guid Id,
