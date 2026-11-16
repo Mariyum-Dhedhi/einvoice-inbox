@@ -14,6 +14,9 @@ public static class RuleBasedExplainer
 {
     private static readonly CultureInfo Invariant = CultureInfo.InvariantCulture;
 
+    /// <summary>Only for a code this class does not know; every code in RuleCodes has its own step (a test checks).</summary>
+    public const string GenericStep = "Read the finding and decide whether the invoice can be approved.";
+
     private static readonly Dictionary<string, string> Steps = new(StringComparer.Ordinal)
     {
         [RuleCodes.Conformance] = "Reject the invoice and ask the supplier for one that meets the e-invoice standard.",
@@ -60,7 +63,7 @@ public static class RuleBasedExplainer
 
     private static string StepFor(FindingView finding)
     {
-        var step = Steps.GetValueOrDefault(finding.RuleCode, "Read the finding and decide whether the invoice can be approved.");
+        var step = Steps.GetValueOrDefault(finding.RuleCode, GenericStep);
         return finding.Severity == FindingSeverity.Blocking && !step.Contains("reject", StringComparison.OrdinalIgnoreCase)
             ? $"This finding blocks payment: reject the invoice unless it can be corrected. {step}"
             : step;
