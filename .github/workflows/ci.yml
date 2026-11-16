@@ -254,13 +254,14 @@ jobs:
       - name: Development certificate
         run: dotnet dev-certs https
 
-      # Development: the demo accounts (clerk@example.com) exist only there, with the throwaway password.
+      # Development: the demo accounts (clerk@example.com) exist only there, with the throwaway password. Started from
+      # the project folder: that is its content root (static web assets, appsettings).
       - name: Start the app
         run: |
           ConnectionStrings__EInvoice="Server=127.0.0.1,1433;Database=EInvoice;User Id=einvoice_app;Password=$EINVOICE_APP_PASSWORD;Encrypt=True;TrustServerCertificate=True" \
           DemoUsers__Password="$ZAP_PASSWORD" \
           ASPNETCORE_ENVIRONMENT=Development ASPNETCORE_URLS=https://localhost:7169 Logging__LogLevel__Default=Warning \
-          nohup dotnet src/EInvoice.Web/bin/Release/net10.0/EInvoice.Web.dll --contentRoot src/EInvoice.Web > app.log 2>&1 &
+          sh -c 'cd src/EInvoice.Web && exec dotnet bin/Release/net10.0/EInvoice.Web.dll' > app.log 2>&1 &
           for i in $(seq 1 60); do
             [ "$(curl -sk -o /dev/null -w '%{http_code}' https://localhost:7169/account/login)" = 200 ] && exit 0
             sleep 1
