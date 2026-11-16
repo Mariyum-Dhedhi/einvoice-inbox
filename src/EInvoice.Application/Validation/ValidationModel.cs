@@ -24,6 +24,9 @@ public static class RuleCodes
 
     /// <summary>The PDF contains text that cannot be seen on the page (a common way to hide instructions for a model).</summary>
     public const string HiddenText = "HIDDEN_TEXT";
+
+    /// <summary>A ZUGFeRD invoice in a profile the KoSIT validator does not cover (it knows XRechnung only).</summary>
+    public const string ConformanceNotChecked = "CONFORMANCE_NOT_CHECKED";
 }
 
 public enum FindingSeverity

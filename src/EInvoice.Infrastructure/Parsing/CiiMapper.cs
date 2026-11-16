@@ -59,7 +59,9 @@ internal static class CiiMapper
             TaxTotal: TaxTotalInInvoiceCurrency(totals?.Elements(Ram + "TaxTotalAmount") ?? [], currency),
             GrossTotal: RequiredDecimal(totals?.Element(Ram + "GrandTotalAmount"), "BT-112 invoice total amount with VAT"),
             Lines: lines,
-            VatBreakdown: VatBreakdown(settlement));
+            VatBreakdown: VatBreakdown(settlement),
+            SpecificationIdentifier: Optional(invoice.Element(Rsm + "ExchangedDocumentContext")
+                ?.Element(Ram + "GuidelineSpecifiedDocumentContextParameter")?.Element(Ram + "ID")));
     }
 
     /// <summary>BG-23: ram:ApplicableTradeTax directly under the header settlement (the line-level ones are BT-151/152).</summary>

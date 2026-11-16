@@ -45,6 +45,11 @@ else
                 <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Info" Icon="@Icons.Material.Outlined.AutoAwesome" Class="ma-0"
                          data-testid="ai-extracted" title="The fields were read from a PDF by a language model and checked against the document. Findings name every field a person has to confirm.">AI · read from PDF</MudChip>
             }
+            else if (invoice.SourceFormat == SourceFormat.Zugferd)
+            {
+                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Default" Icon="@Icons.Material.Outlined.DataObject" Class="ma-0"
+                         data-testid="zugferd" title="A ZUGFeRD / Factur-X invoice: the data was read from the XML embedded in the PDF, not by AI.">ZUGFeRD · XML in PDF</MudChip>
+            }
             <MudSpacer />
             @if (CanRematch(invoice))
             {

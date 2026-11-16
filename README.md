@@ -2,13 +2,13 @@
 
 [![CI](https://github.com/Mariyum-Dhedhi/einvoice-inbox/actions/workflows/ci.yml/badge.svg)](https://github.com/Mariyum-Dhedhi/einvoice-inbox/actions/workflows/ci.yml)
 
-Accounts-payable automation for German e-invoices: receives XRechnung XML and plain PDF invoices,
+Accounts-payable automation for German e-invoices: receives XRechnung XML, ZUGFeRD / Factur-X PDFs and plain PDF invoices,
 **reads PDFs with a local language model**, validates and three-way matches every invoice against
 purchase orders and goods receipts, and sends anything doubtful to a person with a stated reason.
 
 > **Status:** in development, built in public, one
 > [work package](https://github.com/Mariyum-Dhedhi/einvoice-inbox/issues) per pull request.
-> Done: upload pipeline, validation (incl. the official KoSIT validator), matching, API, UI, AI extraction, sign-in and roles, approval workflow.
+> Done: upload pipeline, validation (incl. the official KoSIT validator), matching, API, UI, AI extraction, sign-in and roles, approval workflow, audit trail, bank-account control, ZUGFeRD.
 
 ## AI extraction, measured
 

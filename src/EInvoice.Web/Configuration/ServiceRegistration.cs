@@ -102,6 +102,8 @@ internal static class ServiceRegistration
         services.AddScoped<IBankAccountStore, EfBankAccountStore>();
         services.AddScoped<IBankAccountAdministration, BankAccountAdministration>();
         services.AddScoped<IBankAccountQueries, EfBankAccountQueries>();
+        services.AddSingleton<IEmbeddedInvoiceReader>(sp =>
+            new PdfEmbeddedInvoiceReader(PdfLimits.Default, sp.GetRequiredService<IOptions<IntakeSettings>>().Value.MaxDocumentBytes));
         services.AddScoped<IInvoiceIntake, InvoiceIntake>();
         services.AddScoped<IInvoiceRematch, InvoiceRematch>();
         services.AddScoped<IApprovalStore, EfApprovalStore>();

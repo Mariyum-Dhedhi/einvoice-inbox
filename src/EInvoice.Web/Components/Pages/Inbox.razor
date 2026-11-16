@@ -86,6 +86,11 @@ else
                                 <MudIcon Icon="@Icons.Material.Outlined.AutoAwesome" Size="Size.Small" Class="ml-1 ai-mark" Title="Read by AI from a PDF"
                                          aria-label="Read by AI from a PDF" role="img" data-testid="ai-badge" />
                             }
+                            else if (invoice.SourceFormat == SourceFormat.Zugferd)
+                            {
+                                <MudIcon Icon="@Icons.Material.Outlined.DataObject" Size="Size.Small" Class="ml-1" Title="ZUGFeRD: read from the XML inside the PDF"
+                                         aria-label="ZUGFeRD: read from the XML inside the PDF" role="img" data-testid="zugferd-badge" />
+                            }
                         </td>
                         <td>@(invoice.VendorName ?? "Unknown vendor")</td>
                         <td class="nowrap">@Formats.Date(invoice.IssueDate)</td>

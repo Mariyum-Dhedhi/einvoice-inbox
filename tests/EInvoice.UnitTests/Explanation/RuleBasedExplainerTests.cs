@@ -57,6 +57,7 @@ public class RuleBasedExplainerTests
         Assert.False(string.IsNullOrWhiteSpace(issue.Text));
         Assert.False(string.IsNullOrWhiteSpace(issue.Step));
         Assert.DoesNotContain(code, issue.Step, StringComparison.Ordinal); // steps are words for a clerk, not codes
+        Assert.DoesNotContain(RuleBasedExplainer.GenericStep, issue.Step, StringComparison.Ordinal); // its own step, not the fallback
     }
 
     [Fact]

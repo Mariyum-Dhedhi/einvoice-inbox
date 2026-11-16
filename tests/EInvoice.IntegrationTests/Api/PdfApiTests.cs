@@ -59,6 +59,35 @@ public sealed class PdfApiTests(SqlServerFixture fixture)
     }
 
     [Fact]
+    public async Task Zugferd_pdf_is_accepted_with_ai_off_because_it_carries_its_own_xml()
+    {
+        await using var factory = Factory(model: null); // AI off: the default
+        var price = 3000.4125m + Interlocked.Increment(ref _orders);
+        string number;
+        byte[] pdf;
+        await using (var db = fixture.CreateContext())
+        {
+            var scenario = await new MatchScenario(db).OrderLine(1, 10, price).Received(1, 10).SaveOrderAsync();
+            var builder = new EInvoice.IntegrationTests.TestData.CiiInvoiceBuilder
+            {
+                Profile = EInvoice.IntegrationTests.TestData.CiiInvoiceBuilder.Profiles.XRechnung,
+                PurchaseOrderNumber = scenario.PurchaseOrderNumber,
+            }.Line("HDMI cable 2 m", 10m, price, orderLine: "1");
+            number = builder.InvoiceNumber;
+            pdf = EInvoice.IntegrationTests.TestData.ZugferdPdf.Invoice(builder.Build(), "xrechnung.xml");
+        }
+
+        using var response = await PostAsync(factory, pdf);
+
+        Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        var id = (await response.JsonAsync()).GetProperty("invoiceId").GetGuid();
+        using var client = factory.CreateApiClient();
+        var detail = await (await client.GetAsync(new Uri($"/api/invoices/{id}", UriKind.Relative))).JsonAsync();
+        Assert.Equal(("Matched", "Zugferd", number), (detail.GetProperty("status").GetString(), detail.GetProperty("sourceFormat").GetString(), detail.GetProperty("invoiceNumber").GetString()));
+        Assert.Equal("application/pdf", detail.GetProperty("document").GetProperty("contentType").GetString());
+    }
+
+    [Fact]
     public async Task Pdf_is_accepted_and_matched_when_ai_is_on()
     {
         await using var factory = Factory(new FakeInvoiceModel());
