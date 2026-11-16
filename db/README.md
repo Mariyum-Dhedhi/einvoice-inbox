@@ -8,8 +8,9 @@ which applies everything in this folder in order. Every step is idempotent.
 | 1 | (inline) | Creates the `EInvoice` database |
 | 2 | `migrations/schema.sql` | Schema, generated from the EF Core migrations (do not edit by hand) |
 | 3 | `procedures/*.sql` | Stored procedures (`CREATE OR ALTER`): `usp_MatchInvoice`, the set-based three-way match |
-| 4 | `security/app-user.sql` | Least-privilege login `einvoice_app`: read/write data, execute procedures, no schema changes |
-| 5 | `seed/seed.sql` | Synthetic data: 20 vendors with one approved IBAN each, 200 purchase orders, receipts, 6 invoices covering all match outcomes |
+| 4 | `views/*.sql` | KPI views (`CREATE OR ALTER`) for the dashboard; specified in `views/README.md` |
+| 5 | `security/app-user.sql` | Least-privilege login `einvoice_app`: read/write data, execute procedures, no schema changes |
+| 6 | `seed/seed.sql` | Synthetic data: 20 vendors with one approved IBAN each, 200 purchase orders, receipts, 6 invoices covering all match outcomes |
 
 `tests/verify.sql` runs as `einvoice_app` and checks the seed counts and the security controls
 (cannot create or drop tables, cannot change migration history, duplicate invoice number and unknown status rejected).
@@ -37,7 +38,7 @@ dotnet test --filter Category=Database
 ```
 
 Docker must be running. Testcontainers starts a SQL Server (same image as compose.yaml), applies
-`migrations/schema.sql`, `procedures/`, `security/app-user.sql` and `seed/seed.sql` in that order, and the tests
+`migrations/schema.sql`, `procedures/`, `views/`, `security/app-user.sql` and `seed/seed.sql` in that order, and the tests
 connect as `einvoice_app`. No connection string or `docker compose up` is needed.
 
 ## Design notes
