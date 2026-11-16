@@ -21,6 +21,7 @@ public sealed class MainLayoutTests : BunitContext, IAsyncLifetime
         Services.AddSingleton<AntiforgeryStateProvider>(new FixedAntiforgery());
         Auth = AddAuthorization();
         Auth.SetAuthorized(UiTest.SignedInUser);
+        SetRendererInfo(new RendererInfo("Server", isInteractive: true));
     }
 
     private Bunit.TestDoubles.BunitAuthorizationContext Auth { get; }
@@ -111,6 +112,23 @@ public sealed class MainLayoutTests : BunitContext, IAsyncLifetime
         Auth.SetPolicies(EInvoice.Web.Security.Policies.ReadInvoices);
 
         Assert.Empty(RenderLayout().FindAll("a[data-testid=nav-approvals]"));
+    }
+
+    [Fact]
+    public void Shows_the_ready_marker_once_the_first_interactive_render_is_done()
+    {
+        // Browser tests wait for it: before it, buttons are server-rendered HTML that does nothing yet.
+        SetRendererInfo(new RendererInfo("Server", isInteractive: true));
+
+        Assert.NotEmpty(RenderLayout().FindAll("[data-testid=app-ready]"));
+    }
+
+    [Fact]
+    public void Shows_no_ready_marker_while_prerendering()
+    {
+        SetRendererInfo(new RendererInfo("Static", isInteractive: false));
+
+        Assert.Empty(RenderLayout().FindAll("[data-testid=app-ready]"));
     }
 
     private sealed class FixedAntiforgery : AntiforgeryStateProvider

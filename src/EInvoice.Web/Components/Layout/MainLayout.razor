@@ -45,6 +45,13 @@
     </MudMainContent>
 </MudLayout>
 
+@* Present only once the page is interactive: browser tests wait for it, because server-rendered buttons do nothing
+   until the live connection is up. Invisible and silent for people. *@
+@if (_interactive)
+{
+    <span data-testid="app-ready" hidden></span>
+}
+
 <div id="blazor-error-ui" data-nosnippet>
     An unhandled error has occurred.
     <a href="." class="reload">Reload</a>
@@ -54,10 +61,17 @@
 @code {
     private MudThemeProvider? _themeProvider;
     private bool _darkMode;
+    private bool _interactive;
 
     /// <summary>Light or dark follows the operating system setting.</summary>
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (firstRender && RendererInfo.IsInteractive)
+        {
+            _interactive = true;
+            StateHasChanged();
+        }
+
         if (firstRender && _themeProvider is not null)
         {
             _darkMode = await _themeProvider.GetSystemDarkModeAsync();
