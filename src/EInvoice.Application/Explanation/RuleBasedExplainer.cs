@@ -18,6 +18,7 @@ public static class RuleBasedExplainer
     {
         [RuleCodes.Conformance] = "Reject the invoice and ask the supplier for one that meets the e-invoice standard.",
         [RuleCodes.ConformanceUnavailable] = "Check the invoice yourself, or wait until the validator can be reached again.",
+        [RuleCodes.ConformanceNotChecked] = "Check the invoice data against the PDF and the order; the official conformance check covers XRechnung only.",
         [RuleCodes.LineSum] = "Ask the supplier for a corrected invoice; do not approve amounts that do not add up.",
         [RuleCodes.Totals] = "Ask the supplier for a corrected invoice; do not approve totals that do not add up.",
         [RuleCodes.LineAmount] = "Compare the line with the order and ask the supplier to correct the line amount.",

@@ -24,8 +24,11 @@ public sealed class InvoiceIntake(
     MatchingPolicy policy,
     IntakeOptions options,
     TimeProvider time,
-    IInvoiceExtractor extractor) : IInvoiceIntake
+    IInvoiceExtractor extractor,
+    IEmbeddedInvoiceReader? embeddedInvoices = null) : IInvoiceIntake
 {
+    private readonly IEmbeddedInvoiceReader _embedded = embeddedInvoices ?? NoEmbeddedInvoices.Instance;
+
     private const string System = "system";
 
     // Column sizes in the database; longer values are refused with a reason instead of failing on save.
@@ -65,15 +68,61 @@ public sealed class InvoiceIntake(
         }
 
         var isPdf = kind == DetectedContent.Pdf;
+
+        // A ZUGFeRD / Factur-X PDF carries its invoice as XML: that XML is the invoice, read by the parser, never by AI.
+        // A PDF without one (or one this reader cannot open) is a plain PDF for AI extraction, as before.
+        var embedded = isPdf ? _embedded.Find(content) : EmbeddedInvoice.None;
+        var isZugferd = embedded.Status is EmbeddedInvoiceStatus.Found or EmbeddedInvoiceStatus.Ambiguous or EmbeddedInvoiceStatus.TooLarge;
+        ParseResult? zugferd = null;
+        var profile = ZugferdProfile.Unknown;
+        if (embedded.Status == EmbeddedInvoiceStatus.Found)
+        {
+            zugferd = parser.Parse(new MemoryStream(embedded.Xml!, writable: false));
+            if (zugferd.Succeeded)
+            {
+                profile = ZugferdProfiles.Classify(zugferd.Document!.SpecificationIdentifier);
+                if (!ZugferdProfiles.IsAccepted(profile))
+                {
+                    return new IntakeResult(IntakeOutcome.UnsupportedType, Detail: ZugferdProfiles.RefusalReason(profile));
+                }
+            }
+        }
+
         var received = time.GetUtcNow();
-        var invoice = Invoice.Receive(isPdf ? SourceFormat.Pdf : SourceFormat.XRechnung, submittedBy, received);
+        var format = isZugferd ? SourceFormat.Zugferd : isPdf ? SourceFormat.Pdf : SourceFormat.XRechnung;
+        var invoice = Invoice.Receive(format, submittedBy, received);
         var document = new InvoiceDocument(invoice.Id, UploadNames.Sanitize(file.FileName), isPdf ? "application/pdf" : "application/xml", content, hash, received);
 
         // 3. Read the document: XML with the parser, PDF with AI extraction. Unreadable files are kept as Failed,
         //    with the reason, so nothing disappears silently. A model that is switched off or down stores nothing.
         ParsedDocument source;
         IReadOnlyList<ValidationFinding> extractionFindings = [];
-        if (isPdf)
+        if (isZugferd)
+        {
+            var problem = embedded.Status switch
+            {
+                EmbeddedInvoiceStatus.Ambiguous => "EmbeddedInvoice: the PDF contains more than one invoice XML; none was chosen.",
+                EmbeddedInvoiceStatus.TooLarge => "EmbeddedInvoice: the PDF or its embedded invoice XML is too large.",
+                _ when !zugferd!.Succeeded => $"Embedded XML {zugferd.Error!.Code}: {zugferd.Error.Message}",
+                _ => null,
+            };
+            if (problem is not null)
+            {
+                invoice.TransitionTo(InvoiceStatus.Failed, System, time.GetUtcNow(), Truncate(problem));
+                return await StoreAsync(invoice, document, [], hash, cancellationToken).ConfigureAwait(false);
+            }
+
+            source = zugferd!.Document!;
+            if (!ZugferdProfiles.CheckedByKosit(profile))
+            {
+                extractionFindings =
+                [
+                    new ValidationFinding(RuleCodes.ConformanceNotChecked, FindingSeverity.Review,
+                        "This ZUGFeRD profile is not covered by the official conformance check (XRechnung only). The invoice data passed every other rule."),
+                ];
+            }
+        }
+        else if (isPdf)
         {
             var extraction = await extractor.ExtractAsync(content, cancellationToken).ConfigureAwait(false);
             if (!extraction.Succeeded)
@@ -128,10 +177,15 @@ public sealed class InvoiceIntake(
         // The KoSIT conformance check reads XML; a PDF has none, and the document rules recompute its totals instead.
         // No conditional on purpose: "isPdf ? null : content" has the type byte[], and a null byte[] converts to an
         // EMPTY memory that counts as XML, even when assigned to a nullable. That sent every PDF to KoSIT.
+        // A ZUGFeRD invoice in the XRECHNUNG profile is checked like XRechnung, with its embedded XML.
         ReadOnlyMemory<byte>? sourceXml = null;
         if (!isPdf)
         {
             sourceXml = content;
+        }
+        else if (isZugferd && ZugferdProfiles.CheckedByKosit(profile))
+        {
+            sourceXml = embedded.Xml;
         }
 
         var validated = await validator.ValidateAsync(source, sourceXml, cancellationToken).ConfigureAwait(false);
