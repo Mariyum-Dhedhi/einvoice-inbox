@@ -6,6 +6,7 @@ using EInvoice.Infrastructure.Persistence;
 using EInvoice.Infrastructure.Validation;
 using EInvoice.Infrastructure.Vendors;
 using EInvoice.IntegrationTests.Infrastructure;
+using EInvoice.IntegrationTests.TestData;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 
@@ -32,15 +33,7 @@ public sealed class BankAccountStoreTests(SqlServerFixture fixture)
         return vendor;
     }
 
-    /// <summary>A valid German IBAN unique to this run: bank code 00000000, account number from a counter.</summary>
-    private static Iban NewIban()
-    {
-        var account = Random.Shared.NextInt64(1_000_000_000L, 9_999_999_999L).ToString(System.Globalization.CultureInfo.InvariantCulture);
-        var bban = "00000000" + account;
-        var numeric = bban + "131400"; // "DE" = 13 14, check digits 00 for the calculation
-        var remainder = numeric.Aggregate(0, (r, c) => ((r * 10) + (c - '0')) % 97);
-        return Iban.Parse($"DE{98 - remainder:00}{bban}");
-    }
+    private static Iban NewIban() => Iban.Parse(TestIbans.New());
 
     private BankAccountAdministration Administration(EInvoiceDbContext db) => new(new EfBankAccountStore(db), TimeProvider.System);
 
