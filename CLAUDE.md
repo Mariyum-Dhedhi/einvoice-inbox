@@ -80,7 +80,8 @@ db/                          stored procedures, views, seed data
 - UI shows status and match outcome as text + icon (Labels), never colour alone. Amounts and dates use Formats (German formats, Berlin time).
 - No third-party web fonts or CDNs in the UI (Google Fonts sends visitor IPs to Google); system fonts and packaged assets only.
 - Filter and page state lives in the address (query string) so every view can be linked; address values are user input and are validated.
-- Component tests use bUnit (tests/EInvoice.ComponentTests); the browser test uses Playwright with [Trait("Category", "E2E")].
+- Component tests use bUnit (tests/EInvoice.ComponentTests). Browser tests use Playwright with [Trait("Category", "E2E")]: the five journeys in tests/.../E2E/Journeys.cs (base class BrowserJourney) are package 12's "done when" and run in CI.
+- Journeys sign in through the real login form with their own accounts (TestUsers), use their own data (own orders, own vendor; never change seeded rows), and fail on any browser console error. Before clicking, wait for the layout's hidden [data-testid=app-ready] marker (shown after the first interactive render); after changing a page, wait for something the new page shows, not only the address.
 - AI extraction (Application/Extraction, Infrastructure/Extraction): the model only reads. It gets visible PDF text (hidden text is left out and reported), masked (IBAN, e-mail, phone, labelled contact names), fenced with a random marker, and no tools.
 - A model reply is untrusted input: ModelOutput accepts exactly the schema (one extra property rejects everything) and nothing is repaired. Error messages never repeat document or model text.
 - Field confidence is computed by EvidenceChecker (value found in the visible text as a whole token + arithmetic agrees); a model's own confidence is never used. IBANs enter a document only via placeholders masked out of that same document.
