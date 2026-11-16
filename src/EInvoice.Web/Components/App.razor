@@ -9,7 +9,8 @@
     <link rel="stylesheet" href="@Assets["_content/MudBlazor/MudBlazor.min.css"]" />
     <link rel="stylesheet" href="@Assets["app.css"]" />
     <link rel="stylesheet" href="@Assets["EInvoice.Web.styles.css"]" />
-    <ImportMap />
+    @* No <ImportMap />: it is an inline script, which the content security policy forbids (SecurityHeaders), and
+       every script here is loaded by its address. *@
     <HeadOutlet @rendermode="PageRenderMode" />
 </head>
 

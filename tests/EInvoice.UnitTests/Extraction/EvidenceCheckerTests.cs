@@ -258,6 +258,85 @@ public class EvidenceCheckerTests
         Assert.True(Field(EvidenceChecker.Check(Invoice(), Text.Replace(" EUR", " €", StringComparison.Ordinal), [Iban]), "BT-5").Confident);
         Assert.False(Field(Check(Invoice(i => i with { Currency = "USD" })), "BT-5").Confident);
     }
+    /// <summary>
+    /// A value the model made up is never confident, for every field checked against the text. Mutation testing found
+    /// that for these fields an "always confident" check went unnoticed.
+    /// </summary>
+    public static TheoryData<string, int?, string> InventedValues => new()
+    {
+        { "BT-13", null, "order" },
+        { "BT-27", null, "seller" },
+        { "BT-31", null, "vat" },
+        { "BT-110", null, "tax" },
+        { "BT-152", 1, "rate" },
+        { "BT-132", 1, "order-line" },
+    };
+
+    [Theory]
+    [MemberData(nameof(InventedValues))]
+    public void A_value_that_is_not_in_the_document_is_never_confident(string term, int? line, string invented)
+    {
+        var invoice = Invoice(i => invented switch
+        {
+            "order" => i with { PurchaseOrderReference = "PO-9999" },
+            "seller" => i with { SellerName = "Erfunden Handels GmbH" },
+            "vat" => i with { SellerVatId = "DE999999999" },
+            "tax" => i with { TaxTotal = 31.47m },
+            "rate" => i with { Lines = [i.Lines![0] with { TaxRatePercent = 16m }, i.Lines[1]] },
+            "order-line" => i with { Lines = [i.Lines![0] with { OrderLineReference = "98" }, i.Lines[1]] },
+            _ => throw new ArgumentOutOfRangeException(nameof(invented)),
+        });
+
+        Assert.False(Field(Check(invoice), term, line).Confident);
+    }
+
+    [Fact]
+    public void One_invented_account_among_real_ones_is_not_confident()
+    {
+        var invoice = Invoice(i => i with { Ibans = [Iban, "DE45000000000000001002"] });
+
+        Assert.False(Field(Check(invoice), "BT-84").Confident);
+    }
+
+    [Theory]
+    [InlineData("1234.50", true)]  // printed as 1.234,50
+    [InlineData("234.50", false)]  // only the end of 1.234,50
+    [InlineData("1.23", false)]    // only the start of 1.234,50
+    public void A_large_amount_is_found_with_its_thousands_separator_and_only_as_a_whole(string tax, bool confident)
+    {
+        var text = Text + "\nPostage and packing 1.234,50";
+        var invoice = Invoice(i => i with { TaxTotal = decimal.Parse(tax, System.Globalization.CultureInfo.InvariantCulture) });
+
+        Assert.Equal(confident, Field(EvidenceChecker.Check(invoice, text, [Iban]), "BT-110").Confident);
+    }
+
+    [Theory]
+    [InlineData("2.11.2026")]
+    [InlineData("2026-11-02")]
+    [InlineData("02/11/2026")]
+    [InlineData("2/11/2026")]
+    [InlineData("2. November 2026")]
+    [InlineData("2 November 2026")]
+    [InlineData("November 2, 2026")]
+    public void The_issue_date_is_found_in_each_usual_form(string printed)
+    {
+        Assert.Contains("02.11.2026", Text, StringComparison.Ordinal);
+        var text = Text.Replace("02.11.2026", printed, StringComparison.Ordinal);
+
+        Assert.True(Field(EvidenceChecker.Check(Invoice(), text, [Iban]), "BT-2").Confident);
+    }
+
+    [Theory]
+    [InlineData("EUR")]
+    [InlineData("USD")]
+    [InlineData("GBP")]
+    [InlineData("CHF")]
+    public void A_currency_whose_code_and_symbol_are_both_absent_is_not_confident(string currency)
+    {
+        var text = Text.Replace("EUR", string.Empty, StringComparison.Ordinal).Replace("\u20ac", string.Empty, StringComparison.Ordinal);
+
+        Assert.False(Field(EvidenceChecker.Check(Invoice(i => i with { Currency = currency }), text, [Iban]), "BT-5").Confident);
+    }
 }
 
 /// <summary>The checked extraction becomes the same <see cref="ParsedDocument"/> the XML parsers produce, so one set of rules validates both.</summary>
@@ -349,4 +428,5 @@ public class ExtractedInvoiceMapperTests
         Assert.False(ExtractedInvoiceMapper.TryMap(Invoice() with { Currency = currency }, out _, out var error));
         Assert.Equal(ExtractionErrorCode.InvalidModelOutput, error!.Code);
     }
+
 }

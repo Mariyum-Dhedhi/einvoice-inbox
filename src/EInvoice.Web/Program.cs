@@ -15,14 +15,32 @@ builder.Services.AddMudServices();
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
+// The antiforgery cookie: host-only (__Host-), HTTPS only, never sent with requests from other sites.
+builder.Services.AddAntiforgery(options =>
+{
+    options.Cookie.Name = "__Host-einvoice-antiforgery";
+    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+    options.Cookie.SameSite = SameSiteMode.Strict;
+    options.Cookie.HttpOnly = true;
+});
+
+// HTTPS only, for a year (outside Development). Localhost is not excluded: outside Development the app never runs
+// there, and the tests ask for the header on it.
+builder.Services.AddHsts(options =>
+{
+    options.MaxAge = TimeSpan.FromDays(365);
+    options.ExcludedHosts.Clear();
+});
+
 var app = builder.Build();
 
-// Every response: never let the browser guess a content type. API responses hold invoice data: never cache them.
+// Every response: the browser protections (SecurityHeaders: content security policy, no sniffing, isolation).
+// API responses hold invoice data: never cache them.
 app.Use((context, next) =>
 {
     context.Response.OnStarting(() =>
     {
-        context.Response.Headers.XContentTypeOptions = "nosniff";
+        SecurityHeaders.Apply(context.Response.Headers);
         if (context.Request.Path.StartsWithSegments("/api"))
         {
             context.Response.Headers.CacheControl = "no-store";
@@ -55,8 +73,7 @@ app.UseWhen(
 
 if (!app.Environment.IsDevelopment())
 {
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
-    app.UseHsts();
+    app.UseHsts(); // a year (AddHsts above); never in Development, where the browser would pin localhost for every project
 }
 
 app.UseHttpsRedirection();

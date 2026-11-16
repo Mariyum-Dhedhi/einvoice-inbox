@@ -1,0 +1,23 @@
+{
+  "stryker-config": {
+    "test-projects": [ "EInvoice.UnitTests.csproj" ],
+    "reporters": [ "html", "json", "progress" ],
+    "coverage-analysis": "perTest",
+    "mutate": [
+      "**/*.cs",
+      "!**/Intake/InvoiceIntake.cs",
+      "!**/Intake/IntakeModel.cs",
+      "!**/Matching/InvoiceRematch.cs",
+      "!**/Kpi/Kpis.cs",
+      "!**/Invoices/InvoiceDocument.cs"
+    ],
+    "ignore-methods": [
+      "ArgumentNullException.ThrowIfNull",
+      "ArgumentException.ThrowIfNullOrWhiteSpace",
+      "ArgumentException.ThrowIfNullOrEmpty",
+      "ArgumentOutOfRangeException.ThrowIf*",
+      "*Exception.ctor",
+      "*.ConfigureAwait"
+    ]
+  }
+}

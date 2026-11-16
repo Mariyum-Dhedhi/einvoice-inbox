@@ -84,4 +84,22 @@ public class MoneyTests
     {
         Assert.Equal("1234.50 EUR", Money.Euro(1234.5m).ToString());
     }
+
+    [Fact]
+    public void Equal_amounts_are_neither_less_nor_greater()
+    {
+        var a = Money.Euro(10.00m);
+        var b = Money.Euro(10.00m);
+
+        Assert.False(a < b);
+        Assert.False(a > b);
+        Assert.True(a <= b);
+        Assert.True(a >= b);
+    }
+
+    [Fact]
+    public void Subtracting_another_currency_is_refused()
+    {
+        Assert.Throws<CurrencyMismatchException>(() => Money.Euro(10m) - new Money(1m, "USD"));
+    }
 }
