@@ -84,6 +84,12 @@ docker compose down -v      # -v removes the database volume
 docker compose up -d
 ```
 
+Then **restart the app**: it creates the demo accounts when it starts, so a running app does not put them into the new
+database, and every sign-in fails until it is restarted.
+
+A local database created before package 11 needs this reset too: its bank accounts became *Pending* when the
+two-person rule arrived (an account nobody confirmed is not trusted), so every invoice gets `IBAN_NOT_APPROVED`.
+
 ## Changing the files
 
 Change `DemoInvoices.cs`, then write the files and check them:
