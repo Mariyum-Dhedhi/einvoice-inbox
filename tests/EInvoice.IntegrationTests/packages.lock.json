@@ -898,6 +898,9 @@
           "PdfPig": "[0.1.16, )"
         }
       },
+      "einvoice.mockerp": {
+        "type": "Project"
+      },
       "einvoice.web": {
         "type": "Project",
         "dependencies": {

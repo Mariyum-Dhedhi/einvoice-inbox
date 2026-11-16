@@ -30,6 +30,9 @@ public sealed class EInvoiceDbContext(DbContextOptions<EInvoiceDbContext> option
     /// <summary>Written only by dbo.usp_MatchInvoice; read by the match panel.</summary>
     public DbSet<MatchResultRecord> MatchResults => Set<MatchResultRecord>();
 
+    /// <summary>The outbox for ERP postings; a job is written in the same save as the approval.</summary>
+    public DbSet<PostingJobRecord> PostingJobs => Set<PostingJobRecord>();
+
     /// <summary>The hash-chained audit trail; rows are only ever added (see AuditChain).</summary>
     public DbSet<AuditEventRecord> AuditEvents => Set<AuditEventRecord>();
 
@@ -39,6 +42,7 @@ public sealed class EInvoiceDbContext(DbContextOptions<EInvoiceDbContext> option
     /// </summary>
     public override async Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
     {
+        QueuePostingJobs();
         var drafts = StatusChangeEvents();
         drafts.AddRange(_queuedAudit);
         if (drafts.Count == 0)
@@ -84,6 +88,19 @@ public sealed class EInvoiceDbContext(DbContextOptions<EInvoiceDbContext> option
 
     /// <summary>For the audit chain itself: a save that does not look for status changes again.</summary>
     internal Task<int> SaveWithoutAuditAsync(CancellationToken cancellationToken) => base.SaveChangesAsync(true, cancellationToken);
+
+    /// <summary>Transactional outbox: every new approval (also a re-queue from Failed) gets a posting job in this save.</summary>
+    private void QueuePostingJobs()
+    {
+        var approvals = ChangeTracker.Entries<StatusChange>()
+            .Where(e => e.State == EntityState.Added && e.Entity.To == InvoiceStatus.Approved)
+            .Select(e => (InvoiceId: (Guid)e.Property("InvoiceId").CurrentValue!, e.Entity.At))
+            .ToList();
+        foreach (var (invoiceId, at) in approvals)
+        {
+            PostingJobs.Add(new PostingJobRecord { InvoiceId = invoiceId, CreatedAt = at, NextAttemptAt = at });
+        }
+    }
 
     private List<AuditDraft> StatusChangeEvents() =>
         ChangeTracker.Entries<StatusChange>()
