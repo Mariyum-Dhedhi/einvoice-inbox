@@ -84,7 +84,8 @@ public sealed class BankAccountStoreTests(SqlServerFixture fixture)
     public async Task The_database_keeps_every_version_with_its_time()
     {
         var vendor = await VendorAsync();
-        var id = await ProposeAsync(vendor.Id, NewIban());
+        var iban = NewIban();
+        var id = await ProposeAsync(vendor.Id, iban);
         await ConfirmAsync(id);
         await using (var db = fixture.CreateContext())
         {
@@ -98,6 +99,8 @@ public sealed class BankAccountStoreTests(SqlServerFixture fixture)
         Assert.Equal(new[] { BankAccountStatus.Pending, BankAccountStatus.Active }, history.Where(h => h.AccountId == id).Select(h => h.Status));
         Assert.All(history.Where(h => h.AccountId == id), h => Assert.NotNull(h.ValidTo));
         Assert.Equal("admin2@test", history.Last(h => h.AccountId == id).ConfirmedBy);
+        Assert.All(history, h => Assert.Equal(iban.ToString(), h.MaskedIban)); // history is for reading, the IBAN masked
+        Assert.All(history, h => Assert.DoesNotContain(iban.Value[4..^4], h.MaskedIban, StringComparison.Ordinal));
         Assert.Empty((await new EfBankAccountQueries(check).VendorAsync(vendor.Id, CancellationToken.None))!.Accounts); // gone from today's list
     }
 
