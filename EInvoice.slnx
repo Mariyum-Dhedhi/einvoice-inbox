@@ -9,6 +9,7 @@
     <Project Path="tests/EInvoice.AiEvaluation/EInvoice.AiEvaluation.csproj" />
     <Project Path="tests/EInvoice.ComponentTests/EInvoice.ComponentTests.csproj" />
     <Project Path="tests/EInvoice.IntegrationTests/EInvoice.IntegrationTests.csproj" />
+    <Project Path="tests/EInvoice.MockErp/EInvoice.MockErp.csproj" />
     <Project Path="tests/EInvoice.UnitTests/EInvoice.UnitTests.csproj" />
   </Folder>
 </Solution>

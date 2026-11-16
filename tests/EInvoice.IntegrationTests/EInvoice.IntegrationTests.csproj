@@ -27,6 +27,7 @@
     <ProjectReference Include="..\..\src\EInvoice.Infrastructure\EInvoice.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\EInvoice.Web\EInvoice.Web.csproj" />
     <ProjectReference Include="..\EInvoice.AiEvaluation\EInvoice.AiEvaluation.csproj" />
+    <ProjectReference Include="..\EInvoice.MockErp\EInvoice.MockErp.csproj" />
   </ItemGroup>
 
 </Project>

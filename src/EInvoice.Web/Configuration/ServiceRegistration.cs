@@ -5,6 +5,7 @@ using EInvoice.Application.Extraction;
 using EInvoice.Application.Intake;
 using EInvoice.Application.Matching;
 using EInvoice.Application.Parsing;
+using EInvoice.Application.Posting;
 using EInvoice.Application.Queries;
 using EInvoice.Application.Security;
 using EInvoice.Application.Validation;
@@ -19,11 +20,13 @@ using EInvoice.Infrastructure.Intake;
 using EInvoice.Infrastructure.Matching;
 using EInvoice.Infrastructure.Parsing;
 using EInvoice.Infrastructure.Persistence;
+using EInvoice.Infrastructure.Posting;
 using EInvoice.Infrastructure.Queries;
 using EInvoice.Infrastructure.Validation;
 using EInvoice.Infrastructure.Vendors;
 using EInvoice.Web.Api;
 using EInvoice.Web.Components.Shared;
+using EInvoice.Web.Posting;
 using EInvoice.Web.Security;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
@@ -56,6 +59,25 @@ internal static class ServiceRegistration
         services.AddOptions<ApprovalSettings>().BindConfiguration(ApprovalSettings.Section).ValidateDataAnnotations().ValidateOnStart();
         services.AddOptions<AiSettings>().BindConfiguration(AiSettings.Section).ValidateOnStart();
         services.AddSingleton<IValidateOptions<AiSettings>, AiSettingsValidator>();
+        services.AddOptions<ErpSettings>().BindConfiguration(ErpSettings.Section).ValidateOnStart();
+        services.AddSingleton<IValidateOptions<ErpSettings>, ErpSettingsValidator>();
+
+        // ERP posting: approvals always queue a job (outbox); the worker sends them only when posting is on.
+        services.AddSingleton(sp => sp.GetRequiredService<IOptions<ErpSettings>>().Value.Policy());
+        services.AddHttpClient<IErpConnector, HttpErpConnector>((sp, http) =>
+        {
+            var erp = sp.GetRequiredService<IOptions<ErpSettings>>().Value;
+            if (erp.Enabled)
+            {
+                http.BaseAddress = new Uri(erp.BaseUrl!, UriKind.Absolute);
+                http.Timeout = TimeSpan.FromSeconds(erp.TimeoutSeconds);
+            }
+        });
+        services.AddScoped<IPostingStore, EfPostingStore>();
+        services.AddScoped<IInvoicePosting, InvoicePosting>();
+        services.AddSingleton<IHostedService>(sp => sp.GetRequiredService<IOptions<ErpSettings>>().Value.Enabled
+            ? ActivatorUtilities.CreateInstance<PostingWorker>(sp)
+            : new NoPosting());
 
         // Request limits follow the document limit: a larger upload is cut off while it is read.
         services.AddOptions<FormOptions>().Configure<IOptions<IntakeSettings>>((form, intake) => form.MultipartBodyLengthLimit = intake.Value.MaxDocumentBytes);
@@ -119,4 +141,12 @@ internal static class ServiceRegistration
     /// <summary>The local model (Ollama), only built when AI is switched on.</summary>
     private static IChatClient Model(IServiceProvider sp) =>
         new OllamaApiClient(sp.GetRequiredService<IHttpClientFactory>().CreateClient("ollama"), sp.GetRequiredService<IOptions<AiSettings>>().Value.Model!);
+
+    /// <summary>Stands in for the posting worker while posting is off.</summary>
+    private sealed class NoPosting : IHostedService
+    {
+        public Task StartAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+
+        public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+    }
 }

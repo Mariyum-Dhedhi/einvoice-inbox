@@ -942,3 +942,63 @@ END;
 COMMIT;
 GO
 
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261116083610_AddPostingJob'
+)
+BEGIN
+    CREATE TABLE [dbo].[PostingJob] (
+        [Id] uniqueidentifier NOT NULL,
+        [InvoiceId] uniqueidentifier NOT NULL,
+        [Status] int NOT NULL,
+        [Attempts] int NOT NULL,
+        [CreatedAt] datetimeoffset NOT NULL,
+        [NextAttemptAt] datetimeoffset NOT NULL,
+        [LeaseUntil] datetimeoffset NULL,
+        [ProcessedAt] datetimeoffset NULL,
+        [LastError] nvarchar(200) NULL,
+        [ErpDocumentNumber] nvarchar(50) NULL,
+        [RowId] bigint NOT NULL IDENTITY,
+        CONSTRAINT [PK_PostingJob] PRIMARY KEY NONCLUSTERED ([Id]),
+        CONSTRAINT [CK_PostingJob_Status] CHECK ([Status] IN (1, 2, 3)),
+        CONSTRAINT [FK_PostingJob_Invoice_InvoiceId] FOREIGN KEY ([InvoiceId]) REFERENCES [dbo].[Invoice] ([Id]) ON DELETE NO ACTION
+    );
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261116083610_AddPostingJob'
+)
+BEGIN
+    CREATE CLUSTERED INDEX [CX_PostingJob_RowId] ON [dbo].[PostingJob] ([RowId]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261116083610_AddPostingJob'
+)
+BEGIN
+    CREATE INDEX [IX_PostingJob_Due] ON [dbo].[PostingJob] ([Status], [NextAttemptAt]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261116083610_AddPostingJob'
+)
+BEGIN
+    CREATE INDEX [IX_PostingJob_InvoiceId] ON [dbo].[PostingJob] ([InvoiceId]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261116083610_AddPostingJob'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20261116083610_AddPostingJob', N'10.0.14');
+END;
+
+COMMIT;
+GO
+

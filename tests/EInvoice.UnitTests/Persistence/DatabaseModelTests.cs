@@ -42,7 +42,7 @@ public class DatabaseModelTests
             {
                 "AppRole", "AppRoleClaim", "AppUser", "AppUserClaim", "AppUserLogin", "AppUserRole", "AppUserToken", "AuditEvent",
                 "GoodsReceipt", "GoodsReceiptLine", "Invoice", "InvoiceDocument", "InvoiceFinding", "InvoiceLine", "InvoiceStatusChange", "MatchResult",
-                "PurchaseOrder", "PurchaseOrderLine", "Vendor", "VendorBankAccount",
+                "PostingJob", "PurchaseOrder", "PurchaseOrderLine", "Vendor", "VendorBankAccount",
             },
             tables);
     }
@@ -345,5 +345,16 @@ public class DatabaseModelTests
         var status = Entity<EInvoice.Domain.Vendors.VendorBankAccount>().FindProperty("Status")!;
 
         Assert.Equal((int)EInvoice.Domain.Vendors.BankAccountStatus.Pending, Convert.ToInt32(status.GetDefaultValue(), System.Globalization.CultureInfo.InvariantCulture));
+    }
+
+    [Fact]
+    public void Posting_jobs_are_found_by_due_time_and_keep_their_own_status()
+    {
+        var job = Model.GetEntityTypes().Single(e => e.GetTableName() == "PostingJob");
+
+        var expected = $"[Status] IN ({string.Join(", ", Enum.GetValues<EInvoice.Application.Posting.PostingJobStatus>().Cast<int>())})";
+        Assert.Contains(job.GetCheckConstraints(), c => c.Sql == expected);
+        Assert.Contains(job.GetIndexes(), i => i.Properties.Select(p => p.Name).SequenceEqual(["Status", "NextAttemptAt"]));
+        Assert.Equal(200, job.FindProperty("LastError")!.GetMaxLength()); // a reason, never a whole ERP answer
     }
 }
