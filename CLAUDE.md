@@ -63,6 +63,10 @@ db/                          stored procedures, views, seed data
 - AuditActions codes are part of every hash: never rename one. Audit details never contain document content or a password; a failed sign-in is recorded under the name as typed.
 - AuditVerifier names the first event that is missing (SequenceGap), unlinked (ChainBroken) or changed (HashMismatch). A chain cannot show that its newest events were cut off: the /audit page says to note down count and latest hash.
 - Tests that act like a database administrator (editing audit rows) use SqlServerFixture.CreateAdminContext inside a rolled-back transaction, so the shared chain stays intact.
+- Bank accounts (two-person rule): VendorBankAccount.Propose makes it Pending; Confirm by a different person (ignoring case) makes it Active; only Active accounts reach validation. Removal needs one admin and a reason. The column default is Pending (fail closed); seed.sql inserts its accounts as Active.
+- VendorBankAccount is a SQL Server temporal table (history in VendorBankAccountHistory, periods ValidFrom/ValidTo); the history cannot be edited while versioning is on. It has a rowversion: two admins changing the same account get a conflict.
+- Audit events for non-invoice changes are queued with EInvoiceDbContext.QueueAudit and written by the next SaveChangesAsync in its transaction. A store that clears the change tracker after a failed save also calls ClearQueuedAudit.
+- The admin bank page shows the full IBAN (to compare with a trusted source); history, audit details and findings show only the masked Iban.ToString().
 - No [Consumes] on endpoints: it is checked before authorization and answers 415 to callers who should get 403. Actions check the content type themselves.
 - Every failed sign-in gets the same message (unknown user, wrong password, locked). Lockout: 5 failures, 15 minutes. Return addresses are local only (SignInSetup.SafeReturnUrl).
 - The security stamp is checked on every request (ValidationInterval zero) and open pages re-check every minute (SignInRevalidator). Sign-out is a POST with an antiforgery token and renews the stamp, so every copy of the cookie stops working.

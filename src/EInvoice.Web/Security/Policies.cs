@@ -25,6 +25,9 @@ public static class Policies
     /// <summary>The audit trail and its verification.</summary>
     public const string ReadAudit = nameof(ReadAudit);
 
+    /// <summary>Vendor master data and bank accounts (two-person rule for new accounts).</summary>
+    public const string ManageVendors = nameof(ManageVendors);
+
     /// <summary>The user list (read-only in package 9).</summary>
     public const string ManageUsers = nameof(ManageUsers);
 
@@ -35,5 +38,6 @@ public static class Policies
         .AddPolicy(ExplainWithAi, p => p.RequireRole(Roles.Clerk, Roles.Approver))
         .AddPolicy(DecideInvoices, p => p.RequireRole(Roles.Approver))
         .AddPolicy(ReadAudit, p => p.RequireRole(Roles.Auditor))
-        .AddPolicy(ManageUsers, p => p.RequireRole(Roles.Admin));
+        .AddPolicy(ManageUsers, p => p.RequireRole(Roles.Admin))
+        .AddPolicy(ManageVendors, p => p.RequireRole(Roles.Admin));
 }

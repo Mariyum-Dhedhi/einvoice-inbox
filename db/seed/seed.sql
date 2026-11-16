@@ -48,11 +48,14 @@ FROM (VALUES
 
 -- Approved bank accounts: one per vendor. Bank code 00000000 does not exist, so these can never be real accounts;
 -- the check digits are computed so that each passes the IBAN mod-97 check.
-INSERT INTO dbo.VendorBankAccount (Id, VendorId, Iban)
+-- Seeded as confirmed (Status 2): they stand for accounts checked before this system existed. Anything added later
+-- goes through the two-person rule (package 11); a row without a status would be pending, not active.
+INSERT INTO dbo.VendorBankAccount (Id, VendorId, Iban, Status, ProposedBy, ProposedAt, ConfirmedBy, ConfirmedAt)
 SELECT
     CONVERT(uniqueidentifier, CONCAT('00000000-0000-0000-0006-', RIGHT(CONCAT('000000000000', a.n), 12))),
     CONVERT(uniqueidentifier, CONCAT('00000000-0000-0000-0001-', RIGHT(CONCAT('000000000000', a.n), 12))),
-    a.Iban
+    a.Iban,
+    2, N'seed', SYSUTCDATETIME(), N'seed', SYSUTCDATETIME()
 FROM (VALUES
     (1, 'DE72000000000000001001'), (2, 'DE45000000000000001002'), (3, 'DE18000000000000001003'), (4, 'DE88000000000000001004'),
     (5, 'DE61000000000000001005'), (6, 'DE34000000000000001006'), (7, 'DE07000000000000001007'), (8, 'DE77000000000000001008'),

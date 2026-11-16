@@ -1,0 +1,56 @@
+@page "/admin/vendors"
+@attribute [Authorize(Policy = Policies.ManageVendors)]
+@using EInvoice.Application.Vendors
+@inject Operations Operations
+
+<PageTitle>Vendors – E-Invoice Inbox</PageTitle>
+
+<MudText Typo="Typo.h4" HtmlTag="h1" Class="mb-1">Vendors</MudText>
+<MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
+    Bank accounts count for payments only after a second admin has confirmed them.
+</MudText>
+
+@if (_vendors is null)
+{
+    <MudProgressLinear Indeterminate="true" aria-label="Loading vendors" />
+}
+else
+{
+    <MudPaper Elevation="0" Outlined="true">
+        <MudSimpleTable Elevation="0" Dense="true" Hover="true">
+            <thead>
+                <tr>
+                    <th scope="col">Number</th>
+                    <th scope="col">Name</th>
+                    <th scope="col">Bank accounts</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var vendor in _vendors)
+                {
+                    <tr data-testid="vendor-row">
+                        <td class="nowrap"><MudLink Href="@($"/admin/vendors/{vendor.Id}")" Underline="Underline.Always">@vendor.Number</MudLink></td>
+                        <td class="break-all">@vendor.Name</td>
+                        <td>
+                            @vendor.ActiveAccounts confirmed
+                            @if (vendor.PendingAccounts > 0)
+                            {
+                                <span data-testid="pending" class="d-inline-flex align-center gap-1 ml-2">
+                                    <MudIcon Icon="@Icons.Material.Outlined.HourglassTop" Size="Size.Small" Color="Color.Warning" aria-hidden="true" />
+                                    @vendor.PendingAccounts waiting for a second admin
+                                </span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    </MudPaper>
+}
+
+@code {
+    private IReadOnlyList<VendorOverview>? _vendors;
+
+    protected override async Task OnInitializedAsync() =>
+        _vendors = await Operations.RunAsync<IBankAccountQueries, IReadOnlyList<VendorOverview>>(q => q.VendorsAsync(CancellationToken.None));
+}

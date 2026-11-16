@@ -518,11 +518,26 @@ namespace EInvoice.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<DateTimeOffset?>("ConfirmedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("ConfirmedBy")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
                     b.Property<string>("Iban")
                         .IsRequired()
                         .HasMaxLength(34)
                         .IsUnicode(false)
                         .HasColumnType("varchar(34)");
+
+                    b.Property<DateTimeOffset>("ProposedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("ProposedBy")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
 
                     b.Property<long>("RowId")
                         .ValueGeneratedOnAdd()
@@ -530,8 +545,29 @@ namespace EInvoice.Infrastructure.Persistence.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("RowId"));
 
+                    b.Property<int>("Status")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1);
+
+                    b.Property<DateTime>("ValidFrom")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("datetime2")
+                        .HasColumnName("ValidFrom");
+
+                    b.Property<DateTime>("ValidTo")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("datetime2")
+                        .HasColumnName("ValidTo");
+
                     b.Property<Guid>("VendorId")
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte[]>("Version")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
 
                     b.HasKey("Id");
 
@@ -546,7 +582,21 @@ namespace EInvoice.Infrastructure.Persistence.Migrations
                         .IsUnique()
                         .HasDatabaseName("UX_VendorBankAccount_Vendor_Iban");
 
-                    b.ToTable("VendorBankAccount", "dbo");
+                    b.ToTable("VendorBankAccount", "dbo", t =>
+                        {
+                            t.HasCheckConstraint("CK_VendorBankAccount_Status", "[Status] IN (1, 2)");
+                        });
+
+                    b.ToTable(tb => tb.IsTemporal(ttb =>
+                            {
+                                ttb.UseHistoryTable("VendorBankAccountHistory");
+                                ttb
+                                    .HasPeriodStart("ValidFrom")
+                                    .HasColumnName("ValidFrom");
+                                ttb
+                                    .HasPeriodEnd("ValidTo")
+                                    .HasColumnName("ValidTo");
+                            }));
                 });
 
             modelBuilder.Entity("EInvoice.Infrastructure.Identity.AppRole", b =>

@@ -319,4 +319,31 @@ public class DatabaseModelTests
         Assert.Equal("binary(32)", audit.FindProperty("PreviousHash")!.GetColumnType());
         Assert.Empty(audit.GetForeignKeys()); // the trail outlives what it describes
     }
+
+    [Fact]
+    public void Bank_accounts_keep_their_history_in_the_database()
+    {
+        var account = Entity<EInvoice.Domain.Vendors.VendorBankAccount>();
+
+        Assert.True(account.IsTemporal()); // SQL Server system-versioned: every earlier version with its time
+        Assert.Equal("VendorBankAccountHistory", account.GetHistoryTableName());
+        Assert.Equal("rowversion", Assert.Single(account.GetProperties(), p => p.IsConcurrencyToken).GetColumnType());
+    }
+
+    [Fact]
+    public void Bank_account_status_check_constraint_lists_exactly_the_enum_values()
+    {
+        var expected = $"[Status] IN ({string.Join(", ", Enum.GetValues<EInvoice.Domain.Vendors.BankAccountStatus>().Cast<int>())})";
+
+        Assert.Contains(Entity<EInvoice.Domain.Vendors.VendorBankAccount>().GetCheckConstraints(), c => c.Sql == expected);
+    }
+
+    [Fact]
+    public void A_new_bank_account_row_without_a_status_is_pending_not_active()
+    {
+        // Fail closed: a row inserted without saying otherwise (for example by hand) is not trusted for payments.
+        var status = Entity<EInvoice.Domain.Vendors.VendorBankAccount>().FindProperty("Status")!;
+
+        Assert.Equal((int)EInvoice.Domain.Vendors.BankAccountStatus.Pending, Convert.ToInt32(status.GetDefaultValue(), System.Globalization.CultureInfo.InvariantCulture));
+    }
 }

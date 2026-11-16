@@ -1,4 +1,5 @@
 using EInvoice.Application.Validation;
+using EInvoice.Domain.Vendors;
 using EInvoice.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 
@@ -20,7 +21,7 @@ public sealed class EfValidationDataSource(EInvoiceDbContext db) : IValidationDa
         }
 
         var ibans = await db.VendorBankAccounts.AsNoTracking()
-            .Where(a => a.VendorId == vendor.Id)
+            .Where(a => a.VendorId == vendor.Id && a.Status == BankAccountStatus.Active) // a proposal alone is not approval
             .Select(a => a.Iban)
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);

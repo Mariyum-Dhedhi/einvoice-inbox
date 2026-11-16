@@ -58,7 +58,8 @@ public sealed class IdentityStoreTests(SqlServerFixture fixture)
         await using var check = new ApiFactory(ApiFactory.Settings(fixture.AppConnectionString));
         await using var scope = check.Services.CreateAsyncScope();
         var users = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
-        Assert.Equal(Roles.All.Order(StringComparer.Ordinal), DemoUserSeeder.Users.Select(u => u.Role).Order(StringComparer.Ordinal));
+        Assert.Equal(Roles.All.Order(StringComparer.Ordinal), DemoUserSeeder.Users.Select(u => u.Role).Distinct().Order(StringComparer.Ordinal));
+        Assert.Equal(2, DemoUserSeeder.Users.Count(u => u.Role == Roles.Admin)); // the two-person rule needs two admins to demo
         foreach (var (userName, role) in DemoUserSeeder.Users)
         {
             Assert.EndsWith("@example.com", userName, StringComparison.Ordinal); // reserved for examples: never a real mailbox

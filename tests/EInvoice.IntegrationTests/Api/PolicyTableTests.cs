@@ -22,6 +22,7 @@ public sealed class PolicyTableTests
         ["DecideInvoices"] = ["Approver"], // approve and reject; a clerk who uploads never decides
         ["ReadAudit"] = ["Auditor"], // the audit trail and its verification
         ["ManageUsers"] = ["Admin"],
+        ["ManageVendors"] = ["Admin"], // vendor master data and bank accounts
     };
 
     private static readonly string[] AllRoles = ["Clerk", "Approver", "Auditor", "Admin"];

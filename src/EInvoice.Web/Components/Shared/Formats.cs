@@ -30,6 +30,10 @@ public static class Formats
 
     public static string Date(DateOnly? date) => date is { } value ? value.ToString("dd.MM.yyyy", German) : Missing;
 
+    /// <summary>A full IBAN in groups of four, for an admin comparing it with a letter; never for logs or findings.</summary>
+    public static string IbanGrouped(string iban) =>
+        string.Join(' ', Enumerable.Range(0, (iban.Length + 3) / 4).Select(i => iban.Substring(i * 4, Math.Min(4, iban.Length - (i * 4)))));
+
     public static string Timestamp(DateTimeOffset at) => TimeZoneInfo.ConvertTime(at, Berlin).ToString("dd.MM.yyyy HH:mm", German);
 
     public static string FileSize(long bytes) =>
