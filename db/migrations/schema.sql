@@ -1023,3 +1023,24 @@ END;
 COMMIT;
 GO
 
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261116135604_AddInvoiceLineQuantitiesIndex'
+)
+BEGIN
+    CREATE INDEX [IX_InvoiceLine_Quantities] ON [dbo].[InvoiceLine] ([InvoiceId], [LineNumber]) INCLUDE ([Quantity], [PurchaseOrderLineNumber]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261116135604_AddInvoiceLineQuantitiesIndex'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20261116135604_AddInvoiceLineQuantitiesIndex', N'10.0.14');
+END;
+
+COMMIT;
+GO
+
