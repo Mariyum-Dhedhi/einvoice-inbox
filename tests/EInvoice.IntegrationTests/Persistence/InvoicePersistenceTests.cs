@@ -89,8 +89,8 @@ public sealed class InvoicePersistenceTests(SqlServerFixture fixture) : IAsyncLi
     [Fact]
     public async Task Seed_data_is_present()
     {
-        Assert.Equal(20, await _context.Vendors.CountAsync());
-        // Count the seeded orders by their numbers: other tests may commit their own orders (unique T... numbers).
+        // Count seeded rows by their numbers: other tests commit their own vendors and orders (other number patterns).
+        Assert.Equal(20, await _context.Vendors.CountAsync(v => v.Number.StartsWith("V-")));
         Assert.Equal(200, await _context.PurchaseOrders.CountAsync(p => p.Number.StartsWith("PO-")));
         Assert.True(await _context.GoodsReceipts.AnyAsync());
     }
