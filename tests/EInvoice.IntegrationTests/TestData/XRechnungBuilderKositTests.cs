@@ -35,6 +35,38 @@ public sealed class XRechnungBuilderKositTests : IDisposable
     }
 
     [Fact]
+    public async Task Built_cii_invoice_in_the_xrechnung_profile_is_accepted_by_the_KoSIT_validator()
+    {
+        // The XML inside the ZUGFeRD test PDFs (XRECHNUNG profile) is real, valid XRechnung too.
+        var xml = new CiiInvoiceBuilder { Profile = CiiInvoiceBuilder.Profiles.XRechnung, PurchaseOrderNumber = "PO-0007" }
+            .Line("HDMI cable 2 m", 13m, 7.4125m, orderLine: "1")
+            .Line("Handbook German commercial code", 2m, 39.90m, taxRate: 7m)
+            .Build();
+
+        var result = await new KositValidatorClient(_http).CheckAsync(xml, CancellationToken.None);
+
+        Assert.True(result.Outcome == ConformanceOutcome.Accepted, $"{result.Outcome}: {string.Join(", ", result.ErrorCodes)}");
+    }
+
+    [Theory]
+    [InlineData(CiiInvoiceBuilder.Profiles.Basic)]
+    [InlineData(CiiInvoiceBuilder.Profiles.En16931)]
+    [InlineData(CiiInvoiceBuilder.Profiles.XRechnung)]
+    public void Built_cii_invoice_parses_and_passes_every_document_rule(string profile)
+    {
+        var xml = new CiiInvoiceBuilder { Profile = profile, PurchaseOrderNumber = "PO-0007" }
+            .Line("HDMI cable 2 m", 13m, 7.4125m, orderLine: "1")
+            .Line("Handbook German commercial code", 2m, 39.90m, taxRate: 7m)
+            .Build();
+
+        var parsed = new XRechnungParser().Parse(new MemoryStream(xml));
+
+        Assert.True(parsed.Succeeded, parsed.Error?.Message);
+        Assert.Equal(("PO-0007", profile), (parsed.Document!.PurchaseOrderReference, parsed.Document.SpecificationIdentifier));
+        Assert.Empty(DocumentRules.Check(parsed.Document));
+    }
+
+    [Fact]
     public void Built_invoice_parses_and_passes_every_document_rule()
     {
         var xml = new XRechnungBuilder { PurchaseOrderNumber = "PO-0007" }
