@@ -9,7 +9,7 @@ namespace EInvoice.IntegrationTests.Infrastructure;
 
 /// <summary>
 /// One SQL Server container for the whole test run, built with the same image and the same db/ scripts,
-/// in the same order, as the db-init service: schema, stored procedures, app user, seed.
+/// in the same order, as the db-init service: schema, stored procedures, views, app user, seed.
 /// Tests connect as the least-privilege app user, exactly like the application.
 /// </summary>
 public sealed partial class SqlServerFixture : IAsyncLifetime
@@ -49,6 +49,11 @@ public sealed partial class SqlServerFixture : IAsyncLifetime
         foreach (var procedure in Directory.EnumerateFiles(Path.Combine(db, "procedures"), "*.sql").Order())
         {
             await RunScriptAsync(admin.ConnectionString, procedure);
+        }
+
+        foreach (var view in Directory.EnumerateFiles(Path.Combine(db, "views"), "*.sql").Order())
+        {
+            await RunScriptAsync(admin.ConnectionString, view);
         }
 
         await RunScriptAsync(admin.ConnectionString, Path.Combine(db, "security", "app-user.sql"),
