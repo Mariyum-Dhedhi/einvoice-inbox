@@ -15,13 +15,18 @@ public sealed class HttpErpConnector(HttpClient http) : IErpConnector
 {
     private const int MaxReason = 200;
 
-    /// <summary>The wire format: camelCase, no field more and none missing (the contract both sides test against).</summary>
+    /// <summary>
+    /// What we send: camelCase. Reading with these options is strict (no field more, none missing): the contract test
+    /// reads the committed example with them, so a contract that grows or shrinks fails there first.
+    /// </summary>
     public static JsonSerializerOptions Json { get; } = new(JsonSerializerDefaults.Web)
     {
         UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow,
         RespectRequiredConstructorParameters = true,
         RespectNullableAnnotations = true,
     };
+
+    private static readonly JsonSerializerOptions Reply = new(JsonSerializerDefaults.Web);
 
     public async Task<ErpResult> PostAsync(Guid idempotencyKey, ErpVendorInvoice invoice, CancellationToken cancellationToken)
     {
@@ -38,7 +43,8 @@ public sealed class HttpErpConnector(HttpClient http) : IErpConnector
             var status = (int)response.StatusCode;
             if (response.IsSuccessStatusCode)
             {
-                var answer = await response.Content.ReadFromJsonAsync<PostedAnswer>(Json, cancellationToken).ConfigureAwait(false);
+                // Lenient on purpose: a real ERP answers with many more fields; only the document number is needed.
+                var answer = await response.Content.ReadFromJsonAsync<PostedAnswer>(Reply, cancellationToken).ConfigureAwait(false);
                 return string.IsNullOrWhiteSpace(answer?.DocumentNumber)
                     ? new ErpResult(ErpOutcome.Transient, Reason: $"HTTP {status} without a document number.")
                     : new ErpResult(ErpOutcome.Posted, answer.DocumentNumber);

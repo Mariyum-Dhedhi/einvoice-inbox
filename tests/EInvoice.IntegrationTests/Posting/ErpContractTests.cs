@@ -96,6 +96,16 @@ public sealed class ErpContractTests : IDisposable
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
     }
 
+    [Fact]
+    public async Task Our_side_notices_when_the_contract_gains_a_field_we_do_not_send()
+    {
+        // If the ERP's example ever asks for more than we send, reading it must fail here, not in production.
+        var example = await File.ReadAllTextAsync(ExamplePath);
+        var grown = "{\"paymentTerms\":\"30 days\"," + example.TrimStart()[1..];
+
+        Assert.ThrowsAny<JsonException>(() => JsonSerializer.Deserialize<ErpVendorInvoice>(grown, HttpErpConnector.Json));
+    }
+
     private async Task<HttpStatusCode> PostRawAsync(string json)
     {
         using var http = _erp.Client();
