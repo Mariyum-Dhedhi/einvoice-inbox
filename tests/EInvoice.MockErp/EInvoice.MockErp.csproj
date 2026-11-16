@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <!-- A stand-in for the ERP's vendor-invoice endpoint (Dynamics 365 style), for tests, CI and the local demo.
+       It references none of the application's projects on purpose: the only thing both sides share is the JSON
+       contract (contracts/d365/vendor-invoice.example.json), so a change on either side shows up in the contract tests. -->
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+</Project>

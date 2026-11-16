@@ -1,0 +1,9 @@
+# Build context for images built from the repository root (docker/mock-erp): sources only.
+**/bin
+**/obj
+.git
+.vs
+.vscode
+testdata
+**/*.user
+.env

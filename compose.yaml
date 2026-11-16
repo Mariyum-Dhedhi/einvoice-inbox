@@ -61,5 +61,22 @@ services:
       retries: 12
       start_period: 20s
 
+  # Mock ERP: the vendor-invoice endpoint the posting worker sends approved invoices to (contracts/d365).
+  # Run the app with Erp__Enabled=true and Erp__BaseUrl=http://127.0.0.1:8090/ to post to it.
+  mock-erp:
+    build:
+      context: .
+      dockerfile: docker/mock-erp/Dockerfile
+    image: einvoice-mock-erp:local
+    container_name: einvoice-mock-erp
+    ports:
+      - "127.0.0.1:${MOCK_ERP_PORT:-8090}:8080"
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 256m
+
 volumes:
   sqldata:
