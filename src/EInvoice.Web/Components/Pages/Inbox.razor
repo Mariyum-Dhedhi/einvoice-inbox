@@ -132,7 +132,23 @@ else
     private Guid? _existingInvoice;
 
     // While the page is only prerendered nothing would handle a picked file; enable the upload once it is interactive.
-    private bool CanUpload => RendererInfo.IsInteractive && !_uploading;
+    /// <summary>
+    /// Not before the first interactive render has finished: InputFile attaches its browser listener after rendering,
+    /// and a file chosen before that is silently lost. The listener setup is sent before the render that enables the
+    /// button, on the same connection, so it is in place by the time the button can be used.
+    /// </summary>
+    private bool CanUpload => RendererInfo.IsInteractive && _ready && !_uploading;
+
+    private bool _ready;
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender && RendererInfo.IsInteractive)
+        {
+            _ready = true;
+            StateHasChanged();
+        }
+    }
 
     [SupplyParameterFromQuery(Name = "status")]
     public string? StatusQuery { get; set; }
