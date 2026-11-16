@@ -48,7 +48,8 @@ internal static class UblMapper
             TaxTotal: TaxTotalInInvoiceCurrency(invoice.Elements(Cac + "TaxTotal").Select(t => t.Element(Cbc + "TaxAmount")).OfType<XElement>(), currency),
             GrossTotal: RequiredDecimal(totals?.Element(Cbc + "TaxInclusiveAmount"), "BT-112 invoice total amount with VAT"),
             Lines: lines,
-            VatBreakdown: VatBreakdown(invoice));
+            VatBreakdown: VatBreakdown(invoice),
+            SpecificationIdentifier: Optional(invoice.Element(Cbc + "CustomizationID")));
     }
 
     /// <summary>BG-23 lives in the cac:TaxTotal that has subtotals; the BT-111 tax-currency total never has any.</summary>

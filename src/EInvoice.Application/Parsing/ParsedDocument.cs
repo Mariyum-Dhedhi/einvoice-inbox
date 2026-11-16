@@ -39,7 +39,8 @@ public sealed record ParsedDocument(
     decimal TaxTotal,                            // BT-110
     decimal GrossTotal,                          // BT-112
     IReadOnlyList<ParsedDocumentLine> Lines,
-    IReadOnlyList<VatBreakdownEntry> VatBreakdown); // BG-23
+    IReadOnlyList<VatBreakdownEntry> VatBreakdown,  // BG-23
+    string? SpecificationIdentifier = null);      // BT-24: the profile, for example XRechnung or a ZUGFeRD profile
 
 /// <param name="Position">1, 2, 3 ... in document order. Line ids (BT-126) are free text, so they cannot be the line number.</param>
 /// <param name="UnitPrice">Net price (BT-146) divided by base quantity (BT-149), at full precision.</param>
