@@ -1,3 +1,4 @@
+using EInvoice.Domain.Shared;
 using EInvoice.Domain.Invoices;
 
 namespace EInvoice.UnitTests.Domain;
@@ -96,5 +97,23 @@ public class InvoiceTests
 
         Assert.Throws<ArgumentException>(() => invoice.MarkParsed(empty, "system", TestInvoices.Now));
         Assert.Equal(InvoiceStatus.Received, invoice.Status);
+    }
+
+    [Fact]
+    public void Lines_come_back_in_line_number_order_whatever_order_they_were_stored_in()
+    {
+        var invoice = TestInvoices.Received();
+        var content = TestInvoices.SampleContent() with
+        {
+            Lines =
+            [
+                new InvoiceLine(2, "Desk", 1m, 50.00m, Money.Euro(50.00m), 19m, purchaseOrderLineNumber: 2),
+                new InvoiceLine(1, "Office chair", 1m, 50.00m, Money.Euro(50.00m), 19m, purchaseOrderLineNumber: 1),
+            ],
+        };
+
+        invoice.MarkParsed(content, "system", TestInvoices.Now);
+
+        Assert.Equal([1, 2], invoice.Lines.Select(l => l.LineNumber));
     }
 }

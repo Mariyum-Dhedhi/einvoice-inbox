@@ -1,0 +1,444 @@
+{
+ "project": "EInvoice.Domain",
+ "commit": "e5bb66e (before the new tests)",
+ "tool": "dotnet-stryker 5.0.0 (tests/EInvoice.UnitTests/stryker-config.json)",
+ "totals": {
+  "CompileError": 22,
+  "Ignored": 91,
+  "Killed": 162,
+  "NoCoverage": 7,
+  "Survived": 54
+ },
+ "score": 72.65,
+ "files": {
+  "EInvoice.Domain/Invoices/Invoice.cs": {
+   "killed": 13,
+   "survivors": [
+    {
+     "line": 47,
+     "status": "Survived",
+     "mutator": "Linq method mutation (OrderBy() to OrderByDescending())",
+     "code": "public IReadOnlyList<InvoiceLine> Lines => _lines.OrderBy(l => l.LineNumber).ToList().AsReadOnly();"
+    },
+    {
+     "line": 77,
+     "status": "Survived",
+     "mutator": "Statement mutation",
+     "code": "_lines.Clear();"
+    }
+   ]
+  },
+  "EInvoice.Domain/Invoices/InvoiceStateMachine.cs": {
+   "killed": 5,
+   "survivors": [
+    {
+     "line": 44,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": ": base($\"An invoice cannot move from {from} to {to}.\")"
+    }
+   ]
+  },
+  "EInvoice.Domain/Invoices/ParsedInvoice.cs": {
+   "killed": 11,
+   "survivors": [
+    {
+     "line": 30,
+     "status": "Survived",
+     "mutator": "Linq method mutation (Count() to Sum())",
+     "code": "if (Lines.Select(l => l.LineNumber).Distinct().Count() != Lines.Count)"
+    },
+    {
+     "line": 32,
+     "status": "NoCoverage",
+     "mutator": "Statement mutation",
+     "code": "throw new ArgumentException(\"Invoice line numbers must be unique.\", nameof(Lines));"
+    },
+    {
+     "line": 37,
+     "status": "Survived",
+     "mutator": "Logical mutation",
+     "code": "if (NetTotal.Currency != currency || TaxTotal.Currency != currency)"
+    },
+    {
+     "line": 39,
+     "status": "NoCoverage",
+     "mutator": "Statement mutation",
+     "code": "throw new CurrencyMismatchException(NetTotal.Currency, currency);"
+    },
+    {
+     "line": 45,
+     "status": "NoCoverage",
+     "mutator": "Statement mutation",
+     "code": "throw new CurrencyMismatchException(foreign.NetAmount.Currency, currency);"
+    },
+    {
+     "line": 79,
+     "status": "NoCoverage",
+     "mutator": "Block removal mutation",
+     "code": "{"
+    }
+   ]
+  },
+  "EInvoice.Domain/Matching/MatchOutcome.cs": {
+   "killed": 1,
+   "survivors": []
+  },
+  "EInvoice.Domain/Matching/MatchResults.cs": {
+   "killed": 5,
+   "survivors": [
+    {
+     "line": 33,
+     "status": "Survived",
+     "mutator": "Equality mutation",
+     "code": "public bool IsFullMatch => Lines.Count > 0 && Lines.All(l => l.Outcome == MatchOutcome.FullMatch);"
+    }
+   ]
+  },
+  "EInvoice.Domain/Matching/ThreeWayMatcher.cs": {
+   "killed": 37,
+   "survivors": []
+  },
+  "EInvoice.Domain/Purchasing/GoodsReceipt.cs": {
+   "killed": 2,
+   "survivors": [
+    {
+     "line": 11,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "_lines.AddRange(LineRules.EnsureUnique(lines, l => l.PurchaseOrderLineNumber, \"Goods receipt\"));"
+    },
+    {
+     "line": 29,
+     "status": "Survived",
+     "mutator": "Linq method mutation (OrderBy() to OrderByDescending())",
+     "code": "public IReadOnlyList<GoodsReceiptLine> Lines => _lines.OrderBy(l => l.PurchaseOrderLineNumber).ToList().AsReadOnly();"
+    }
+   ]
+  },
+  "EInvoice.Domain/Purchasing/PurchaseOrder.cs": {
+   "killed": 5,
+   "survivors": [
+    {
+     "line": 12,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "_lines.AddRange(LineRules.EnsureUnique(lines, l => l.LineNumber, \"Purchase order\"));"
+    },
+    {
+     "line": 22,
+     "status": "NoCoverage",
+     "mutator": "Block removal mutation",
+     "code": "{"
+    },
+    {
+     "line": 37,
+     "status": "Survived",
+     "mutator": "Linq method mutation (OrderBy() to OrderByDescending())",
+     "code": "public IReadOnlyList<PurchaseOrderLine> Lines => _lines.OrderBy(l => l.LineNumber).ToList().AsReadOnly();"
+    }
+   ]
+  },
+  "EInvoice.Domain/Shared/DomainException.cs": {
+   "killed": 0,
+   "survivors": [
+    {
+     "line": 15,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": ": base($\"Cannot combine amounts in {left} and {right}.\")"
+    },
+    {
+     "line": 16,
+     "status": "Survived",
+     "mutator": "Block removal mutation",
+     "code": "{"
+    }
+   ]
+  },
+  "EInvoice.Domain/Shared/Iban.cs": {
+   "killed": 53,
+   "survivors": [
+    {
+     "line": 17,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "[\"AT\"] = 20, [\"BE\"] = 16, [\"BG\"] = 22, [\"CH\"] = 21, [\"CY\"] = 28, [\"CZ\"] = 24, [\"DE\"] = 22, [\"DK\"] = 18,"
+    },
+    {
+     "line": 17,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "[\"AT\"] = 20, [\"BE\"] = 16, [\"BG\"] = 22, [\"CH\"] = 21, [\"CY\"] = 28, [\"CZ\"] = 24, [\"DE\"] = 22, [\"DK\"] = 18,"
+    },
+    {
+     "line": 17,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "[\"AT\"] = 20, [\"BE\"] = 16, [\"BG\"] = 22, [\"CH\"] = 21, [\"CY\"] = 28, [\"CZ\"] = 24, [\"DE\"] = 22, [\"DK\"] = 18,"
+    },
+    {
+     "line": 17,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "[\"AT\"] = 20, [\"BE\"] = 16, [\"BG\"] = 22, [\"CH\"] = 21, [\"CY\"] = 28, [\"CZ\"] = 24, [\"DE\"] = 22, [\"DK\"] = 18,"
+    },
+    {
+     "line": 17,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "[\"AT\"] = 20, [\"BE\"] = 16, [\"BG\"] = 22, [\"CH\"] = 21, [\"CY\"] = 28, [\"CZ\"] = 24, [\"DE\"] = 22, [\"DK\"] = 18,"
+    },
+    {
+     "line": 17,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "[\"AT\"] = 20, [\"BE\"] = 16, [\"BG\"] = 22, [\"CH\"] = 21, [\"CY\"] = 28, [\"CZ\"] = 24, [\"DE\"] = 22, [\"DK\"] = 18,"
+    },
+    {
+     "line": 18,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "[\"EE\"] = 20, [\"ES\"] = 24, [\"FI\"] = 18, [\"FR\"] = 27, [\"GB\"] = 22, [\"GR\"] = 27, [\"HR\"] = 21, [\"HU\"] = 28,"
+    },
+    {
+     "line": 18,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "[\"EE\"] = 20, [\"ES\"] = 24, [\"FI\"] = 18, [\"FR\"] = 27, [\"GB\"] = 22, [\"GR\"] = 27, [\"HR\"] = 21, [\"HU\"] = 28,"
+    },
+    {
+     "line": 18,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "[\"EE\"] = 20, [\"ES\"] = 24, [\"FI\"] = 18, [\"FR\"] = 27, [\"GB\"] = 22, [\"GR\"] = 27, [\"HR\"] = 21, [\"HU\"] = 28,"
+    },
+    {
+     "line": 18,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "[\"EE\"] = 20, [\"ES\"] = 24, [\"FI\"] = 18, [\"FR\"] = 27, [\"GB\"] = 22, [\"GR\"] = 27, [\"HR\"] = 21, [\"HU\"] = 28,"
+    },
+    {
+     "line": 18,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "[\"EE\"] = 20, [\"ES\"] = 24, [\"FI\"] = 18, [\"FR\"] = 27, [\"GB\"] = 22, [\"GR\"] = 27, [\"HR\"] = 21, [\"HU\"] = 28,"
+    },
+    {
+     "line": 18,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "[\"EE\"] = 20, [\"ES\"] = 24, [\"FI\"] = 18, [\"FR\"] = 27, [\"GB\"] = 22, [\"GR\"] = 27, [\"HR\"] = 21, [\"HU\"] = 28,"
+    },
+    {
+     "line": 19,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "[\"IE\"] = 22, [\"IS\"] = 26, [\"IT\"] = 27, [\"LI\"] = 21, [\"LT\"] = 20, [\"LU\"] = 20, [\"LV\"] = 21, [\"MT\"] = 31,"
+    },
+    {
+     "line": 19,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "[\"IE\"] = 22, [\"IS\"] = 26, [\"IT\"] = 27, [\"LI\"] = 21, [\"LT\"] = 20, [\"LU\"] = 20, [\"LV\"] = 21, [\"MT\"] = 31,"
+    },
+    {
+     "line": 19,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "[\"IE\"] = 22, [\"IS\"] = 26, [\"IT\"] = 27, [\"LI\"] = 21, [\"LT\"] = 20, [\"LU\"] = 20, [\"LV\"] = 21, [\"MT\"] = 31,"
+    },
+    {
+     "line": 19,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "[\"IE\"] = 22, [\"IS\"] = 26, [\"IT\"] = 27, [\"LI\"] = 21, [\"LT\"] = 20, [\"LU\"] = 20, [\"LV\"] = 21, [\"MT\"] = 31,"
+    },
+    {
+     "line": 19,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "[\"IE\"] = 22, [\"IS\"] = 26, [\"IT\"] = 27, [\"LI\"] = 21, [\"LT\"] = 20, [\"LU\"] = 20, [\"LV\"] = 21, [\"MT\"] = 31,"
+    },
+    {
+     "line": 19,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "[\"IE\"] = 22, [\"IS\"] = 26, [\"IT\"] = 27, [\"LI\"] = 21, [\"LT\"] = 20, [\"LU\"] = 20, [\"LV\"] = 21, [\"MT\"] = 31,"
+    },
+    {
+     "line": 19,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "[\"IE\"] = 22, [\"IS\"] = 26, [\"IT\"] = 27, [\"LI\"] = 21, [\"LT\"] = 20, [\"LU\"] = 20, [\"LV\"] = 21, [\"MT\"] = 31,"
+    },
+    {
+     "line": 19,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "[\"IE\"] = 22, [\"IS\"] = 26, [\"IT\"] = 27, [\"LI\"] = 21, [\"LT\"] = 20, [\"LU\"] = 20, [\"LV\"] = 21, [\"MT\"] = 31,"
+    },
+    {
+     "line": 20,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "[\"NL\"] = 18, [\"NO\"] = 15, [\"PL\"] = 28, [\"PT\"] = 25, [\"RO\"] = 24, [\"SE\"] = 24, [\"SI\"] = 19, [\"SK\"] = 24,"
+    },
+    {
+     "line": 20,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "[\"NL\"] = 18, [\"NO\"] = 15, [\"PL\"] = 28, [\"PT\"] = 25, [\"RO\"] = 24, [\"SE\"] = 24, [\"SI\"] = 19, [\"SK\"] = 24,"
+    },
+    {
+     "line": 20,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "[\"NL\"] = 18, [\"NO\"] = 15, [\"PL\"] = 28, [\"PT\"] = 25, [\"RO\"] = 24, [\"SE\"] = 24, [\"SI\"] = 19, [\"SK\"] = 24,"
+    },
+    {
+     "line": 20,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "[\"NL\"] = 18, [\"NO\"] = 15, [\"PL\"] = 28, [\"PT\"] = 25, [\"RO\"] = 24, [\"SE\"] = 24, [\"SI\"] = 19, [\"SK\"] = 24,"
+    },
+    {
+     "line": 20,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "[\"NL\"] = 18, [\"NO\"] = 15, [\"PL\"] = 28, [\"PT\"] = 25, [\"RO\"] = 24, [\"SE\"] = 24, [\"SI\"] = 19, [\"SK\"] = 24,"
+    },
+    {
+     "line": 20,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "[\"NL\"] = 18, [\"NO\"] = 15, [\"PL\"] = 28, [\"PT\"] = 25, [\"RO\"] = 24, [\"SE\"] = 24, [\"SI\"] = 19, [\"SK\"] = 24,"
+    },
+    {
+     "line": 20,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "[\"NL\"] = 18, [\"NO\"] = 15, [\"PL\"] = 28, [\"PT\"] = 25, [\"RO\"] = 24, [\"SE\"] = 24, [\"SI\"] = 19, [\"SK\"] = 24,"
+    },
+    {
+     "line": 44,
+     "status": "Survived",
+     "mutator": "Logical mutation",
+     "code": "if (value.Length < 4 || !value.All(char.IsAsciiLetterOrDigit)"
+    },
+    {
+     "line": 44,
+     "status": "Survived",
+     "mutator": "Logical mutation",
+     "code": "if (value.Length < 4 || !value.All(char.IsAsciiLetterOrDigit)"
+    },
+    {
+     "line": 44,
+     "status": "Survived",
+     "mutator": "Logical mutation",
+     "code": "if (value.Length < 4 || !value.All(char.IsAsciiLetterOrDigit)"
+    },
+    {
+     "line": 44,
+     "status": "Survived",
+     "mutator": "Logical mutation",
+     "code": "if (value.Length < 4 || !value.All(char.IsAsciiLetterOrDigit)"
+    },
+    {
+     "line": 44,
+     "status": "Survived",
+     "mutator": "Logical mutation",
+     "code": "if (value.Length < 4 || !value.All(char.IsAsciiLetterOrDigit)"
+    },
+    {
+     "line": 44,
+     "status": "Survived",
+     "mutator": "Equality mutation",
+     "code": "if (value.Length < 4 || !value.All(char.IsAsciiLetterOrDigit)"
+    },
+    {
+     "line": 44,
+     "status": "Survived",
+     "mutator": "Linq method mutation (All() to Any())",
+     "code": "if (value.Length < 4 || !value.All(char.IsAsciiLetterOrDigit)"
+    },
+    {
+     "line": 51,
+     "status": "Survived",
+     "mutator": "Logical mutation",
+     "code": "if (!LengthByCountry.TryGetValue(value[..2], out var expectedLength) || value.Length != expectedLength)"
+    },
+    {
+     "line": 69,
+     "status": "Survived",
+     "mutator": "Arithmetic mutation",
+     "code": "var grouped = new StringBuilder(masked.Length + (masked.Length / 4));"
+    },
+    {
+     "line": 69,
+     "status": "Survived",
+     "mutator": "Arithmetic mutation",
+     "code": "var grouped = new StringBuilder(masked.Length + (masked.Length / 4));"
+    }
+   ]
+  },
+  "EInvoice.Domain/Shared/Money.cs": {
+   "killed": 20,
+   "survivors": [
+    {
+     "line": 42,
+     "status": "Survived",
+     "mutator": "Statement mutation",
+     "code": "EnsureSameCurrency(left, right);"
+    },
+    {
+     "line": 53,
+     "status": "Survived",
+     "mutator": "Equality mutation",
+     "code": "public static bool operator <(Money left, Money right) => left.CompareTo(right) < 0;"
+    },
+    {
+     "line": 55,
+     "status": "Survived",
+     "mutator": "Equality mutation",
+     "code": "public static bool operator >(Money left, Money right) => left.CompareTo(right) > 0;"
+    }
+   ]
+  },
+  "EInvoice.Domain/Vendors/Vendor.cs": {
+   "killed": 3,
+   "survivors": [
+    {
+     "line": 32,
+     "status": "NoCoverage",
+     "mutator": "Boolean mutation",
+     "code": "public void Activate() => IsActive = true;"
+    }
+   ]
+  },
+  "EInvoice.Domain/Vendors/VendorBankAccount.cs": {
+   "killed": 7,
+   "survivors": [
+    {
+     "line": 33,
+     "status": "NoCoverage",
+     "mutator": "Block removal mutation",
+     "code": "{"
+    },
+    {
+     "line": 83,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "public sealed class TwoPersonRuleException() : DomainException(\"A bank account must be confirmed by someone other than t"
+    },
+    {
+     "line": 85,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "public sealed class BankAccountNotPendingException() : DomainException(\"Only a proposed bank account can be confirmed.\")"
+    }
+   ]
+  }
+ }
+}

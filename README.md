@@ -83,6 +83,23 @@ behind failing tests (an execution-plan test and a locking test).
 | Pages read by one match, ordinary order | 2,794 | **93** |
 
 Method, machine, the intermediate state and the known limit: [`docs/performance.md`](docs/performance.md).
+## Security scan and mutation testing
+
+Every pull request runs a ZAP baseline scan against the running app: the public pages, then signed in as a clerk.
+Any alert not listed in `tests/zap/rules.tsv` with a reason fails the build. The first scan found a missing content
+security policy, a non-Secure antiforgery cookie and missing isolation headers. All are fixed behind
+`SecurityHeaderTests`, and the browser journeys fail if the strict policy breaks a page.
+
+Stryker.NET (mutation testing, run by hand) showed which rules the unit tests did not actually check. Examples: most
+IBAN country lengths; limits on the AI model's reply tested only far above them; and, for six fields, an AI evidence
+check that always said "confident" went unnoticed. All of these are now tested.
+
+| Mutation score, 2026-11-16, same configuration | Before | After |
+|---|---:|---:|
+| Domain | 72.65 % | **90.58 %** |
+| Application | 73.51 % | **77.82 %** |
+
+What was found, what still survives and why: [`docs/security-testing.md`](docs/security-testing.md).
 
 ## Run it
 

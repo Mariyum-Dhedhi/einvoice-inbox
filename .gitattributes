@@ -16,3 +16,5 @@ testdata/**/kosit/*.xml -text
 
 # Load-test template: compared byte-exact with what LoadInvoiceTemplate builds.
 tests/load/*.xml -text
+# Demo files are compared byte for byte with what the generator builds (DemoFileTests).
+demo/invoices/*.xml -text

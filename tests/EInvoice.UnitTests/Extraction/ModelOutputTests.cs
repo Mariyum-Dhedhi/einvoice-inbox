@@ -141,4 +141,40 @@ public class ModelOutputTests
         Assert.DoesNotContain("status", ModelOutput.JsonSchema, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("approv", ModelOutput.JsonSchema, StringComparison.OrdinalIgnoreCase);
     }
+
+    [Fact]
+    public void Values_exactly_at_each_limit_are_accepted()
+    {
+        // The limits are maximums, not "less than": found by mutation testing, only "far too big" was tested.
+        var line = "{ \"description\": \"x\", \"quantity\": 1, \"unitPrice\": 1, \"netAmount\": 1, \"taxRatePercent\": 19, \"orderLineReference\": null }";
+        var maxLines = Valid[..Valid.IndexOf("\"lines\"", StringComparison.Ordinal)] + $"\"lines\": [{string.Join(",", Enumerable.Repeat(line, ModelOutput.MaxLines))}] }}";
+
+        Assert.True(ModelOutput.TryParse(new string(' ', ModelOutput.MaxReplyLength - Valid.Length) + Valid, out _, out var error), error);
+        Assert.True(ModelOutput.TryParse(Valid.Replace("HDMI cable 2 m", new string('A', ModelOutput.MaxTextLength), StringComparison.Ordinal), out _, out error), error);
+        Assert.True(ModelOutput.TryParse(maxLines, out _, out error), error);
+        Assert.True(ModelOutput.TryParse(Ibans(ModelOutput.MaxIbans), out _, out error), error);
+        Assert.True(ModelOutput.TryParse(Valid.Replace("\"netTotal\": 233.70", "\"netTotal\": 0", StringComparison.Ordinal), out _, out error), error);
+        Assert.True(ModelOutput.TryParse(Valid.Replace("\"netTotal\": 233.70", "\"netTotal\": 1000000000000", StringComparison.Ordinal), out _, out error), error);
+    }
+
+    [Fact]
+    public void One_more_iban_than_the_limit_is_rejected()
+    {
+        Assert.False(ModelOutput.TryParse(Ibans(ModelOutput.MaxIbans + 1), out _, out _));
+    }
+
+    [Theory]
+    [InlineData("\"ibans\": [\"[IBAN_1]\"]", "\"ibans\": [\"[IBAN_1]\",]")]                    // trailing comma in an array
+    [InlineData("\"grossTotal\": 258.95,", "\"grossTotal\": 258.95,,")]                        // a doubled comma
+    [InlineData("\"invoiceNumber\": \"RE-2026-1001\",", "/* note */ \"invoiceNumber\": \"RE-2026-1001\",")] // a comment
+    public void Json_that_is_only_almost_strict_is_rejected(string original, string replacement)
+    {
+        var almost = Valid.Replace(original, replacement, StringComparison.Ordinal);
+        Assert.NotEqual(Valid, almost);
+
+        Assert.False(ModelOutput.TryParse(almost, out _, out _));
+    }
+
+    private static string Ibans(int count) =>
+        Valid.Replace("\"ibans\": [\"[IBAN_1]\"]", $"\"ibans\": [{string.Join(",", Enumerable.Range(1, count).Select(i => $"\"[IBAN_{i}]\""))}]", StringComparison.Ordinal);
 }
