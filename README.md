@@ -8,7 +8,7 @@ purchase orders and goods receipts, and sends anything doubtful to a person with
 
 > **Status:** in development, built in public, one
 > [work package](https://github.com/Mariyum-Dhedhi/einvoice-inbox/issues) per pull request.
-> Done: upload pipeline, validation (incl. the official KoSIT validator), matching, API, UI, AI extraction, sign-in and roles, approval workflow, audit trail, bank-account control, ZUGFeRD, ERP posting (against a mock ERP), KPI dashboard.
+> Done: upload pipeline, validation (incl. the official KoSIT validator), matching, API, UI, AI extraction, sign-in and roles, approval workflow, audit trail, bank-account control, ZUGFeRD, ERP posting (against a mock ERP), KPI dashboard, load test.
 
 ## AI extraction, measured
 
@@ -67,6 +67,22 @@ pausing); the evidence check itself adds only a few text searches per invoice.
 Full reports: [`testdata/ai-eval/results`](testdata/ai-eval/results). Reproduce:
 `ollama pull qwen2.5:7b`, then `dotnet run --project tests/EInvoice.AiEvaluation -- run --provider ollama`.
 27 cases find failure modes; they are too few for precise percentages.
+
+## Under load, measured
+
+A k6 load test (`tests/load`) signs in clerks through the real login form and has them upload, open and re-match
+invoices at 10 turns per second for 3 minutes. It runs against about 105,000 invoices, with one busy order holding
+5,000 or more. It found a full-table read in matching and a deadlock between matching and uploading; both are fixed
+behind failing tests (an execution-plan test and a locking test).
+
+| Same laptop, 2026-11-16, 3 minutes per run | Before | After |
+|---|---:|---:|
+| Failed requests | 63 (60 deadlocks, 129 lock-wait timeouts) | **0** |
+| Upload, 95th percentile | 9.90 s | **76 ms** |
+| Re-match, 95th percentile | 9.81 s | **28 ms** |
+| Pages read by one match, ordinary order | 2,794 | **93** |
+
+Method, machine, the intermediate state and the known limit: [`docs/performance.md`](docs/performance.md).
 
 ## Run it
 
