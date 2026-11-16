@@ -183,4 +183,29 @@ public sealed class AuditChainTests
 
         Assert.Equal(3, result.Count); // events 1 to 3 are confirmed
     }
+
+    [Fact]
+    public async Task A_broken_chain_still_reports_the_last_good_event_and_its_hash()
+    {
+        // What was verified up to the break: the event before it, with its hash, to compare with a noted-down copy.
+        var chain = Chain(5);
+        chain[2] = chain[2] with { Details = """{"n":999}""" };
+
+        var result = await Verify(chain);
+
+        Assert.Equal((2L, 2L), (result.Count, result.LastSequence!.Value));
+        Assert.Equal(Convert.ToHexStringLower(chain[1].Hash), result.LastHash);
+    }
+
+    [Fact]
+    public async Task A_chain_broken_at_its_first_event_has_no_last_good_hash()
+    {
+        var chain = Chain(3);
+        chain[0] = chain[0] with { Details = """{"n":999}""" };
+
+        var result = await Verify(chain);
+
+        Assert.Equal(0, result.Count);
+        Assert.Null(result.LastHash);
+    }
 }

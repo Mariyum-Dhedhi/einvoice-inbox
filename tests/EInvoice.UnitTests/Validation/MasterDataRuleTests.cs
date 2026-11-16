@@ -75,7 +75,9 @@ public class MasterDataRuleTests
     {
         var doc = Valid() with { PaymentAccountIbans = [ApprovedIban, "DE45000000000000001002"] };
 
-        Assert.Equal([RuleCodes.IbanNotApproved], MasterDataRules.Check(doc, CleanFacts()).Codes());
+        var finding = Assert.Single(MasterDataRules.Check(doc, CleanFacts()));
+        Assert.Equal(RuleCodes.IbanNotApproved, finding.RuleCode);
+        Assert.StartsWith("Payment account 2 ", finding.Message, StringComparison.Ordinal); // which of the accounts
     }
 
     [Fact]
