@@ -50,6 +50,7 @@ internal static partial class AccessTable
         // Pages
         ["PAGE /"] = Readers,
         ["PAGE /invoices/{Id:guid}"] = Readers,
+        ["PAGE /dashboard"] = Readers,
         ["PAGE /approvals"] = Access.Only("Approver"),
         ["PAGE /audit"] = Access.Only("Auditor"),
         ["PAGE /admin/users"] = Access.Only("Admin"),

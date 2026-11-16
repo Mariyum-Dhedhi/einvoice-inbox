@@ -12,6 +12,9 @@
             <AuthorizeView Policy="@Policies.ReadInvoices" Context="nav">
                 <MudLink Href="/" Color="Color.Inherit" data-testid="nav-inbox">Inbox</MudLink>
             </AuthorizeView>
+            <AuthorizeView Policy="@Policies.ReadInvoices" Context="nav">
+                <MudLink Href="/dashboard" Color="Color.Inherit" data-testid="nav-dashboard">Dashboard</MudLink>
+            </AuthorizeView>
             <AuthorizeView Policy="@Policies.DecideInvoices" Context="nav">
                 <MudLink Href="/approvals" Color="Color.Inherit" data-testid="nav-approvals">Approvals</MudLink>
             </AuthorizeView>

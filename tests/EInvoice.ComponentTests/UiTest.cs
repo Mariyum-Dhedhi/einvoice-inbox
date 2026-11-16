@@ -2,6 +2,7 @@ using EInvoice.Application.Approval;
 using EInvoice.Application.Audit;
 using EInvoice.Application.Explanation;
 using EInvoice.Application.Intake;
+using EInvoice.Application.Kpi;
 using EInvoice.Application.Matching;
 using EInvoice.Application.Queries;
 using EInvoice.Application.Security;
@@ -40,6 +41,7 @@ public abstract class UiTest : BunitContext, IAsyncLifetime
         Services.AddSingleton<IUserDirectory>(Users);
         Services.AddSingleton<IInvoiceApproval>(Approval);
         Services.AddSingleton<IAuditLog>(Audit);
+        Services.AddSingleton<IKpiQueries>(Kpis);
         Services.AddSingleton<IBankAccountQueries>(BankAccounts);
         Services.AddSingleton<IBankAccountAdministration>(BankAccountAdmin);
         Services.AddSingleton(Microsoft.Extensions.Options.Options.Create(new ApprovalSettings { DefaultLimitEur = DefaultLimit }));
@@ -78,6 +80,8 @@ public abstract class UiTest : BunitContext, IAsyncLifetime
     protected FakeApproval Approval { get; } = new();
 
     protected FakeAuditLog Audit { get; } = new();
+
+    protected FakeKpiQueries Kpis { get; } = new();
 
     protected FakeBankAccountQueries BankAccounts { get; } = new();
 
@@ -144,6 +148,23 @@ public sealed class FakeBankAccountAdministration : IBankAccountAdministration
     {
         Removed.Add((accountId, admin, reason));
         return Task.FromResult(new BankAccountResult(BankAccountOutcome.Removed, accountId));
+    }
+}
+
+public sealed class FakeKpiQueries : IKpiQueries
+{
+    public Dashboard Data { get; set; } = new(
+        [new StatusKpi(InvoiceStatus.Exception, 3, 1234.50m), new StatusKpi(InvoiceStatus.Matched, 12, 98765.43m)],
+        [new MonthKpi(new DateOnly(2026, 10, 1), 10, 7, 3, 0), new MonthKpi(new DateOnly(2026, 11, 1), 0, 0, 0, 0)],
+        [new ReasonKpi("Finding", "IBAN_NOT_APPROVED", 2), new ReasonKpi("Match", "NoGoodsReceipt", 1)],
+        new PostingKpi(1, 0, 0, 5, new DateTimeOffset(2026, 11, 16, 8, 0, 0, TimeSpan.Zero)));
+
+    public DateOnly? AskedFor { get; private set; }
+
+    public Task<Dashboard> DashboardAsync(DateOnly today, CancellationToken cancellationToken)
+    {
+        AskedFor = today;
+        return Task.FromResult(Data);
     }
 }
 

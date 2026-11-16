@@ -99,6 +99,20 @@ public sealed class MainLayoutTests : BunitContext, IAsyncLifetime
     }
 
     [Fact]
+    public void Readers_get_the_dashboard_link_admins_do_not()
+    {
+        Auth.SetPolicies(EInvoice.Web.Security.Policies.ReadInvoices);
+        Assert.Equal("/dashboard", RenderLayout().Find("a[data-testid=nav-dashboard]").GetAttribute("href"));
+    }
+
+    [Fact]
+    public void Admins_get_no_dashboard_link()
+    {
+        Auth.SetPolicies(EInvoice.Web.Security.Policies.ManageUsers);
+        Assert.Empty(RenderLayout().FindAll("a[data-testid=nav-dashboard]"));
+    }
+
+    [Fact]
     public void Approvers_get_the_approvals_link()
     {
         Auth.SetPolicies(EInvoice.Web.Security.Policies.ReadInvoices, EInvoice.Web.Security.Policies.DecideInvoices);

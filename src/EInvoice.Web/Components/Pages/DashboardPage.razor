@@ -1,0 +1,118 @@
+@page "/dashboard"
+@attribute [Authorize(Policy = Policies.ReadInvoices)]
+@using EInvoice.Application.Kpi
+@inject Operations Operations
+
+<PageTitle>Dashboard – E-Invoice Inbox</PageTitle>
+
+<MudText Typo="Typo.h4" HtmlTag="h1" Class="mb-4">Dashboard</MudText>
+
+@if (_data is not { } data)
+{
+    <MudProgressLinear Indeterminate="true" aria-label="Loading the dashboard" />
+}
+else
+{
+    <MudGrid Spacing="3">
+        @* ---- Posting health ----------------------------------------------------------------------------------- *@
+        <MudItem xs="12">
+            @{ var (state, icon, severity, text) = PostingState(data.Posting); }
+            <MudAlert Severity="severity" Icon="@icon" data-testid="kpi-posting" data-state="@state" role="status">
+                <strong>ERP posting:</strong> @text
+                <span class="ml-2">@data.Posting.Posted posted · @data.Posting.WaitingToPost waiting · @data.Posting.Retrying retrying · @data.Posting.Failed failed@(data.Posting.OldestWaitingSince is { } since ? $" · oldest waiting since {Formats.Timestamp(since)}" : string.Empty)</span>
+            </MudAlert>
+        </MudItem>
+
+        @* ---- Invoices by status ------------------------------------------------------------------------------- *@
+        <MudItem xs="12" md="6">
+            <MudPaper Outlined="true" Class="pa-4" data-testid="kpi-status">
+                <MudText Typo="Typo.h6" HtmlTag="h2" Class="mb-2">Invoices by status</MudText>
+                <MudSimpleTable Elevation="0" Dense="true">
+                    <thead><tr><th scope="col">Status</th><th scope="col" class="text-right">Invoices</th><th scope="col" class="text-right">Gross (EUR)</th></tr></thead>
+                    <tbody>
+                        @foreach (var s in data.ByStatus)
+                        {
+                            <tr>
+                                <td><StatusChip Status="s.Status" /></td>
+                                <td class="text-right tabular">@s.InvoiceCount</td>
+                                <td class="text-right tabular nowrap">@Formats.Money(s.GrossTotalEur, "EUR")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            </MudPaper>
+        </MudItem>
+
+        @* ---- Open exception reasons --------------------------------------------------------------------------- *@
+        <MudItem xs="12" md="6">
+            <MudPaper Outlined="true" Class="pa-4" data-testid="kpi-reasons">
+                <MudText Typo="Typo.h6" HtmlTag="h2" Class="mb-2">What blocks the exception queue</MudText>
+                @if (data.OpenReasons.Count == 0)
+                {
+                    <MudText>No invoice is waiting in Exception.</MudText>
+                }
+                else
+                {
+                    <MudSimpleTable Elevation="0" Dense="true">
+                        <thead><tr><th scope="col">Reason</th><th scope="col" class="text-right">Invoices</th></tr></thead>
+                        <tbody>
+                            @foreach (var r in data.OpenReasons)
+                            {
+                                <tr><td>@ReasonText(r)</td><td class="text-right tabular">@r.OpenInvoices</td></tr>
+                            }
+                        </tbody>
+                    </MudSimpleTable>
+                }
+            </MudPaper>
+        </MudItem>
+
+        @* ---- Monthly throughput ------------------------------------------------------------------------------- *@
+        <MudItem xs="12">
+            <MudPaper Outlined="true" Class="pa-4">
+                <MudText Typo="Typo.h6" HtmlTag="h2" Class="mb-1">The last twelve months</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2">
+                    By month of receipt (Berlin time). Straight through: approved without ever being an exception.
+                </MudText>
+                <MudSimpleTable Elevation="0" Dense="true">
+                    <thead>
+                        <tr>
+                            <th scope="col">Month</th><th scope="col" class="text-right">Received</th><th scope="col" class="text-right">Straight through</th>
+                            <th scope="col" class="text-right">Rate</th><th scope="col" class="text-right">Exceptions</th><th scope="col" class="text-right">Failed</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var m in data.Months)
+                        {
+                            <tr data-testid="kpi-month">
+                                <td class="nowrap">@Formats.MonthName(m.Month)</td>
+                                <td class="text-right tabular">@m.Received</td>
+                                <td class="text-right tabular">@m.StraightThrough</td>
+                                <td class="text-right tabular">@(m.StraightThroughPercent is { } p ? Formats.Percent1(p) : "–")</td>
+                                <td class="text-right tabular">@m.Exceptions</td>
+                                <td class="text-right tabular">@m.Failed</td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+}
+
+@code {
+    private Dashboard? _data;
+
+    protected override async Task OnInitializedAsync() =>
+        _data = await Operations.RunAsync<IKpiQueries, Dashboard>(q => q.DashboardAsync(Formats.TodayInBerlin(), CancellationToken.None));
+
+    /// <summary>A match outcome gets the same words as on the invoice page; a rule code stays as it is.</summary>
+    private static string ReasonText(ReasonKpi reason) =>
+        reason.Kind == "Match" && Enum.TryParse<MatchOutcome>(reason.Reason, out var outcome) ? Labels.Outcome(outcome) : reason.Reason;
+
+    private static (string State, string Icon, Severity Severity, string Text) PostingState(PostingKpi posting) => posting switch
+    {
+        { Failed: > 0 } => ("failed", Icons.Material.Outlined.Error, Severity.Error, "some postings failed for good; an admin has to look at them."),
+        { Retrying: > 0 } => ("retrying", Icons.Material.Outlined.Sync, Severity.Warning, "the ERP did not answer every time; postings are being retried."),
+        _ => ("healthy", Icons.Material.Outlined.CheckCircle, Severity.Success, "healthy."),
+    };
+}
