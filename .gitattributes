@@ -13,3 +13,6 @@
 
 # Official test corpora are stored byte-exact (no line-ending normalisation).
 testdata/**/kosit/*.xml -text
+
+# Demo files are compared byte for byte with what the generator builds (DemoFileTests).
+demo/invoices/*.xml -text
