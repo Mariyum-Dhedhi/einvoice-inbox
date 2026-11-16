@@ -1,3 +1,5 @@
+using System.Net;
+using Microsoft.AspNetCore.Hosting;
 using EInvoice.Application.Intake;
 using EInvoice.IntegrationTests.Api;
 using EInvoice.IntegrationTests.Infrastructure;
@@ -33,7 +35,9 @@ public abstract class BrowserJourney(SqlServerFixture fixture) : IAsyncLifetime
     public async Task InitializeAsync()
     {
         App = new ApiFactory(ApiFactory.Settings(Fixture.AppConnectionString), environment: "Development");
-        App.UseKestrel(0); // any free port
+        // HTTPS like the real app (any free port, the ASP.NET Core development certificate): the sign-in and antiforgery
+        // cookies are Secure, and antiforgery refuses to work over plain HTTP.
+        App.UseKestrel(kestrel => kestrel.Listen(IPAddress.Loopback, 0, listen => listen.UseHttps()));
         App.StartServer();
         BaseUrl = App.Services.GetRequiredService<IServer>().Features.Get<IServerAddressesFeature>()!.Addresses.First();
 
@@ -56,7 +60,8 @@ public abstract class BrowserJourney(SqlServerFixture fixture) : IAsyncLifetime
     /// <summary>A fresh browser (own cookies), as a different person at a different desk would have.</summary>
     protected async Task<IPage> NewBrowserAsync()
     {
-        var context = await _browser.NewContextAsync();
+        // The development certificate is not trusted on a CI machine; it only protects a loopback connection here.
+        var context = await _browser.NewContextAsync(new() { IgnoreHTTPSErrors = true });
         _contexts.Add(context);
         var page = await context.NewPageAsync();
         page.Console += (_, message) =>

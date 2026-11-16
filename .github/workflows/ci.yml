@@ -195,6 +195,10 @@ jobs:
       - name: Install Chromium
         run: pwsh tests/EInvoice.IntegrationTests/bin/Release/net10.0/playwright.ps1 install --with-deps chromium
 
+      # The journeys run the app over HTTPS (Secure cookies); Kestrel uses the development certificate.
+      - name: Development certificate
+        run: dotnet dev-certs https
+
       - name: Browser test
         run: >
           dotnet test tests/EInvoice.IntegrationTests --no-build --configuration Release
