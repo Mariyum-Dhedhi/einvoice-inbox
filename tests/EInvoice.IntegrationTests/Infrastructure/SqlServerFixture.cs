@@ -23,6 +23,15 @@ public sealed partial class SqlServerFixture : IAsyncLifetime
     /// <summary>Connection string for the application user (read/write data, execute procedures, no schema changes).</summary>
     public string AppConnectionString { get; private set; } = string.Empty;
 
+    /// <summary>
+    /// The database administrator (sa). Only for tests that act like someone bypassing the application, for example
+    /// editing an audit row by hand; everything else connects as the app user.
+    /// </summary>
+    public string AdminConnectionString { get; private set; } = string.Empty;
+
+    public EInvoiceDbContext CreateAdminContext() =>
+        new(new DbContextOptionsBuilder<EInvoiceDbContext>().UseSqlServer(AdminConnectionString).Options);
+
     public EInvoiceDbContext CreateContext() =>
         new(new DbContextOptionsBuilder<EInvoiceDbContext>().UseSqlServer(AppConnectionString).Options);
 
@@ -46,6 +55,7 @@ public sealed partial class SqlServerFixture : IAsyncLifetime
             new Dictionary<string, string> { ["EINVOICE_APP_PASSWORD"] = _appPassword });
         await RunScriptAsync(admin.ConnectionString, Path.Combine(db, "seed", "seed.sql"));
 
+        AdminConnectionString = admin.ConnectionString;
         AppConnectionString = new SqlConnectionStringBuilder(admin.ConnectionString)
         {
             UserID = "einvoice_app",

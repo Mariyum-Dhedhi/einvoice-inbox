@@ -20,6 +20,7 @@ public sealed class PolicyTableTests
         ["RematchInvoices"] = ["Clerk"],
         ["ExplainWithAi"] = ["Clerk", "Approver"],
         ["DecideInvoices"] = ["Approver"], // approve and reject; a clerk who uploads never decides
+        ["ReadAudit"] = ["Auditor"], // the audit trail and its verification
         ["ManageUsers"] = ["Admin"],
     };
 

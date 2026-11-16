@@ -1,5 +1,6 @@
 @page "/account/login"
 @using System.ComponentModel.DataAnnotations
+@using EInvoice.Application.Audit
 @using EInvoice.Application.Security
 @using EInvoice.Infrastructure.Identity
 @using Microsoft.AspNetCore.Identity
@@ -7,6 +8,8 @@
 @attribute [ExcludeFromInteractiveRouting]
 @inject SignInManager<AppUser> SignIn
 @inject NavigationManager Navigation
+@inject IAuditLog Audit
+@inject TimeProvider Time
 
 @*
     Server-rendered form, no WebSocket connection: only a normal HTTP response can set the sign-in cookie.
@@ -54,6 +57,11 @@
     {
         // Lockout counts failures; the answer is the same for every kind of failure.
         var result = await SignIn.PasswordSignInAsync(Input!.UserName, Input.Password, isPersistent: false, lockoutOnFailure: true);
+
+        // Audited under the name as typed (for a failure there may be no such account). Never the password.
+        var action = result.Succeeded ? AuditActions.SignedIn : result.IsLockedOut ? AuditActions.SignInLockedOut : AuditActions.SignInFailed;
+        await Audit.AppendAsync(new AuditDraft(Time.GetUtcNow(), Input.UserName, action, $"User/{Input.UserName}", "{}"), CancellationToken.None);
+
         if (result.Succeeded)
         {
             var target = SignInSetup.SafeReturnUrl(ReturnUrl);

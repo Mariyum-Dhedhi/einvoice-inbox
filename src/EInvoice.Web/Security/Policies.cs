@@ -22,6 +22,9 @@ public static class Policies
     /// <summary>Approve or reject an invoice. Not the clerk who uploads: separated duties.</summary>
     public const string DecideInvoices = nameof(DecideInvoices);
 
+    /// <summary>The audit trail and its verification.</summary>
+    public const string ReadAudit = nameof(ReadAudit);
+
     /// <summary>The user list (read-only in package 9).</summary>
     public const string ManageUsers = nameof(ManageUsers);
 
@@ -31,5 +34,6 @@ public static class Policies
         .AddPolicy(RematchInvoices, p => p.RequireRole(Roles.Clerk))
         .AddPolicy(ExplainWithAi, p => p.RequireRole(Roles.Clerk, Roles.Approver))
         .AddPolicy(DecideInvoices, p => p.RequireRole(Roles.Approver))
+        .AddPolicy(ReadAudit, p => p.RequireRole(Roles.Auditor))
         .AddPolicy(ManageUsers, p => p.RequireRole(Roles.Admin));
 }

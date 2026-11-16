@@ -1,3 +1,4 @@
+using EInvoice.Application.Audit;
 using EInvoice.Infrastructure.Identity;
 using EInvoice.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Antiforgery;
@@ -87,7 +88,7 @@ public static class SignInSetup
 
     /// <summary>The logout form's target: POST only, with an antiforgery token; ends every session of the account.</summary>
     internal static RouteHandlerBuilder MapSignOut(this IEndpointRouteBuilder app) =>
-        app.MapPost(LogoutPath, async (HttpContext context, IAntiforgery antiforgery, UserManager<AppUser> users, SignInManager<AppUser> signIn) =>
+        app.MapPost(LogoutPath, async (HttpContext context, IAntiforgery antiforgery, UserManager<AppUser> users, SignInManager<AppUser> signIn, IAuditLog audit, TimeProvider time) =>
         {
             if (!await antiforgery.IsRequestValidAsync(context).ConfigureAwait(false))
             {
@@ -98,6 +99,9 @@ public static class SignInSetup
             {
                 await users.UpdateSecurityStampAsync(user).ConfigureAwait(false); // copies of the cookie stop working too
             }
+
+            var name = SignedInUser.Name(context.User);
+            await audit.AppendAsync(new AuditDraft(time.GetUtcNow(), name, AuditActions.SignedOut, $"User/{name}", "{}"), context.RequestAborted).ConfigureAwait(false);
 
             await signIn.SignOutAsync().ConfigureAwait(false);
             return Results.LocalRedirect(LoginPath);

@@ -767,3 +767,60 @@ END;
 COMMIT;
 GO
 
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261115213308_AddAuditEvent'
+)
+BEGIN
+    CREATE TABLE [dbo].[AuditEvent] (
+        [Id] uniqueidentifier NOT NULL,
+        [Sequence] bigint NOT NULL,
+        [At] datetimeoffset NOT NULL,
+        [Actor] nvarchar(256) NOT NULL,
+        [Action] varchar(50) NOT NULL,
+        [Subject] nvarchar(300) NOT NULL,
+        [Details] nvarchar(2000) NOT NULL,
+        [PreviousHash] binary(32) NOT NULL,
+        [Hash] binary(32) NOT NULL,
+        [RowId] bigint NOT NULL IDENTITY,
+        CONSTRAINT [PK_AuditEvent] PRIMARY KEY NONCLUSTERED ([Id])
+    );
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261115213308_AddAuditEvent'
+)
+BEGIN
+    CREATE CLUSTERED INDEX [CX_AuditEvent_RowId] ON [dbo].[AuditEvent] ([RowId]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261115213308_AddAuditEvent'
+)
+BEGIN
+    CREATE INDEX [IX_AuditEvent_Subject] ON [dbo].[AuditEvent] ([Subject]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261115213308_AddAuditEvent'
+)
+BEGIN
+    CREATE UNIQUE INDEX [UX_AuditEvent_Sequence] ON [dbo].[AuditEvent] ([Sequence]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261115213308_AddAuditEvent'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20261115213308_AddAuditEvent', N'10.0.14');
+END;
+
+COMMIT;
+GO
+

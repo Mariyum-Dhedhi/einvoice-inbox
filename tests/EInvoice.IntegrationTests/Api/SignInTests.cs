@@ -2,6 +2,7 @@ using System.Net;
 using System.Text;
 using EInvoice.IntegrationTests.Infrastructure;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.EntityFrameworkCore;
 
 namespace EInvoice.IntegrationTests.Api;
 
@@ -75,6 +76,55 @@ public sealed class SignInTests(SqlServerFixture fixture) : IAsyncLifetime
         using var response = await SignInForm.SignInAsync(browser, user, password, returnUrl: "/account/access-denied");
 
         Assert.Equal("/account/access-denied", SignInForm.Target(response));
+    }
+
+    private async Task<List<(string Action, string Actor)>> AuditFor(string subject)
+    {
+        await using var db = fixture.CreateContext();
+        return (await db.AuditEvents.AsNoTracking().Where(e => e.Subject == subject).OrderBy(e => e.Sequence)
+            .Select(e => new { e.Action, e.Actor }).ToListAsync()).Select(e => (e.Action, e.Actor)).ToList();
+    }
+
+    [Fact]
+    public async Task Signing_in_and_out_is_audited()
+    {
+        var (user, password) = await TestUsers.CreateAsync(_factory);
+        using var browser = Browser();
+
+        (await SignInForm.SignInAsync(browser, user, password)).Dispose();
+        (await SignInForm.SignOutAsync(browser)).Dispose();
+
+        Assert.Equal(new[] { ("SignedIn", user), ("SignedOut", user) }, await AuditFor($"User/{user}"));
+    }
+
+    [Fact]
+    public async Task Failed_sign_ins_and_the_lockout_are_audited_but_never_the_password()
+    {
+        var (user, _) = await TestUsers.CreateAsync(_factory);
+        using var browser = Browser();
+        for (var i = 0; i < 5; i++)
+        {
+            (await SignInForm.SignInAsync(browser, user, "wrong-password-123")).Dispose();
+        }
+
+        (await SignInForm.SignInAsync(browser, user, "wrong-password-123")).Dispose(); // already locked
+
+        var events = await AuditFor($"User/{user}");
+        Assert.Equal(4, events.Count(e => e.Action == "SignInFailed"));
+        Assert.Equal(2, events.Count(e => e.Action == "SignInLockedOut")); // the fifth attempt locks, the sixth meets the lock
+        await using var db = fixture.CreateContext();
+        Assert.False(await db.AuditEvents.AnyAsync(e => e.Details.Contains("wrong-password-123")));
+    }
+
+    [Fact]
+    public async Task A_sign_in_for_an_unknown_name_is_audited_under_that_name()
+    {
+        var typed = $"nobody-{Guid.NewGuid():N}@example.com";
+        using var browser = Browser();
+
+        (await SignInForm.SignInAsync(browser, typed, "some-password-123")).Dispose();
+
+        Assert.Equal(new[] { ("SignInFailed", typed) }, await AuditFor($"User/{typed}"));
     }
 
     [Fact]
