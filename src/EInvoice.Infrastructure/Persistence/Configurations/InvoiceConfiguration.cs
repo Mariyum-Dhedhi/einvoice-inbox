@@ -41,6 +41,14 @@ internal sealed class InvoiceConfiguration : IEntityTypeConfiguration<Invoice>
             .HasDatabaseName("UX_Invoice_Vendor_InvoiceNumber");
         builder.HasIndex(i => i.Status).HasDatabaseName("IX_Invoice_Status");
 
+        // usp_MatchInvoice adds up what every other invoice of the same order already billed. Without this index that
+        // read scans the whole table, so matching slows down as invoices pile up (docs/performance.md). It covers the
+        // query (Id and Status included), so SQL Server seeks it even on a small table. No filter: a filtered index is
+        // not used for a parameter that could be NULL.
+        builder.HasIndex(i => i.PurchaseOrderNumber)
+            .IncludeProperties(i => new { i.Id, i.Status })
+            .HasDatabaseName("IX_Invoice_PurchaseOrderNumber");
+
         builder.HasMany(i => i.Lines).WithOne().HasForeignKey("InvoiceId").IsRequired().OnDelete(DeleteBehavior.Cascade);
         builder.Navigation(i => i.Lines).UsePropertyAccessMode(PropertyAccessMode.Field).AutoInclude();
 

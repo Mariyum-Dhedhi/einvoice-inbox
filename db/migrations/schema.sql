@@ -1002,3 +1002,24 @@ END;
 COMMIT;
 GO
 
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261116105612_AddInvoicePurchaseOrderIndex'
+)
+BEGIN
+    CREATE INDEX [IX_Invoice_PurchaseOrderNumber] ON [dbo].[Invoice] ([PurchaseOrderNumber]) INCLUDE ([Id], [Status]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261116105612_AddInvoicePurchaseOrderIndex'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20261116105612_AddInvoicePurchaseOrderIndex', N'10.0.14');
+END;
+
+COMMIT;
+GO
+
