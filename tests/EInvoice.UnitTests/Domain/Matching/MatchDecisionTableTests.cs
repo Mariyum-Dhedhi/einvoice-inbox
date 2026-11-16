@@ -63,4 +63,11 @@ public class MatchDecisionTableTests
 
         Assert.Equal(expected, builder.MatchSingleLine().Outcome);
     }
+
+    [Fact]
+    public void An_invoice_without_lines_is_not_a_full_match()
+    {
+        // "Every line matched" is vacuously true for no lines; a match with nothing to compare proves nothing.
+        Assert.False(new InvoiceMatchResult([]).IsFullMatch);
+    }
 }
