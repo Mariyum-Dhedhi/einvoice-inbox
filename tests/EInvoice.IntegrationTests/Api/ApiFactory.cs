@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.Configuration.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
@@ -54,6 +55,16 @@ internal sealed class ApiFactory(
         {
             builder.UseSetting(key, value);
         }
+
+        // In Development the app reads the developer's user secrets (demo password, connection string). A test sees
+        // only its own settings, whatever is set on the machine that runs it.
+        builder.ConfigureAppConfiguration((_, config) =>
+        {
+            foreach (var secrets in config.Sources.OfType<JsonConfigurationSource>().Where(s => s.Path == "secrets.json").ToList())
+            {
+                config.Sources.Remove(secrets);
+            }
+        });
 
         builder.ConfigureTestServices(s =>
         {
