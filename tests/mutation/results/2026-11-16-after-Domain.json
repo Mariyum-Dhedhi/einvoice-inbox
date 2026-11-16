@@ -1,0 +1,202 @@
+{
+ "project": "EInvoice.Domain",
+ "commit": "133bbf0",
+ "tool": "dotnet-stryker 5.0.0 (tests/EInvoice.UnitTests/stryker-config.json)",
+ "totals": {
+  "CompileError": 22,
+  "Ignored": 91,
+  "Killed": 202,
+  "NoCoverage": 7,
+  "Survived": 14
+ },
+ "score": 90.58,
+ "files": {
+  "EInvoice.Domain/Invoices/Invoice.cs": {
+   "killed": 14,
+   "survivors": [
+    {
+     "line": 77,
+     "status": "Survived",
+     "mutator": "Statement mutation",
+     "code": "_lines.Clear();"
+    }
+   ]
+  },
+  "EInvoice.Domain/Invoices/InvoiceStateMachine.cs": {
+   "killed": 5,
+   "survivors": [
+    {
+     "line": 44,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": ": base($\"An invoice cannot move from {from} to {to}.\")"
+    }
+   ]
+  },
+  "EInvoice.Domain/Invoices/ParsedInvoice.cs": {
+   "killed": 12,
+   "survivors": [
+    {
+     "line": 32,
+     "status": "NoCoverage",
+     "mutator": "Statement mutation",
+     "code": "throw new ArgumentException(\"Invoice line numbers must be unique.\", nameof(Lines));"
+    },
+    {
+     "line": 37,
+     "status": "Survived",
+     "mutator": "Logical mutation",
+     "code": "if (NetTotal.Currency != currency || TaxTotal.Currency != currency)"
+    },
+    {
+     "line": 39,
+     "status": "NoCoverage",
+     "mutator": "Statement mutation",
+     "code": "throw new CurrencyMismatchException(NetTotal.Currency, currency);"
+    },
+    {
+     "line": 45,
+     "status": "NoCoverage",
+     "mutator": "Statement mutation",
+     "code": "throw new CurrencyMismatchException(foreign.NetAmount.Currency, currency);"
+    },
+    {
+     "line": 79,
+     "status": "NoCoverage",
+     "mutator": "Block removal mutation",
+     "code": "{"
+    }
+   ]
+  },
+  "EInvoice.Domain/Matching/MatchOutcome.cs": {
+   "killed": 1,
+   "survivors": []
+  },
+  "EInvoice.Domain/Matching/MatchResults.cs": {
+   "killed": 6,
+   "survivors": []
+  },
+  "EInvoice.Domain/Matching/ThreeWayMatcher.cs": {
+   "killed": 37,
+   "survivors": []
+  },
+  "EInvoice.Domain/Purchasing/GoodsReceipt.cs": {
+   "killed": 2,
+   "survivors": [
+    {
+     "line": 11,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "_lines.AddRange(LineRules.EnsureUnique(lines, l => l.PurchaseOrderLineNumber, \"Goods receipt\"));"
+    },
+    {
+     "line": 29,
+     "status": "Survived",
+     "mutator": "Linq method mutation (OrderBy() to OrderByDescending())",
+     "code": "public IReadOnlyList<GoodsReceiptLine> Lines => _lines.OrderBy(l => l.PurchaseOrderLineNumber).ToList().AsReadOnly();"
+    }
+   ]
+  },
+  "EInvoice.Domain/Purchasing/PurchaseOrder.cs": {
+   "killed": 5,
+   "survivors": [
+    {
+     "line": 12,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "_lines.AddRange(LineRules.EnsureUnique(lines, l => l.LineNumber, \"Purchase order\"));"
+    },
+    {
+     "line": 22,
+     "status": "NoCoverage",
+     "mutator": "Block removal mutation",
+     "code": "{"
+    },
+    {
+     "line": 37,
+     "status": "Survived",
+     "mutator": "Linq method mutation (OrderBy() to OrderByDescending())",
+     "code": "public IReadOnlyList<PurchaseOrderLine> Lines => _lines.OrderBy(l => l.LineNumber).ToList().AsReadOnly();"
+    }
+   ]
+  },
+  "EInvoice.Domain/Shared/DomainException.cs": {
+   "killed": 0,
+   "survivors": [
+    {
+     "line": 15,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": ": base($\"Cannot combine amounts in {left} and {right}.\")"
+    },
+    {
+     "line": 16,
+     "status": "Survived",
+     "mutator": "Block removal mutation",
+     "code": "{"
+    }
+   ]
+  },
+  "EInvoice.Domain/Shared/Iban.cs": {
+   "killed": 87,
+   "survivors": [
+    {
+     "line": 44,
+     "status": "Survived",
+     "mutator": "Equality mutation",
+     "code": "if (value.Length < 4 || !value.All(char.IsAsciiLetterOrDigit)"
+    },
+    {
+     "line": 69,
+     "status": "Survived",
+     "mutator": "Arithmetic mutation",
+     "code": "var grouped = new StringBuilder(masked.Length + (masked.Length / 4));"
+    },
+    {
+     "line": 69,
+     "status": "Survived",
+     "mutator": "Arithmetic mutation",
+     "code": "var grouped = new StringBuilder(masked.Length + (masked.Length / 4));"
+    }
+   ]
+  },
+  "EInvoice.Domain/Shared/Money.cs": {
+   "killed": 23,
+   "survivors": []
+  },
+  "EInvoice.Domain/Vendors/Vendor.cs": {
+   "killed": 3,
+   "survivors": [
+    {
+     "line": 32,
+     "status": "NoCoverage",
+     "mutator": "Boolean mutation",
+     "code": "public void Activate() => IsActive = true;"
+    }
+   ]
+  },
+  "EInvoice.Domain/Vendors/VendorBankAccount.cs": {
+   "killed": 7,
+   "survivors": [
+    {
+     "line": 33,
+     "status": "NoCoverage",
+     "mutator": "Block removal mutation",
+     "code": "{"
+    },
+    {
+     "line": 83,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "public sealed class TwoPersonRuleException() : DomainException(\"A bank account must be confirmed by someone other than t"
+    },
+    {
+     "line": 85,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "public sealed class BankAccountNotPendingException() : DomainException(\"Only a proposed bank account can be confirmed.\")"
+    }
+   ]
+  }
+ }
+}

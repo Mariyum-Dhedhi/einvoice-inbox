@@ -1,0 +1,1368 @@
+{
+ "project": "EInvoice.Application",
+ "commit": "e5bb66e (before the new tests)",
+ "tool": "dotnet-stryker 5.0.0 (tests/EInvoice.UnitTests/stryker-config.json)",
+ "totals": {
+  "CompileError": 196,
+  "Ignored": 178,
+  "Killed": 577,
+  "NoCoverage": 48,
+  "Survived": 161,
+  "Timeout": 3
+ },
+ "score": 73.51,
+ "files": {
+  "EInvoice.Application/Approval/ApprovalRules.cs": {
+   "killed": 9,
+   "survivors": [
+    {
+     "line": 37,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "return new(DecisionOutcome.BlockingFindings, \"The invoice has a finding that blocks payment; it can only be rejected.\");"
+    }
+   ]
+  },
+  "EInvoice.Application/Approval/InvoiceApproval.cs": {
+   "killed": 28,
+   "survivors": [
+    {
+     "line": 93,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "return Refused(DecisionOutcome.VersionRequired, null, \"Send the version of the invoice you looked at.\");"
+    },
+    {
+     "line": 99,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "return Refused(DecisionOutcome.NotFound, null, \"No invoice with this id.\");"
+    },
+    {
+     "line": 105,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "return Refused(DecisionOutcome.Conflict, invoice.Status, \"The invoice changed since you opened it. Reload it and decide "
+    },
+    {
+     "line": 110,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "return Refused(DecisionOutcome.NotAllowed, invoice.Status, $\"Only Matched and Exception invoices wait for a decision; th"
+    },
+    {
+     "line": 115,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "return Refused(DecisionOutcome.OwnInvoice, invoice.Status, \"You submitted this invoice; someone else has to decide it.\")"
+    },
+    {
+     "line": 141,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "return Refused(DecisionOutcome.Conflict, null, \"Someone else changed or decided the invoice at the same time. Reload it."
+    },
+    {
+     "line": 153,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "return required ? (null, Refused(DecisionOutcome.ReasonRequired, null, \"Give a reason for this decision.\")) : (null, nul"
+    },
+    {
+     "line": 158,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "return (null, Refused(DecisionOutcome.ReasonRequired, null, \"The reason contains characters that cannot be stored; write"
+    },
+    {
+     "line": 162,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "? (null, Refused(DecisionOutcome.ReasonTooLong, null, $\"The reason can have at most {ApprovalLimits.MaxReasonLength} cha"
+    }
+   ]
+  },
+  "EInvoice.Application/Audit/AuditTrail.cs": {
+   "killed": 22,
+   "survivors": [
+    {
+     "line": 87,
+     "status": "NoCoverage",
+     "mutator": "String mutation",
+     "code": "var bytes = Encoding.UTF8.GetBytes(field ?? string.Empty);"
+    },
+    {
+     "line": 120,
+     "status": "Survived",
+     "mutator": "Conditional (true) mutation",
+     "code": "return new AuditVerification(false, count, last, last is null ? null : Convert.ToHexStringLower(previous), entry.Sequenc"
+    },
+    {
+     "line": 120,
+     "status": "Survived",
+     "mutator": "Conditional (false) mutation",
+     "code": "return new AuditVerification(false, count, last, last is null ? null : Convert.ToHexStringLower(previous), entry.Sequenc"
+    },
+    {
+     "line": 120,
+     "status": "Survived",
+     "mutator": "Equality mutation",
+     "code": "return new AuditVerification(false, count, last, last is null ? null : Convert.ToHexStringLower(previous), entry.Sequenc"
+    }
+   ]
+  },
+  "EInvoice.Application/Explanation/ExplanationFacts.cs": {
+   "killed": 16,
+   "survivors": [
+    {
+     "line": 15,
+     "status": "Survived",
+     "mutator": "Boolean mutation",
+     "code": "private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web) { WriteIndented = true };"
+    },
+    {
+     "line": 64,
+     "status": "Survived",
+     "mutator": "Statement mutation",
+     "code": "Add(invoice.NetTotal);"
+    },
+    {
+     "line": 65,
+     "status": "Survived",
+     "mutator": "Statement mutation",
+     "code": "Add(invoice.TaxTotal);"
+    },
+    {
+     "line": 69,
+     "status": "Survived",
+     "mutator": "Statement mutation",
+     "code": "Add(f.LinePosition);"
+    },
+    {
+     "line": 72,
+     "status": "Survived",
+     "mutator": "Statement mutation",
+     "code": "Add(n.Value);"
+    },
+    {
+     "line": 78,
+     "status": "Survived",
+     "mutator": "Statement mutation",
+     "code": "Add(m.InvoiceLineNumber);"
+    },
+    {
+     "line": 79,
+     "status": "Survived",
+     "mutator": "Statement mutation",
+     "code": "Add(m.PurchaseOrderLineNumber);"
+    },
+    {
+     "line": 87,
+     "status": "Survived",
+     "mutator": "Statement mutation",
+     "code": "Add(m.PriceTolerancePercent);"
+    },
+    {
+     "line": 116,
+     "status": "NoCoverage",
+     "mutator": "String mutation",
+     "code": "foreach (Match match in Number().Matches(text ?? string.Empty))"
+    }
+   ]
+  },
+  "EInvoice.Application/Explanation/ExplanationModel.cs": {
+   "killed": 1,
+   "survivors": []
+  },
+  "EInvoice.Application/Explanation/RuleBasedExplainer.cs": {
+   "killed": 27,
+   "survivors": [
+    {
+     "line": 49,
+     "status": "NoCoverage",
+     "mutator": "String mutation",
+     "code": ".Select(m => Explain(m, invoice.Currency ?? string.Empty)));"
+    },
+    {
+     "line": 56,
+     "status": "Survived",
+     "mutator": "Conditional (false) mutation",
+     "code": "return issues.Count == 0"
+    },
+    {
+     "line": 57,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "? new Explanation(\"Nothing to explain: no problems were found.\", \"No action is needed.\", ExplanationSource.Rules)"
+    },
+    {
+     "line": 57,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "? new Explanation(\"Nothing to explain: no problems were found.\", \"No action is needed.\", ExplanationSource.Rules)"
+    },
+    {
+     "line": 67,
+     "status": "Survived",
+     "mutator": "Conditional (true) mutation",
+     "code": "return finding.Severity == FindingSeverity.Blocking && !step.Contains(\"reject\", StringComparison.OrdinalIgnoreCase)"
+    },
+    {
+     "line": 67,
+     "status": "Survived",
+     "mutator": "Conditional (false) mutation",
+     "code": "return finding.Severity == FindingSeverity.Blocking && !step.Contains(\"reject\", StringComparison.OrdinalIgnoreCase)"
+    },
+    {
+     "line": 67,
+     "status": "Survived",
+     "mutator": "Logical mutation",
+     "code": "return finding.Severity == FindingSeverity.Blocking && !step.Contains(\"reject\", StringComparison.OrdinalIgnoreCase)"
+    },
+    {
+     "line": 67,
+     "status": "Survived",
+     "mutator": "Equality mutation",
+     "code": "return finding.Severity == FindingSeverity.Blocking && !step.Contains(\"reject\", StringComparison.OrdinalIgnoreCase)"
+    },
+    {
+     "line": 67,
+     "status": "Survived",
+     "mutator": "LogicalNotExpression to un-LogicalNotExpression mutation",
+     "code": "return finding.Severity == FindingSeverity.Blocking && !step.Contains(\"reject\", StringComparison.OrdinalIgnoreCase)"
+    },
+    {
+     "line": 67,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "return finding.Severity == FindingSeverity.Blocking && !step.Contains(\"reject\", StringComparison.OrdinalIgnoreCase)"
+    },
+    {
+     "line": 68,
+     "status": "NoCoverage",
+     "mutator": "String mutation",
+     "code": "? $\"This finding blocks payment: reject the invoice unless it can be corrected. {step}\""
+    },
+    {
+     "line": 90,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "\"Find the purchase order and ask the supplier to quote it, or approve without an order if your rules allow it.\"),"
+    },
+    {
+     "line": 95,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "\"Check with goods receiving, and match again once the goods receipt is booked.\"),"
+    },
+    {
+     "line": 98,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "private static string Price(decimal? value, string currency) => value is { } v ? $\"{v.ToString(\"#,##0.00####\", Invariant"
+    },
+    {
+     "line": 98,
+     "status": "NoCoverage",
+     "mutator": "String mutation",
+     "code": "private static string Price(decimal? value, string currency) => value is { } v ? $\"{v.ToString(\"#,##0.00####\", Invariant"
+    },
+    {
+     "line": 100,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "private static string Money(decimal? value, string currency) => value is { } v ? $\"{v.ToString(\"#,##0.00\", Invariant)} {"
+    },
+    {
+     "line": 100,
+     "status": "NoCoverage",
+     "mutator": "String mutation",
+     "code": "private static string Money(decimal? value, string currency) => value is { } v ? $\"{v.ToString(\"#,##0.00\", Invariant)} {"
+    },
+    {
+     "line": 102,
+     "status": "NoCoverage",
+     "mutator": "String mutation",
+     "code": "private static string Percent(decimal? value) => value is { } v ? $\"{v.ToString(\"0.##\", Invariant)} %\" : \"-\";"
+    },
+    {
+     "line": 104,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "private static string Quantity(decimal? value) => value is { } v ? v.ToString(\"#,##0.####\", Invariant) : \"-\";"
+    },
+    {
+     "line": 104,
+     "status": "NoCoverage",
+     "mutator": "String mutation",
+     "code": "private static string Quantity(decimal? value) => value is { } v ? v.ToString(\"#,##0.####\", Invariant) : \"-\";"
+    }
+   ]
+  },
+  "EInvoice.Application/Extraction/EvidenceChecker.cs": {
+   "killed": 182,
+   "survivors": [
+    {
+     "line": 23,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "private static readonly CultureInfo English = CultureInfo.GetCultureInfo(\"en-US\");"
+    },
+    {
+     "line": 36,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "var compact = Whitespace().Replace(visibleText, string.Empty).ToUpperInvariant();"
+    },
+    {
+     "line": 37,
+     "status": "Survived",
+     "mutator": "Null coalescing mutation (remove right)",
+     "code": "var lines = invoice.Lines ?? [];"
+    },
+    {
+     "line": 40,
+     "status": "Survived",
+     "mutator": "Conditional (false) mutation",
+     "code": "Header(\"BT-1\", invoice.InvoiceNumber is null ? Missing : HasToken(text, invoice.InvoiceNumber) ? null : NotFound),"
+    },
+    {
+     "line": 41,
+     "status": "Survived",
+     "mutator": "Conditional (false) mutation",
+     "code": "Header(\"BT-2\", invoice.IssueDate is null ? Missing : DateIsPrinted(text, invoice.IssueDate) ? null : NotFound),"
+    },
+    {
+     "line": 42,
+     "status": "Survived",
+     "mutator": "Conditional (false) mutation",
+     "code": "Header(\"BT-5\", invoice.Currency is null ? Missing : CurrencyIsPrinted(text, invoice.Currency) ? null : NotFound),"
+    },
+    {
+     "line": 45,
+     "status": "Survived",
+     "mutator": "Conditional (true) mutation",
+     "code": ": HasToken(text, invoice.PurchaseOrderReference) ? null : NotFound),"
+    },
+    {
+     "line": 46,
+     "status": "Survived",
+     "mutator": "Conditional (false) mutation",
+     "code": "Header(\"BT-27\", invoice.SellerName is null ? Missing : HasToken(text, invoice.SellerName) ? null : NotFound),"
+    },
+    {
+     "line": 46,
+     "status": "Survived",
+     "mutator": "Conditional (true) mutation",
+     "code": "Header(\"BT-27\", invoice.SellerName is null ? Missing : HasToken(text, invoice.SellerName) ? null : NotFound),"
+    },
+    {
+     "line": 47,
+     "status": "Survived",
+     "mutator": "Conditional (false) mutation",
+     "code": "Header(\"BT-31\", invoice.SellerVatId is null"
+    },
+    {
+     "line": 48,
+     "status": "NoCoverage",
+     "mutator": "Conditional (true) mutation",
+     "code": "? (VatIdLabel().IsMatch(text) ? LeftOut : null)"
+    },
+    {
+     "line": 48,
+     "status": "NoCoverage",
+     "mutator": "Conditional (false) mutation",
+     "code": "? (VatIdLabel().IsMatch(text) ? LeftOut : null)"
+    },
+    {
+     "line": 49,
+     "status": "Survived",
+     "mutator": "Conditional (true) mutation",
+     "code": ": compact.Contains(Whitespace().Replace(invoice.SellerVatId, string.Empty).ToUpperInvariant(), StringComparison.Ordinal)"
+    },
+    {
+     "line": 50,
+     "status": "Survived",
+     "mutator": "Null coalescing mutation (remove right)",
+     "code": "Header(\"BT-84\", IbanReason(invoice.Ibans ?? [], ibansInDocument)),"
+    },
+    {
+     "line": 52,
+     "status": "Survived",
+     "mutator": "Conditional (false) mutation",
+     "code": ": !AmountIsPrinted(text, net) ? NotFound"
+    },
+    {
+     "line": 53,
+     "status": "Survived",
+     "mutator": "Linq method mutation (Any() to All())",
+     "code": ": lines.Any(l => l.NetAmount is null) || Math.Abs(lines.Sum(l => l.NetAmount ?? 0m) - net) > Tolerance ? NotAddingUp : n"
+    },
+    {
+     "line": 53,
+     "status": "Survived",
+     "mutator": "Equality mutation",
+     "code": ": lines.Any(l => l.NetAmount is null) || Math.Abs(lines.Sum(l => l.NetAmount ?? 0m) - net) > Tolerance ? NotAddingUp : n"
+    },
+    {
+     "line": 54,
+     "status": "Survived",
+     "mutator": "Conditional (true) mutation",
+     "code": "Header(\"BT-110\", invoice.TaxTotal is not { } tax ? Missing : AmountIsPrinted(text, tax) ? null : NotFound),"
+    },
+    {
+     "line": 56,
+     "status": "Survived",
+     "mutator": "Conditional (false) mutation",
+     "code": ": !AmountIsPrinted(text, gross) ? NotFound"
+    },
+    {
+     "line": 57,
+     "status": "Survived",
+     "mutator": "Logical mutation",
+     "code": ": invoice.NetTotal is null || invoice.TaxTotal is null || Math.Abs(invoice.NetTotal.Value + invoice.TaxTotal.Value - gro"
+    },
+    {
+     "line": 57,
+     "status": "Survived",
+     "mutator": "Equality mutation",
+     "code": ": invoice.NetTotal is null || invoice.TaxTotal is null || Math.Abs(invoice.NetTotal.Value + invoice.TaxTotal.Value - gro"
+    },
+    {
+     "line": 67,
+     "status": "Survived",
+     "mutator": "Equality mutation",
+     "code": "&& Math.Abs(decimal.Round(q * p, 2, MidpointRounding.AwayFromZero) - a) <= Tolerance;"
+    },
+    {
+     "line": 69,
+     "status": "Survived",
+     "mutator": "Conditional (false) mutation",
+     "code": "fields.Add(Line(\"BT-153\", line.Description is null ? Missing"
+    },
+    {
+     "line": 73,
+     "status": "Survived",
+     "mutator": "Conditional (false) mutation",
+     "code": ": !AmountIsPrinted(text, quantity) ? NotFound"
+    },
+    {
+     "line": 76,
+     "status": "Survived",
+     "mutator": "Conditional (false) mutation",
+     "code": ": !AmountIsPrinted(text, price) ? NotFound"
+    },
+    {
+     "line": 79,
+     "status": "Survived",
+     "mutator": "Conditional (false) mutation",
+     "code": ": !AmountIsPrinted(text, amount) ? NotFound"
+    },
+    {
+     "line": 81,
+     "status": "Survived",
+     "mutator": "Conditional (true) mutation",
+     "code": "fields.Add(Line(\"BT-152\", line.TaxRatePercent is not { } rate ? Missing : AmountIsPrinted(text, rate) ? null : NotFound)"
+    },
+    {
+     "line": 84,
+     "status": "Survived",
+     "mutator": "Conditional (true) mutation",
+     "code": ": HasToken(text, line.OrderLineReference) ? null : NotFound));"
+    },
+    {
+     "line": 96,
+     "status": "Survived",
+     "mutator": "Conditional (false) mutation",
+     "code": "return inDocument.Count == 0 ? null : LeftOut;"
+    },
+    {
+     "line": 100,
+     "status": "Survived",
+     "mutator": "Linq method mutation (All() to Any())",
+     "code": "return extracted.All(iban => inDocument.Contains(iban, StringComparer.Ordinal)) ? null : NotFound;"
+    },
+    {
+     "line": 112,
+     "status": "NoCoverage",
+     "mutator": "Boolean mutation",
+     "code": "return false;"
+    },
+    {
+     "line": 134,
+     "status": "Survived",
+     "mutator": "Equality mutation",
+     "code": "for (var at = text.IndexOf(candidate, StringComparison.Ordinal); at >= 0; at = text.IndexOf(candidate, at + 1, StringCom"
+    },
+    {
+     "line": 134,
+     "status": "Survived",
+     "mutator": "Equality mutation",
+     "code": "for (var at = text.IndexOf(candidate, StringComparison.Ordinal); at >= 0; at = text.IndexOf(candidate, at + 1, StringCom"
+    },
+    {
+     "line": 136,
+     "status": "Survived",
+     "mutator": "Logical mutation",
+     "code": "if (!ContinuesNumber(text, at - 1, -1) && !ContinuesNumber(text, at + candidate.Length, 1))"
+    },
+    {
+     "line": 136,
+     "status": "Survived",
+     "mutator": "UnaryMinusExpression to UnaryPlusExpression mutation",
+     "code": "if (!ContinuesNumber(text, at - 1, -1) && !ContinuesNumber(text, at + candidate.Length, 1))"
+    },
+    {
+     "line": 143,
+     "status": "Survived",
+     "mutator": "Boolean mutation",
+     "code": "return false;"
+    },
+    {
+     "line": 149,
+     "status": "Survived",
+     "mutator": "Equality mutation",
+     "code": "if (index < 0 || index >= text.Length)"
+    },
+    {
+     "line": 149,
+     "status": "Survived",
+     "mutator": "Equality mutation",
+     "code": "if (index < 0 || index >= text.Length)"
+    },
+    {
+     "line": 156,
+     "status": "Survived",
+     "mutator": "Boolean mutation",
+     "code": "return true;"
+    },
+    {
+     "line": 159,
+     "status": "Survived",
+     "mutator": "Arithmetic mutation",
+     "code": "var next = index + direction;"
+    },
+    {
+     "line": 160,
+     "status": "Survived",
+     "mutator": "Logical mutation",
+     "code": "return text[index] is '.' or ',' && next >= 0 && next < text.Length && char.IsDigit(text[next]);"
+    },
+    {
+     "line": 160,
+     "status": "Survived",
+     "mutator": "Logical mutation",
+     "code": "return text[index] is '.' or ',' && next >= 0 && next < text.Length && char.IsDigit(text[next]);"
+    },
+    {
+     "line": 160,
+     "status": "Survived",
+     "mutator": "Logical mutation",
+     "code": "return text[index] is '.' or ',' && next >= 0 && next < text.Length && char.IsDigit(text[next]);"
+    },
+    {
+     "line": 160,
+     "status": "Survived",
+     "mutator": "Equality mutation",
+     "code": "return text[index] is '.' or ',' && next >= 0 && next < text.Length && char.IsDigit(text[next]);"
+    },
+    {
+     "line": 160,
+     "status": "Survived",
+     "mutator": "Equality mutation",
+     "code": "return text[index] is '.' or ',' && next >= 0 && next < text.Length && char.IsDigit(text[next]);"
+    },
+    {
+     "line": 160,
+     "status": "Survived",
+     "mutator": "Equality mutation",
+     "code": "return text[index] is '.' or ',' && next >= 0 && next < text.Length && char.IsDigit(text[next]);"
+    },
+    {
+     "line": 160,
+     "status": "Survived",
+     "mutator": "Equality mutation",
+     "code": "return text[index] is '.' or ',' && next >= 0 && next < text.Length && char.IsDigit(text[next]);"
+    },
+    {
+     "line": 160,
+     "status": "Survived",
+     "mutator": "Equality mutation",
+     "code": "return text[index] is '.' or ',' && next >= 0 && next < text.Length && char.IsDigit(text[next]);"
+    },
+    {
+     "line": 166,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "var formats = new HashSet<string>(StringComparer.Ordinal) { \"0.######\", \"#,##0.######\" };"
+    },
+    {
+     "line": 166,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "var formats = new HashSet<string>(StringComparer.Ordinal) { \"0.######\", \"#,##0.######\" };"
+    },
+    {
+     "line": 169,
+     "status": "Survived",
+     "mutator": "Statement mutation",
+     "code": "formats.Add(\"0.00\");"
+    },
+    {
+     "line": 169,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "formats.Add(\"0.00\");"
+    },
+    {
+     "line": 170,
+     "status": "Survived",
+     "mutator": "Statement mutation",
+     "code": "formats.Add(\"#,##0.00\");"
+    },
+    {
+     "line": 170,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "formats.Add(\"#,##0.00\");"
+    },
+    {
+     "line": 183,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "string[] numeric = [\"dd.MM.yyyy\", \"d.M.yyyy\", \"yyyy-MM-dd\", \"dd/MM/yyyy\", \"d/M/yyyy\"];"
+    },
+    {
+     "line": 184,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "string[] written = [\"d. MMMM yyyy\", \"d MMMM yyyy\", \"MMMM d, yyyy\"];"
+    },
+    {
+     "line": 184,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "string[] written = [\"d. MMMM yyyy\", \"d MMMM yyyy\", \"MMMM d, yyyy\"];"
+    },
+    {
+     "line": 193,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "var symbol = code switch { \"EUR\" => \"€\", \"USD\" => \"$\", \"GBP\" => \"£\", \"CHF\" => \"FR.\", _ => null };"
+    },
+    {
+     "line": 193,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "var symbol = code switch { \"EUR\" => \"€\", \"USD\" => \"$\", \"GBP\" => \"£\", \"CHF\" => \"FR.\", _ => null };"
+    },
+    {
+     "line": 193,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "var symbol = code switch { \"EUR\" => \"€\", \"USD\" => \"$\", \"GBP\" => \"£\", \"CHF\" => \"FR.\", _ => null };"
+    },
+    {
+     "line": 193,
+     "status": "NoCoverage",
+     "mutator": "String mutation",
+     "code": "var symbol = code switch { \"EUR\" => \"€\", \"USD\" => \"$\", \"GBP\" => \"£\", \"CHF\" => \"FR.\", _ => null };"
+    },
+    {
+     "line": 193,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "var symbol = code switch { \"EUR\" => \"€\", \"USD\" => \"$\", \"GBP\" => \"£\", \"CHF\" => \"FR.\", _ => null };"
+    },
+    {
+     "line": 193,
+     "status": "NoCoverage",
+     "mutator": "String mutation",
+     "code": "var symbol = code switch { \"EUR\" => \"€\", \"USD\" => \"$\", \"GBP\" => \"£\", \"CHF\" => \"FR.\", _ => null };"
+    },
+    {
+     "line": 209,
+     "status": "Survived",
+     "mutator": "Equality mutation",
+     "code": "for (var at = text.IndexOf(number, StringComparison.Ordinal); at >= 0; at = text.IndexOf(number, at + 1, StringCompariso"
+    },
+    {
+     "line": 211,
+     "status": "Survived",
+     "mutator": "Logical mutation",
+     "code": "if (!ContinuesNumber(text, at - 1, -1) && !ContinuesNumber(text, at + number.Length, 1))"
+    },
+    {
+     "line": 211,
+     "status": "Survived",
+     "mutator": "UnaryMinusExpression to UnaryPlusExpression mutation",
+     "code": "if (!ContinuesNumber(text, at - 1, -1) && !ContinuesNumber(text, at + number.Length, 1))"
+    },
+    {
+     "line": 228,
+     "status": "NoCoverage",
+     "mutator": "Boolean mutation",
+     "code": "return false;"
+    },
+    {
+     "line": 231,
+     "status": "Survived",
+     "mutator": "Linq method mutation (FirstOrDefault() to First())",
+     "code": "var row = rows.FirstOrDefault(r => r.Contains(Normalize(line.Description), StringComparison.Ordinal));"
+    }
+   ]
+  },
+  "EInvoice.Application/Extraction/ExtractedInvoiceMapper.cs": {
+   "killed": 73,
+   "survivors": [
+    {
+     "line": 31,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "error = new ExtractionError(ExtractionErrorCode.InvalidModelOutput, \"The issue date (BT-2) is not a valid date.\");"
+    },
+    {
+     "line": 36,
+     "status": "Survived",
+     "mutator": "Linq method mutation (All() to Any())",
+     "code": "if (currency.Length != 3 || !currency.All(char.IsAsciiLetterUpper))"
+    },
+    {
+     "line": 38,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "error = new ExtractionError(ExtractionErrorCode.InvalidModelOutput, \"The currency (BT-5) is not a three-letter code.\");"
+    },
+    {
+     "line": 45,
+     "status": "Survived",
+     "mutator": "Arithmetic mutation",
+     "code": "LineId: (i + 1).ToString(CultureInfo.InvariantCulture),"
+    },
+    {
+     "line": 62,
+     "status": "Survived",
+     "mutator": "Conditional (true) mutation",
+     "code": "return new VatBreakdownEntry(g.Key > 0 ? \"S\" : \"Z\", g.Key, taxable, decimal.Round(taxable * g.Key / 100m, 2, MidpointRou"
+    },
+    {
+     "line": 62,
+     "status": "Survived",
+     "mutator": "Conditional (false) mutation",
+     "code": "return new VatBreakdownEntry(g.Key > 0 ? \"S\" : \"Z\", g.Key, taxable, decimal.Round(taxable * g.Key / 100m, 2, MidpointRou"
+    },
+    {
+     "line": 62,
+     "status": "Survived",
+     "mutator": "Equality mutation",
+     "code": "return new VatBreakdownEntry(g.Key > 0 ? \"S\" : \"Z\", g.Key, taxable, decimal.Round(taxable * g.Key / 100m, 2, MidpointRou"
+    },
+    {
+     "line": 62,
+     "status": "Survived",
+     "mutator": "Equality mutation",
+     "code": "return new VatBreakdownEntry(g.Key > 0 ? \"S\" : \"Z\", g.Key, taxable, decimal.Round(taxable * g.Key / 100m, 2, MidpointRou"
+    },
+    {
+     "line": 62,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "return new VatBreakdownEntry(g.Key > 0 ? \"S\" : \"Z\", g.Key, taxable, decimal.Round(taxable * g.Key / 100m, 2, MidpointRou"
+    },
+    {
+     "line": 62,
+     "status": "NoCoverage",
+     "mutator": "String mutation",
+     "code": "return new VatBreakdownEntry(g.Key > 0 ? \"S\" : \"Z\", g.Key, taxable, decimal.Round(taxable * g.Key / 100m, 2, MidpointRou"
+    },
+    {
+     "line": 75,
+     "status": "Survived",
+     "mutator": "Conditional (false) mutation",
+     "code": "SellerVatId: string.IsNullOrWhiteSpace(invoice.SellerVatId) ? null : string.Concat(invoice.SellerVatId.Where(c => !char."
+    },
+    {
+     "line": 76,
+     "status": "Survived",
+     "mutator": "Null coalescing mutation (remove right)",
+     "code": "PaymentAccountIbans: invoice.Ibans ?? [],"
+    },
+    {
+     "line": 112,
+     "status": "NoCoverage",
+     "mutator": "String mutation",
+     "code": "return \"The net total (BT-109)\";"
+    },
+    {
+     "line": 117,
+     "status": "NoCoverage",
+     "mutator": "String mutation",
+     "code": "return \"The VAT total (BT-110)\";"
+    },
+    {
+     "line": 130,
+     "status": "Survived",
+     "mutator": "Arithmetic mutation",
+     "code": "foreach (var (line, position) in invoice.Lines.Select((l, i) => (l, i + 1)))"
+    },
+    {
+     "line": 132,
+     "status": "Survived",
+     "mutator": "Conditional (false) mutation",
+     "code": "var term = string.IsNullOrWhiteSpace(line.Description) ? \"item name (BT-153)\""
+    },
+    {
+     "line": 132,
+     "status": "NoCoverage",
+     "mutator": "String mutation",
+     "code": "var term = string.IsNullOrWhiteSpace(line.Description) ? \"item name (BT-153)\""
+    },
+    {
+     "line": 134,
+     "status": "Survived",
+     "mutator": "Conditional (false) mutation",
+     "code": ": line.UnitPrice is null ? \"unit price (BT-146)\""
+    },
+    {
+     "line": 134,
+     "status": "NoCoverage",
+     "mutator": "String mutation",
+     "code": ": line.UnitPrice is null ? \"unit price (BT-146)\""
+    },
+    {
+     "line": 135,
+     "status": "Survived",
+     "mutator": "Conditional (false) mutation",
+     "code": ": line.NetAmount is null ? \"net amount (BT-131)\""
+    },
+    {
+     "line": 135,
+     "status": "NoCoverage",
+     "mutator": "String mutation",
+     "code": ": line.NetAmount is null ? \"net amount (BT-131)\""
+    }
+   ]
+  },
+  "EInvoice.Application/Extraction/ExtractionModel.cs": {
+   "killed": 5,
+   "survivors": [
+    {
+     "line": 89,
+     "status": "Survived",
+     "mutator": "Logical mutation",
+     "code": "public bool Succeeded => Error is null && Text is not null;"
+    },
+    {
+     "line": 105,
+     "status": "NoCoverage",
+     "mutator": "String mutation",
+     "code": "Task.FromResult(ExtractionResult.Failure(new ExtractionError(ExtractionErrorCode.Disabled, \"AI extraction is switched of"
+    }
+   ]
+  },
+  "EInvoice.Application/Extraction/ModelOutput.cs": {
+   "killed": 94,
+   "survivors": [
+    {
+     "line": 83,
+     "status": "Survived",
+     "mutator": "Boolean mutation",
+     "code": "private static readonly JsonDocumentOptions Strict = new() { AllowTrailingCommas = false, CommentHandling = JsonCommentH"
+    },
+    {
+     "line": 91,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "error = \"The model returned no reply.\";"
+    },
+    {
+     "line": 95,
+     "status": "Survived",
+     "mutator": "Equality mutation",
+     "code": "if (reply.Length > MaxReplyLength)"
+    },
+    {
+     "line": 97,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "error = \"The model's reply is too long.\";"
+    },
+    {
+     "line": 107,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "error = \"The model's reply is not the expected JSON object.\";"
+    },
+    {
+     "line": 116,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "error = \"The model's reply holds a value of the wrong type or size.\";"
+    },
+    {
+     "line": 126,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "error = \"The model's reply is not valid JSON.\";"
+    },
+    {
+     "line": 160,
+     "status": "Survived",
+     "mutator": "Equality mutation",
+     "code": "return value is not null && value.Length <= MaxTextLength && !value.Any(char.IsControl);"
+    },
+    {
+     "line": 168,
+     "status": "NoCoverage",
+     "mutator": "Boolean mutation",
+     "code": "return true;"
+    },
+    {
+     "line": 171,
+     "status": "Survived",
+     "mutator": "Equality mutation",
+     "code": "if (element.ValueKind != JsonValueKind.Number || !element.TryGetDecimal(out var number) || number < 0 || number > MaxNum"
+    },
+    {
+     "line": 171,
+     "status": "Survived",
+     "mutator": "Equality mutation",
+     "code": "if (element.ValueKind != JsonValueKind.Number || !element.TryGetDecimal(out var number) || number < 0 || number > MaxNum"
+    },
+    {
+     "line": 185,
+     "status": "NoCoverage",
+     "mutator": "Boolean mutation",
+     "code": "return true;"
+    },
+    {
+     "line": 188,
+     "status": "Survived",
+     "mutator": "Equality mutation",
+     "code": "if (element.ValueKind != JsonValueKind.Array || element.GetArrayLength() > MaxIbans)"
+    },
+    {
+     "line": 198,
+     "status": "NoCoverage",
+     "mutator": "Boolean mutation",
+     "code": "return false;"
+    },
+    {
+     "line": 213,
+     "status": "NoCoverage",
+     "mutator": "Boolean mutation",
+     "code": "return true;"
+    },
+    {
+     "line": 216,
+     "status": "Survived",
+     "mutator": "Equality mutation",
+     "code": "if (element.ValueKind != JsonValueKind.Array || element.GetArrayLength() > MaxLines)"
+    }
+   ]
+  },
+  "EInvoice.Application/Extraction/SensitiveDataMasker.cs": {
+   "killed": 9,
+   "survivors": [
+    {
+     "line": 36,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "var result = ExistingPlaceholder().Replace(text, m => $\"({m.Groups[1].Value})\");"
+    }
+   ]
+  },
+  "EInvoice.Application/Intake/UploadChecks.cs": {
+   "killed": 26,
+   "survivors": [
+    {
+     "line": 84,
+     "status": "Survived",
+     "mutator": "Equality mutation",
+     "code": "return result.Length > MaxLength ? result[..MaxLength] : result;"
+    }
+   ]
+  },
+  "EInvoice.Application/Parsing/ParsedDocument.cs": {
+   "killed": 2,
+   "survivors": []
+  },
+  "EInvoice.Application/Parsing/Zugferd.cs": {
+   "killed": 9,
+   "survivors": [
+    {
+     "line": 44,
+     "status": "NoCoverage",
+     "mutator": "String mutation",
+     "code": "ZugferdProfile.BasicWl => \"ZUGFeRD profile BASIC WL carries no invoice lines, so the invoice cannot be matched or checke"
+    },
+    {
+     "line": 45,
+     "status": "NoCoverage",
+     "mutator": "String mutation",
+     "code": "_ => \"The ZUGFeRD profile of this invoice is not supported. Ask for profile BASIC, EN 16931, EXTENDED or XRECHNUNG.\","
+    }
+   ]
+  },
+  "EInvoice.Application/Posting/Posting.cs": {
+   "killed": 7,
+   "survivors": [
+    {
+     "line": 145,
+     "status": "NoCoverage",
+     "mutator": "Statement mutation",
+     "code": "posted++;"
+    },
+    {
+     "line": 145,
+     "status": "NoCoverage",
+     "mutator": "PostIncrementExpression to PostDecrementExpression mutation",
+     "code": "posted++;"
+    },
+    {
+     "line": 148,
+     "status": "NoCoverage",
+     "mutator": "Statement mutation",
+     "code": "retried++;"
+    },
+    {
+     "line": 148,
+     "status": "NoCoverage",
+     "mutator": "PostIncrementExpression to PostDecrementExpression mutation",
+     "code": "retried++;"
+    },
+    {
+     "line": 151,
+     "status": "NoCoverage",
+     "mutator": "Statement mutation",
+     "code": "failed++;"
+    },
+    {
+     "line": 151,
+     "status": "NoCoverage",
+     "mutator": "PostIncrementExpression to PostDecrementExpression mutation",
+     "code": "failed++;"
+    },
+    {
+     "line": 161,
+     "status": "NoCoverage",
+     "mutator": "Arithmetic mutation",
+     "code": "var attempts = job.Attempts + 1;"
+    },
+    {
+     "line": 163,
+     "status": "NoCoverage",
+     "mutator": "Equality mutation",
+     "code": "if (found is not { VendorAccount: { } account } || found.Value.Invoice.Status != InvoiceStatus.Approved)"
+    },
+    {
+     "line": 176,
+     "status": "NoCoverage",
+     "mutator": "Statement mutation",
+     "code": "invoice.TransitionTo(InvoiceStatus.Posted, Actor, now, Cut($\"Posted to the ERP as {result.DocumentNumber}.\"));"
+    },
+    {
+     "line": 176,
+     "status": "NoCoverage",
+     "mutator": "String mutation",
+     "code": "invoice.TransitionTo(InvoiceStatus.Posted, Actor, now, Cut($\"Posted to the ERP as {result.DocumentNumber}.\"));"
+    },
+    {
+     "line": 183,
+     "status": "NoCoverage",
+     "mutator": "Statement mutation",
+     "code": "invoice.TransitionTo(InvoiceStatus.Failed, Actor, now, Cut($\"ERP unavailable after {attempts} attempts: {result.Reason}\""
+    },
+    {
+     "line": 183,
+     "status": "NoCoverage",
+     "mutator": "String mutation",
+     "code": "invoice.TransitionTo(InvoiceStatus.Failed, Actor, now, Cut($\"ERP unavailable after {attempts} attempts: {result.Reason}\""
+    },
+    {
+     "line": 187,
+     "status": "NoCoverage",
+     "mutator": "Statement mutation",
+     "code": "invoice.TransitionTo(InvoiceStatus.Failed, Actor, now, Cut($\"Rejected by the ERP: {result.Reason}\"));"
+    },
+    {
+     "line": 187,
+     "status": "NoCoverage",
+     "mutator": "String mutation",
+     "code": "invoice.TransitionTo(InvoiceStatus.Failed, Actor, now, Cut($\"Rejected by the ERP: {result.Reason}\"));"
+    },
+    {
+     "line": 195,
+     "status": "NoCoverage",
+     "mutator": "Conditional (true) mutation",
+     "code": "private static string Cut(string text) => text.Length <= MaxReason ? text : text[..MaxReason];"
+    },
+    {
+     "line": 195,
+     "status": "NoCoverage",
+     "mutator": "Conditional (false) mutation",
+     "code": "private static string Cut(string text) => text.Length <= MaxReason ? text : text[..MaxReason];"
+    },
+    {
+     "line": 195,
+     "status": "NoCoverage",
+     "mutator": "Equality mutation",
+     "code": "private static string Cut(string text) => text.Length <= MaxReason ? text : text[..MaxReason];"
+    },
+    {
+     "line": 195,
+     "status": "NoCoverage",
+     "mutator": "Equality mutation",
+     "code": "private static string Cut(string text) => text.Length <= MaxReason ? text : text[..MaxReason];"
+    }
+   ]
+  },
+  "EInvoice.Application/Validation/DocumentRules.cs": {
+   "killed": 27,
+   "survivors": [
+    {
+     "line": 26,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "$\"The invoice lines add up to {Amount(lineSum)}, but the stated sum of lines (BT-106) is {Amount(document.SumOfLineNetAm"
+    },
+    {
+     "line": 33,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "$\"Net {Amount(document.NetTotal)} + VAT {Amount(document.TaxTotal)} = {Amount(document.NetTotal + document.TaxTotal)}, b"
+    },
+    {
+     "line": 33,
+     "status": "Survived",
+     "mutator": "Arithmetic mutation",
+     "code": "$\"Net {Amount(document.NetTotal)} + VAT {Amount(document.TaxTotal)} = {Amount(document.NetTotal + document.TaxTotal)}, b"
+    },
+    {
+     "line": 43,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "$\"Line {line.Position}: quantity x price - allowances + charges = {Amount(expected)}, but the stated line amount is {Amo"
+    },
+    {
+     "line": 51,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "findings.Add(Review(RuleCodes.VatBreakdown, \"The invoice states no VAT breakdown (BG-23).\"));"
+    },
+    {
+     "line": 55,
+     "status": "Survived",
+     "mutator": "Arithmetic mutation",
+     "code": "foreach (var (vat, i) in document.VatBreakdown.Select((v, i) => (v, i + 1)))"
+    },
+    {
+     "line": 61,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "$\"VAT breakdown {i}: {Amount(vat.TaxableAmount)} at {Amount(vat.RatePercent)}% is {Amount(expected)}, but {Amount(vat.Ta"
+    },
+    {
+     "line": 69,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "$\"The VAT breakdown adds up to {Amount(vatSum)}, but the stated VAT total (BT-110) is {Amount(document.TaxTotal)}.\"));"
+    },
+    {
+     "line": 74,
+     "status": "Survived",
+     "mutator": "Arithmetic mutation",
+     "code": "foreach (var (iban, n) in document.PaymentAccountIbans.Select((v, i) => (v, i + 1)))"
+    },
+    {
+     "line": 78,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "findings.Add(Blocking(RuleCodes.IbanChecksum, $\"Payment account {n} (BT-84) is not a valid IBAN.\"));"
+    }
+   ]
+  },
+  "EInvoice.Application/Validation/InvoiceValidator.cs": {
+   "killed": 9,
+   "survivors": [
+    {
+     "line": 26,
+     "status": "Survived",
+     "mutator": "Conditional (false) mutation",
+     "code": "findings.Add(Blocking(RuleCodes.Conformance, check.ErrorCodes.Count == 0"
+    },
+    {
+     "line": 27,
+     "status": "NoCoverage",
+     "mutator": "String mutation",
+     "code": "? \"The KoSIT validator rejected the document (EN 16931 / XRechnung 3.0.2).\""
+    },
+    {
+     "line": 32,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "\"The KoSIT validator could not be reached, so EN 16931 / XRechnung conformance was not checked.\"));"
+    },
+    {
+     "line": 43,
+     "status": "Survived",
+     "mutator": "Boolean mutation",
+     "code": "var numberExists = false;"
+    }
+   ]
+  },
+  "EInvoice.Application/Validation/MasterDataRules.cs": {
+   "killed": 12,
+   "survivors": [
+    {
+     "line": 18,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "return [Blocking(RuleCodes.VendorUnknown, \"The seller VAT identifier (BT-31) is missing or does not belong to any vendor"
+    },
+    {
+     "line": 26,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "findings.Add(Blocking(RuleCodes.VendorInactive, $\"Vendor {vendor.Number} is inactive.\"));"
+    },
+    {
+     "line": 31,
+     "status": "Survived",
+     "mutator": "Arithmetic mutation",
+     "code": "foreach (var (text, n) in document.PaymentAccountIbans.Select((v, i) => (v, i + 1)))"
+    },
+    {
+     "line": 43,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "findings.Add(Blocking(RuleCodes.DuplicateNumber, $\"Vendor {vendor.Number} already has an invoice with this number.\"));"
+    },
+    {
+     "line": 50,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "$\"{facts.PossibleDuplicates} other invoice(s) from vendor {vendor.Number} have the same gross amount and issue date.\"));"
+    }
+   ]
+  },
+  "EInvoice.Application/Validation/ValidationModel.cs": {
+   "killed": 1,
+   "survivors": [
+    {
+     "line": 49,
+     "status": "Survived",
+     "mutator": "Equality mutation",
+     "code": "public bool HasBlocking => Findings.Any(f => f.Severity == FindingSeverity.Blocking);"
+    },
+    {
+     "line": 75,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "public static string Amount(decimal value) => value.ToString(\"0.00##\", System.Globalization.CultureInfo.InvariantCulture"
+    }
+   ]
+  },
+  "EInvoice.Application/Vendors/BankAccounts.cs": {
+   "killed": 21,
+   "survivors": [
+    {
+     "line": 79,
+     "status": "NoCoverage",
+     "mutator": "String mutation",
+     "code": ": base(\"The vendor already has this bank account.\")"
+    },
+    {
+     "line": 106,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "return new(BankAccountOutcome.InvalidIban, Detail: \"This is not a valid IBAN (format or check digits).\");"
+    },
+    {
+     "line": 111,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "return new(BankAccountOutcome.VendorNotFound, Detail: \"There is no such vendor.\");"
+    },
+    {
+     "line": 127,
+     "status": "NoCoverage",
+     "mutator": "Block removal mutation",
+     "code": "{"
+    },
+    {
+     "line": 131,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "return new(BankAccountOutcome.Proposed, account.Id, \"Proposed. It counts once a second admin has confirmed it.\");"
+    },
+    {
+     "line": 149,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "return new(BankAccountOutcome.OwnProposal, accountId, \"You proposed this account; another admin has to confirm it.\");"
+    },
+    {
+     "line": 153,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "return new(BankAccountOutcome.NotPending, accountId, \"This account is already confirmed.\");"
+    },
+    {
+     "line": 157,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "return await SaveAsync(new(BankAccountOutcome.Confirmed, accountId, \"Confirmed. Invoices may now ask for payment to this"
+    },
+    {
+     "line": 164,
+     "status": "Survived",
+     "mutator": "Linq method mutation (Any() to All())",
+     "code": "if (string.IsNullOrEmpty(trimmed) || trimmed.Any(char.IsControl))"
+    },
+    {
+     "line": 166,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "return new(BankAccountOutcome.ReasonRequired, accountId, \"Give a reason for removing the account.\");"
+    },
+    {
+     "line": 169,
+     "status": "Survived",
+     "mutator": "Equality mutation",
+     "code": "if (trimmed.Length > MaxReasonLength)"
+    },
+    {
+     "line": 171,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "return new(BankAccountOutcome.ReasonTooLong, accountId, $\"The reason can have at most {MaxReasonLength} characters.\");"
+    },
+    {
+     "line": 182,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "return await SaveAsync(new(BankAccountOutcome.Removed, accountId, \"Removed. Invoices asking for payment to it now need r"
+    },
+    {
+     "line": 194,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "return new(BankAccountOutcome.Conflict, success.AccountId, \"Someone else changed this account at the same time. Reload t"
+    },
+    {
+     "line": 203,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "private static BankAccountResult NotFound() => new(BankAccountOutcome.NotFound, Detail: \"There is no such bank account.\""
+    },
+    {
+     "line": 205,
+     "status": "Survived",
+     "mutator": "String mutation",
+     "code": "private static BankAccountResult AlreadyExists() => new(BankAccountOutcome.AlreadyExists, Detail: \"The vendor already ha"
+    }
+   ]
+  }
+ }
+}
