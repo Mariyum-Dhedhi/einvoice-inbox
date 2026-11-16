@@ -160,6 +160,17 @@ public sealed class KpiViewTests(SqlServerFixture fixture) : IAsyncLifetime
         Assert.Equal(new MonthRow(new DateOnly(2031, 12, 1), 1, 0, 1, 0), december);
     }
 
+    [Fact]
+    public async Task An_invoice_counts_once_in_the_month_it_arrived_even_when_decided_in_the_next()
+    {
+        // 31 Jan 23:58 Berlin; the history crosses midnight, so it is approved on 1 February.
+        await InvoiceAsync(new DateTimeOffset(2032, 1, 31, 22, 58, 0, TimeSpan.Zero), [.. ToMatched, InvoiceStatus.Approved]);
+
+        var months = (await MonthsAsync()).Where(m => m.Month.Year == 2032).ToList();
+
+        Assert.Equal([new MonthRow(new DateOnly(2032, 1, 1), 1, 1, 0, 0)], months);
+    }
+
     // ---- 3. dbo.vw_OpenExceptionReasons -----------------------------------------------------------------------------
 
     private void Finding(Invoice invoice, int sequence, string code) => _db.InvoiceFindings.Add(new InvoiceFindingRecord
@@ -188,6 +199,7 @@ public sealed class KpiViewTests(SqlServerFixture fixture) : IAsyncLifetime
         Match(second, 1, MatchOutcome.NoGoodsReceipt);
         var decided = await InvoiceAsync(Now2026, [.. ToException, InvoiceStatus.Approved]); // no longer open
         Finding(decided, 1, RuleCodes.IbanNotApproved);
+        Match(decided, 1, MatchOutcome.PriceVariance);
         await _db.SaveChangesAsync();
 
         var after = await ReasonsAsync();
