@@ -44,6 +44,10 @@ db/                          stored procedures, views, seed data
 - Tests that need SQL Server carry [Trait("Category", "Database")] and [Collection(SqlServerCollection.Name)]; SqlServerFixture builds the database from the db/ scripts, so a broken deployment script fails the tests.
 - Database tests must not assume they are alone: create data under unique numbers, and roll back unless the test needs commits.
 - Matching rules exist twice (ThreeWayMatcher in C#, dbo.usp_MatchInvoice in SQL). Change both together; MatchProcedureTests compares them field by field.
+- Every response gets SecurityHeaders (one strict CSP: script-src 'self', no inline scripts, so no <ImportMap />; isolation, permissions and referrer policies), pinned by SecurityHeaderTests. Antiforgery cookie __Host-einvoice-antiforgery (Secure, SameSite=Strict). HSTS a year outside Development only.
+- Browser journeys run over HTTPS (Kestrel with the development certificate; CI runs dotnet dev-certs https).
+- ZAP (tests/zap, CI job zap): baseline scans public and signed in as the clerk. Any alert not in tests/zap/rules.tsv with a reason fails; add an IGNORE only with the reason or the test that pins it.
+- Mutation testing: dotnet stryker (local tool, tests/EInvoice.UnitTests/stryker-config.json), run by hand, never in CI. Summaries in tests/mutation/results (tests/mutation/summarize.py); quote scores only from there, with date and config. A surviving mutant that matters gets a test; an equivalent one is noted, not pinned.
 - Stored procedures live in db/procedures as CREATE OR ALTER scripts, deployed by db-init after the migrations.
 - Uploads: file type comes from the bytes (ContentSniffer), never the name; file names are display-only (UploadNames.Sanitize). Duplicates are checked first and backed by unique indexes for races.
 - Every accepted upload becomes an invoice: Matched, Exception (with findings or match reasons) or Failed (unreadable, original kept). Refusals (empty, too large, wrong type, duplicate) store nothing.
