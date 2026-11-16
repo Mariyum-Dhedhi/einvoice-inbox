@@ -5,6 +5,7 @@ using EInvoice.Application.Intake;
 using EInvoice.Application.Matching;
 using EInvoice.Application.Queries;
 using EInvoice.Application.Security;
+using EInvoice.Application.Vendors;
 using EInvoice.Application.Validation;
 using EInvoice.Domain.Invoices;
 using EInvoice.Domain.Matching;
@@ -39,6 +40,8 @@ public abstract class UiTest : BunitContext, IAsyncLifetime
         Services.AddSingleton<IUserDirectory>(Users);
         Services.AddSingleton<IInvoiceApproval>(Approval);
         Services.AddSingleton<IAuditLog>(Audit);
+        Services.AddSingleton<IBankAccountQueries>(BankAccounts);
+        Services.AddSingleton<IBankAccountAdministration>(BankAccountAdmin);
         Services.AddSingleton(Microsoft.Extensions.Options.Options.Create(new ApprovalSettings { DefaultLimitEur = DefaultLimit }));
         Services.AddSingleton<Microsoft.AspNetCore.Components.Forms.AntiforgeryStateProvider>(new FixedAntiforgery());
         Auth = AddAuthorization();
@@ -76,6 +79,10 @@ public abstract class UiTest : BunitContext, IAsyncLifetime
 
     protected FakeAuditLog Audit { get; } = new();
 
+    protected FakeBankAccountQueries BankAccounts { get; } = new();
+
+    protected FakeBankAccountAdministration BankAccountAdmin { get; } = new();
+
     protected FakeQueries Queries { get; } = new();
 
     protected FakeIntake Intake { get; } = new();
@@ -97,6 +104,46 @@ public abstract class UiTest : BunitContext, IAsyncLifetime
     {
         public override Microsoft.AspNetCore.Components.Forms.AntiforgeryRequestToken GetAntiforgeryToken() =>
             new(AntiforgeryToken, "__RequestVerificationToken");
+    }
+}
+
+public sealed class FakeBankAccountQueries : IBankAccountQueries
+{
+    public List<VendorOverview> Vendors { get; } = [];
+
+    public Dictionary<Guid, VendorBankDetails> Details { get; } = [];
+
+    public Task<IReadOnlyList<VendorOverview>> VendorsAsync(CancellationToken cancellationToken) => Task.FromResult<IReadOnlyList<VendorOverview>>(Vendors);
+
+    public Task<VendorBankDetails?> VendorAsync(Guid vendorId, CancellationToken cancellationToken) => Task.FromResult(Details.GetValueOrDefault(vendorId));
+}
+
+public sealed class FakeBankAccountAdministration : IBankAccountAdministration
+{
+    public List<(Guid VendorId, string Iban, string Admin)> Proposed { get; } = [];
+
+    public List<(Guid AccountId, string Admin)> Confirmed { get; } = [];
+
+    public List<(Guid AccountId, string Admin, string? Reason)> Removed { get; } = [];
+
+    public BankAccountResult Result { get; set; } = new(BankAccountOutcome.Proposed, Guid.NewGuid());
+
+    public Task<BankAccountResult> ProposeAsync(Guid vendorId, string iban, string admin, CancellationToken cancellationToken)
+    {
+        Proposed.Add((vendorId, iban, admin));
+        return Task.FromResult(Result);
+    }
+
+    public Task<BankAccountResult> ConfirmAsync(Guid accountId, string admin, CancellationToken cancellationToken)
+    {
+        Confirmed.Add((accountId, admin));
+        return Task.FromResult(new BankAccountResult(BankAccountOutcome.Confirmed, accountId));
+    }
+
+    public Task<BankAccountResult> RemoveAsync(Guid accountId, string admin, string? reason, CancellationToken cancellationToken)
+    {
+        Removed.Add((accountId, admin, reason));
+        return Task.FromResult(new BankAccountResult(BankAccountOutcome.Removed, accountId));
     }
 }
 

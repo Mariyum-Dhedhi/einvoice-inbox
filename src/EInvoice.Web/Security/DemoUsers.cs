@@ -53,6 +53,7 @@ public sealed class DemoUserSeeder(
         ("approver@example.com", Roles.Approver),
         ("auditor@example.com", Roles.Auditor),
         ("admin@example.com", Roles.Admin),
+        ("admin2@example.com", Roles.Admin), // the two-person rule for bank accounts needs a second admin
     ];
 
     public async Task StartAsync(CancellationToken cancellationToken)

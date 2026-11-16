@@ -1,0 +1,237 @@
+@page "/admin/vendors/{Id:guid}"
+@attribute [Authorize(Policy = Policies.ManageVendors)]
+@using EInvoice.Application.Vendors
+@using EInvoice.Domain.Vendors
+@inject Operations Operations
+@inject IAuthorizationService Authorization
+
+@if (!_loaded)
+{
+    <MudProgressLinear Indeterminate="true" aria-label="Loading the vendor" />
+}
+else if (_vendor is null)
+{
+    <PageTitle>Vendor not found – E-Invoice Inbox</PageTitle>
+    <MudPaper Outlined="true" Class="pa-6" data-testid="vendor-not-found">
+        <MudText Typo="Typo.h5" HtmlTag="h1">Vendor not found</MudText>
+        <MudLink Href="/admin/vendors">Back to the vendors</MudLink>
+    </MudPaper>
+}
+else
+{
+    var vendor = _vendor;
+    <PageTitle>@vendor.Name – E-Invoice Inbox</PageTitle>
+    <MudLink Href="/admin/vendors" Typo="Typo.body2" Class="d-inline-flex align-center mb-2">
+        <MudIcon Icon="@Icons.Material.Outlined.ArrowBack" Size="Size.Small" Class="mr-1" aria-hidden="true" /> Vendors
+    </MudLink>
+    <MudText Typo="Typo.h4" HtmlTag="h1" Class="break-all">@vendor.Name</MudText>
+    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">@vendor.Number</MudText>
+
+    @if (_message is not null)
+    {
+        <MudAlert Severity="_messageSeverity" Class="mb-3" role="status" data-testid="account-result">@_message</MudAlert>
+    }
+
+    @* ---- Bank accounts today --------------------------------------------------------------------------------- *@
+    <MudPaper Outlined="true" Class="pa-4 mb-3">
+        <MudText Typo="Typo.h6" HtmlTag="h2" Class="mb-2">Bank accounts</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2">
+            Compare each IBAN with a source you trust (a letter or a phone call to a number you already know), not with the invoice.
+        </MudText>
+        @if (vendor.Accounts.Count == 0)
+        {
+            <MudText>No bank accounts.</MudText>
+        }
+        else
+        {
+            <MudSimpleTable Elevation="0" Dense="true">
+                <thead>
+                    <tr><th scope="col">IBAN</th><th scope="col">Status</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var account in vendor.Accounts)
+                    {
+                        var mine = string.Equals(account.ProposedBy, _me, StringComparison.OrdinalIgnoreCase);
+                        <tr data-testid="account-row" data-account="@account.Id">
+                            <td class="nowrap tabular">@Formats.IbanGrouped(account.Iban)</td>
+                            <td>
+                                @if (account.Status == BankAccountStatus.Active)
+                                {
+                                    <span data-testid="account-status" data-status="active" class="d-inline-flex align-center gap-1">
+                                        <MudIcon Icon="@Icons.Material.Outlined.VerifiedUser" Size="Size.Small" Color="Color.Success" aria-hidden="true" />
+                                        Active, confirmed by @account.ConfirmedBy
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span data-testid="account-status" data-status="pending" class="d-inline-flex align-center gap-1">
+                                        <MudIcon Icon="@Icons.Material.Outlined.HourglassTop" Size="Size.Small" Color="Color.Warning" aria-hidden="true" />
+                                        Waiting for a second admin (proposed by @account.ProposedBy)
+                                    </span>
+                                }
+                            </td>
+                            <td class="text-right">
+                                @if (account.Status == BankAccountStatus.Pending)
+                                {
+                                    if (mine)
+                                    {
+                                        <MudText Typo="Typo.body2">You proposed it; another admin confirms.</MudText>
+                                    }
+                                    else
+                                    {
+                                        <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" Disabled="_busy"
+                                                   OnClick="() => ConfirmAsync(account.Id)" data-testid="confirm">Confirm</MudButton>
+                                    }
+                                }
+                                <MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Small" Disabled="_busy" Class="ml-2"
+                                           OnClick="() => StartRemove(account.Id)" data-testid="remove">Remove</MudButton>
+                            </td>
+                        </tr>
+                        @if (_removing == account.Id)
+                        {
+                            <tr>
+                                <td colspan="3">
+                                    <div data-testid="remove-reason">
+                                        <MudTextField T="string" @bind-Value="_removeReason" Immediate="true" Lines="2" MaxLength="200" Counter="200"
+                                                      Variant="Variant.Outlined" Label="Why is this account removed?" HelperText="Required; kept in the audit trail." />
+                                    </div>
+                                    <div class="d-flex gap-2 mt-2">
+                                        <MudButton Variant="Variant.Filled" Color="Color.Error" Disabled="@(_busy || string.IsNullOrWhiteSpace(_removeReason))"
+                                                   OnClick="RemoveAsync" data-testid="remove-confirm">Remove account</MudButton>
+                                        <MudButton Variant="Variant.Text" OnClick="() => _removing = null">Cancel</MudButton>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </MudSimpleTable>
+        }
+
+        <div class="d-flex flex-wrap align-end gap-2 mt-4">
+            <div data-testid="new-iban" class="flex-grow-1" style="min-width: 16rem">
+                <MudTextField T="string" @bind-Value="_newIban" Immediate="true" Variant="Variant.Outlined" Label="New IBAN" MaxLength="42"
+                              HelperText="Proposed now; it counts once a second admin has confirmed it." />
+            </div>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@(_busy || string.IsNullOrWhiteSpace(_newIban))"
+                       OnClick="ProposeAsync" data-testid="propose">Propose</MudButton>
+        </div>
+    </MudPaper>
+
+    @* ---- Earlier versions (temporal history) ----------------------------------------------------------------- *@
+    <MudPaper Outlined="true" Class="pa-4">
+        <MudText Typo="Typo.h6" HtmlTag="h2" Class="mb-2">History</MudText>
+        @if (vendor.History.Count == 0)
+        {
+            <MudText>No earlier versions.</MudText>
+        }
+        else
+        {
+            <MudSimpleTable Elevation="0" Dense="true">
+                <thead>
+                    <tr><th scope="col">IBAN</th><th scope="col">Status</th><th scope="col">Proposed by</th><th scope="col">Confirmed by</th><th scope="col">From</th><th scope="col">Until</th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var h in vendor.History)
+                    {
+                        <tr data-testid="history-row">
+                            <td class="nowrap">@h.MaskedIban</td>
+                            <td>@(h.Status == BankAccountStatus.Active ? "Active" : "Pending")</td>
+                            <td class="break-all">@h.ProposedBy</td>
+                            <td class="break-all">@(h.ConfirmedBy ?? "–")</td>
+                            <td class="nowrap">@Formats.Timestamp(h.ValidFrom)</td>
+                            <td class="nowrap">@(h.ValidTo is { } to ? Formats.Timestamp(to) : "–")</td>
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+        }
+    </MudPaper>
+}
+
+@code {
+    [Parameter]
+    public Guid Id { get; set; }
+
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthState { get; set; } = default!;
+
+    private VendorBankDetails? _vendor;
+    private bool _loaded;
+    private string _me = string.Empty;
+    private bool _busy;
+    private string? _newIban;
+    private Guid? _removing;
+    private string? _removeReason;
+    private string? _message;
+    private Severity _messageSeverity;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _me = SignedInUser.Name((await AuthState).User);
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        _vendor = await Operations.RunAsync<IBankAccountQueries, VendorBankDetails?>(q => q.VendorAsync(Id, CancellationToken.None));
+        _loaded = true;
+    }
+
+    /// <summary>The server's own check before an action: a visible button is not the protection.</summary>
+    private async Task<bool> MayAsync() =>
+        (await Authorization.AuthorizeAsync((await AuthState).User, Policies.ManageVendors)).Succeeded;
+
+    private Task ProposeAsync() =>
+        RunAsync(a => a.ProposeAsync(Id, _newIban ?? string.Empty, _me, CancellationToken.None), clearIban: true);
+
+    private Task ConfirmAsync(Guid accountId) =>
+        RunAsync(a => a.ConfirmAsync(accountId, _me, CancellationToken.None));
+
+    private void StartRemove(Guid accountId)
+    {
+        _removing = accountId;
+        _removeReason = null;
+    }
+
+    private Task RemoveAsync() =>
+        _removing is { } accountId
+            ? RunAsync(a => a.RemoveAsync(accountId, _me, _removeReason, CancellationToken.None))
+            : Task.CompletedTask;
+
+    private async Task RunAsync(Func<IBankAccountAdministration, Task<BankAccountResult>> action, bool clearIban = false)
+    {
+        if (!await MayAsync())
+        {
+            return;
+        }
+
+        _busy = true;
+        try
+        {
+            var result = await Operations.RunAsync<IBankAccountAdministration, BankAccountResult>(action);
+            (_messageSeverity, _message) = result.Outcome switch
+            {
+                BankAccountOutcome.Proposed => (Severity.Success, "Proposed. It waits for a second admin before it counts for payments."),
+                BankAccountOutcome.Confirmed => (Severity.Success, "Confirmed. Invoices may now ask for payment to this account."),
+                BankAccountOutcome.Removed => (Severity.Success, "Removed. Invoices asking for payment to it now need review."),
+                _ => (Severity.Error, result.Detail ?? "The change was refused."),
+            };
+            var success = _messageSeverity == Severity.Success;
+            if (success)
+            {
+                _removing = null;
+                if (clearIban)
+                {
+                    _newIban = null;
+                }
+            }
+
+            await LoadAsync();
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

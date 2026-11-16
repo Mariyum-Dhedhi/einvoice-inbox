@@ -53,6 +53,8 @@ internal static partial class AccessTable
         ["PAGE /approvals"] = Access.Only("Approver"),
         ["PAGE /audit"] = Access.Only("Auditor"),
         ["PAGE /admin/users"] = Access.Only("Admin"),
+        ["PAGE /admin/vendors"] = Access.Only("Admin"),
+        ["PAGE /admin/vendors/{Id:guid}"] = Access.Only("Admin"),
         ["PAGE /account/access-denied"] = Access.SignedIn,
         ["PAGE /account/login"] = Access.Open,
         ["PAGE /Error"] = Access.Open,
