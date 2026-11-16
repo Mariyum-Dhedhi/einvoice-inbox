@@ -13,3 +13,6 @@
 
 # Official test corpora are stored byte-exact (no line-ending normalisation).
 testdata/**/kosit/*.xml -text
+
+# Load-test template: compared byte-exact with what LoadInvoiceTemplate builds.
+tests/load/*.xml -text
