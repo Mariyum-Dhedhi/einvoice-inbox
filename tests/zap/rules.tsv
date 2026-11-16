@@ -1,0 +1,21 @@
+# ZAP baseline rules (tests/zap/scan.sh). Every alert NOT listed here fails the scan (warnings included).
+# Each IGNORE says why the finding is intended or is pinned by a test instead. Tab-separated: id, action, name.
+#
+# HSTS is sent outside Development only (a browser would pin localhost for every project); the scan runs the app in
+# Development for its demo accounts. SecurityHeaderTests pins max-age=31536000 in Production.
+10035	IGNORE	(Strict-Transport-Security Header Not Set)
+# CSP findings: style-src 'unsafe-inline' is needed by MudBlazor (style attributes); scripts are 'self' only. The
+# whole policy is pinned directive by directive in SecurityHeaderTests, so a change shows up there.
+10055	IGNORE	(CSP)
+# API answers and signed-in pages hold invoice data: no-store / no-cache is intended (Program.cs).
+10015	IGNORE	(Re-examine Cache-control Directives)
+10049	IGNORE	(Non-Storable Content)
+# Informational: ZAP recognised the login form and the session cookie. That is what they are.
+10111	IGNORE	(Authentication Request Identified)
+10112	IGNORE	(Session Management Response Identified)
+# Informational: form fields echo what was typed back into their own value attribute, HTML-encoded by Razor; the
+# password field is never written back (Login.razor). ReturnUrl is checked by SignInSetup.SafeReturnUrl.
+10031	IGNORE	(User Controllable HTML Element Attribute (Potential XSS))
+# Informational: the comment is the Blazor template's note in ReconnectModal.razor.js ("reload the page so the user
+# can continue"), not a secret.
+10027	IGNORE	(Information Disclosure - Suspicious Comments)

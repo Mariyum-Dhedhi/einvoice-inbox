@@ -64,3 +64,6 @@ appsettings.*.local.json
 # Test output
 TestResults/
 coverage/
+
+# ZAP scan reports (tests/zap/scan.sh); CI keeps them as an artifact.
+tests/zap/reports/
