@@ -31,9 +31,28 @@ internal sealed class VendorBankAccountConfiguration : IEntityTypeConfiguration<
 {
     public void Configure(EntityTypeBuilder<VendorBankAccount> builder)
     {
-        builder.ToTable("VendorBankAccount");
+        // System-versioned: SQL Server keeps every earlier version with its time, and nobody can rewrite that history.
+        builder.ToTable("VendorBankAccount", table =>
+        {
+            table.IsTemporal(history =>
+            {
+                history.HasPeriodStart("ValidFrom");
+                history.HasPeriodEnd("ValidTo");
+                history.UseHistoryTable("VendorBankAccountHistory");
+            });
+            table.HasCheckConstraint("CK_VendorBankAccount_Status", EnumCheck<BankAccountStatus>("Status"));
+        });
         builder.HasKey(a => a.Id).IsClustered(false);
         builder.UseClusteredRowId("VendorBankAccount");
+        builder.Property<byte[]>(MappingConventions.Version).IsRowVersion().IsRequired(); // two admins at once: one wins
+
+        // Fail closed: a row inserted without a status (for example by hand) is pending, not trusted for payments.
+        builder.Property(a => a.Status).HasDefaultValue(BankAccountStatus.Pending).HasSentinel((BankAccountStatus)0);
+        builder.Property(a => a.ProposedBy).HasMaxLength(256);
+        builder.Property(a => a.ProposedAt);
+        builder.Property(a => a.ConfirmedBy).HasMaxLength(256);
+        builder.Property(a => a.ConfirmedAt);
+        builder.Ignore(a => a.IsActive);
 
         builder.Property(a => a.VendorId);
         builder.Property(a => a.Iban)

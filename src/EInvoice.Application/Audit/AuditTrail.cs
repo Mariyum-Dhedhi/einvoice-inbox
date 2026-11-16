@@ -12,6 +12,9 @@ public static class AuditActions
     public const string SignedOut = nameof(SignedOut);
     public const string SignInFailed = nameof(SignInFailed);
     public const string SignInLockedOut = nameof(SignInLockedOut);
+    public const string BankAccountProposed = nameof(BankAccountProposed);
+    public const string BankAccountConfirmed = nameof(BankAccountConfirmed);
+    public const string BankAccountRemoved = nameof(BankAccountRemoved);
 }
 
 /// <summary>An event to append: the chain gives it its sequence number and hashes.</summary>

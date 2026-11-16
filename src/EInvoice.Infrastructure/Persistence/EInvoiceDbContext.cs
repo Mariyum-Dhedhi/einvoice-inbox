@@ -40,6 +40,7 @@ public sealed class EInvoiceDbContext(DbContextOptions<EInvoiceDbContext> option
     public override async Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
     {
         var drafts = StatusChangeEvents();
+        drafts.AddRange(_queuedAudit);
         if (drafts.Count == 0)
         {
             return await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken).ConfigureAwait(false);
@@ -55,6 +56,7 @@ public sealed class EInvoiceDbContext(DbContextOptions<EInvoiceDbContext> option
                 await own.CommitAsync(cancellationToken).ConfigureAwait(false);
             }
 
+            _queuedAudit.Clear();
             return saved;
         }
         finally
@@ -66,9 +68,17 @@ public sealed class EInvoiceDbContext(DbContextOptions<EInvoiceDbContext> option
         }
     }
 
-    /// <summary>Synchronous saves cannot take the audit lock; status changes must be saved with SaveChangesAsync.</summary>
+    private readonly List<AuditDraft> _queuedAudit = [];
+
+    /// <summary>An audit event for the next save (for example a bank account change), written in its transaction.</summary>
+    public void QueueAudit(AuditDraft draft) => _queuedAudit.Add(draft);
+
+    /// <summary>Forgets queued events after a failed save, together with the tracked changes they describe.</summary>
+    public void ClearQueuedAudit() => _queuedAudit.Clear();
+
+    /// <summary>Synchronous saves cannot take the audit lock; audited changes must be saved with SaveChangesAsync.</summary>
     public override int SaveChanges(bool acceptAllChangesOnSuccess) =>
-        StatusChangeEvents().Count == 0
+        StatusChangeEvents().Count == 0 && _queuedAudit.Count == 0
             ? base.SaveChanges(acceptAllChangesOnSuccess)
             : throw new InvalidOperationException("Invoice status changes are audited; save them with SaveChangesAsync.");
 

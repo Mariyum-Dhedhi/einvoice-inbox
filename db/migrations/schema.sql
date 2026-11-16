@@ -824,3 +824,121 @@ END;
 COMMIT;
 GO
 
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261116050049_AddBankAccountTwoPersonRule'
+)
+BEGIN
+    ALTER TABLE [dbo].[VendorBankAccount] ADD [ConfirmedAt] datetimeoffset NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261116050049_AddBankAccountTwoPersonRule'
+)
+BEGIN
+    ALTER TABLE [dbo].[VendorBankAccount] ADD [ConfirmedBy] nvarchar(256) NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261116050049_AddBankAccountTwoPersonRule'
+)
+BEGIN
+    ALTER TABLE [dbo].[VendorBankAccount] ADD [ProposedAt] datetimeoffset NOT NULL DEFAULT '0001-01-01T00:00:00.0000000+00:00';
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261116050049_AddBankAccountTwoPersonRule'
+)
+BEGIN
+    ALTER TABLE [dbo].[VendorBankAccount] ADD [ProposedBy] nvarchar(256) NOT NULL DEFAULT N'';
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261116050049_AddBankAccountTwoPersonRule'
+)
+BEGIN
+    ALTER TABLE [dbo].[VendorBankAccount] ADD [Status] int NOT NULL DEFAULT 1;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261116050049_AddBankAccountTwoPersonRule'
+)
+BEGIN
+    ALTER TABLE [dbo].[VendorBankAccount] ADD [ValidFrom] datetime2 NOT NULL DEFAULT '0001-01-01T00:00:00.0000000';
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261116050049_AddBankAccountTwoPersonRule'
+)
+BEGIN
+    ALTER TABLE [dbo].[VendorBankAccount] ADD [ValidTo] datetime2 NOT NULL DEFAULT '9999-12-31T23:59:59.9999999';
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261116050049_AddBankAccountTwoPersonRule'
+)
+BEGIN
+    ALTER TABLE [dbo].[VendorBankAccount] ADD [Version] rowversion NOT NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261116050049_AddBankAccountTwoPersonRule'
+)
+BEGIN
+    EXEC(N'ALTER TABLE [dbo].[VendorBankAccount] ADD CONSTRAINT [CK_VendorBankAccount_Status] CHECK ([Status] IN (1, 2))');
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261116050049_AddBankAccountTwoPersonRule'
+)
+BEGIN
+    EXEC(N'ALTER TABLE [dbo].[VendorBankAccount] ADD PERIOD FOR SYSTEM_TIME ([ValidFrom], [ValidTo])')
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261116050049_AddBankAccountTwoPersonRule'
+)
+BEGIN
+    ALTER TABLE [dbo].[VendorBankAccount] ALTER COLUMN [ValidFrom] ADD HIDDEN
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261116050049_AddBankAccountTwoPersonRule'
+)
+BEGIN
+    ALTER TABLE [dbo].[VendorBankAccount] ALTER COLUMN [ValidTo] ADD HIDDEN
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261116050049_AddBankAccountTwoPersonRule'
+)
+BEGIN
+    ALTER TABLE [dbo].[VendorBankAccount] SET (SYSTEM_VERSIONING = ON (HISTORY_TABLE = [dbo].[VendorBankAccountHistory]))
+
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261116050049_AddBankAccountTwoPersonRule'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20261116050049_AddBankAccountTwoPersonRule', N'10.0.14');
+END;
+
+COMMIT;
+GO
+
