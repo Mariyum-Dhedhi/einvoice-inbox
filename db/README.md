@@ -6,11 +6,12 @@ which applies everything in this folder in order. Every step is idempotent.
 | Step | File | What it does |
 |---|---|---|
 | 1 | (inline) | Creates the `EInvoice` database |
-| 2 | `migrations/schema.sql` | Schema, generated from the EF Core migrations (do not edit by hand) |
-| 3 | `procedures/*.sql` | Stored procedures (`CREATE OR ALTER`): `usp_MatchInvoice`, the set-based three-way match |
-| 4 | `views/*.sql` | KPI views (`CREATE OR ALTER`) for the dashboard; specified in `views/README.md` |
-| 5 | `security/app-user.sql` | Least-privilege login `einvoice_app`: read/write data, execute procedures, no schema changes |
-| 6 | `seed/seed.sql` | Synthetic data: 20 vendors with one approved IBAN each, 200 purchase orders, receipts, 6 invoices covering all match outcomes |
+| 2 | `database.sql` | Database settings: `READ_COMMITTED_SNAPSHOT` (reads never wait for writers; see the file) |
+| 3 | `migrations/schema.sql` | Schema, generated from the EF Core migrations (do not edit by hand) |
+| 4 | `procedures/*.sql` | Stored procedures (`CREATE OR ALTER`): `usp_MatchInvoice`, the set-based three-way match |
+| 5 | `views/*.sql` | KPI views (`CREATE OR ALTER`) for the dashboard; specified in `views/README.md` |
+| 6 | `security/app-user.sql` | Least-privilege login `einvoice_app`: read/write data, execute procedures, no schema changes |
+| 7 | `seed/seed.sql` | Synthetic data: 20 vendors with one approved IBAN each, 200 purchase orders, receipts, 6 invoices covering all match outcomes |
 
 `tests/verify.sql` runs as `einvoice_app` and checks the seed counts and the security controls
 (cannot create or drop tables, cannot change migration history, duplicate invoice number and unknown status rejected).

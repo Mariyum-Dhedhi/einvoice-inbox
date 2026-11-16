@@ -41,6 +41,14 @@ internal sealed class InvoiceConfiguration : IEntityTypeConfiguration<Invoice>
             .HasDatabaseName("UX_Invoice_Vendor_InvoiceNumber");
         builder.HasIndex(i => i.Status).HasDatabaseName("IX_Invoice_Status");
 
+        // usp_MatchInvoice adds up what every other invoice of the same order already billed. Without this index that
+        // read scans the whole table, so matching slows down as invoices pile up (docs/performance.md). It covers the
+        // query (Id and Status included): no second read in the table per invoice. No filter: a filtered index is not
+        // used for a parameter that could be NULL.
+        builder.HasIndex(i => i.PurchaseOrderNumber)
+            .IncludeProperties(i => new { i.Id, i.Status })
+            .HasDatabaseName("IX_Invoice_PurchaseOrderNumber");
+
         builder.HasMany(i => i.Lines).WithOne().HasForeignKey("InvoiceId").IsRequired().OnDelete(DeleteBehavior.Cascade);
         builder.Navigation(i => i.Lines).UsePropertyAccessMode(PropertyAccessMode.Field).AutoInclude();
 
@@ -64,6 +72,15 @@ internal sealed class InvoiceLineConfiguration : IEntityTypeConfiguration<Invoic
         builder.ComplexProperty(l => l.NetAmount, m => m.MapMoney());
         builder.Property(l => l.TaxRatePercent).HasColumnType(TaxRateType);
         builder.Property(l => l.PurchaseOrderLineNumber);
+
+        // usp_MatchInvoice reads the lines of every other invoice of the order. The primary key finds them, but the
+        // quantity lives in the table (clustered by RowId): one more read per line. On an order with thousands of
+        // invoices that was most of the match's work, and enough locks that SQL Server locked the whole table
+        // (docs/performance.md). This index holds what that read needs. (The invoice's own few lines also need price
+        // and currency: one read in the table each is fine there.)
+        builder.HasIndex("InvoiceId", nameof(InvoiceLine.LineNumber))
+            .IncludeProperties(nameof(InvoiceLine.Quantity), nameof(InvoiceLine.PurchaseOrderLineNumber))
+            .HasDatabaseName("IX_InvoiceLine_Quantities");
     }
 }
 

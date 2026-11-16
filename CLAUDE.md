@@ -44,6 +44,9 @@ db/                          stored procedures, views, seed data
 - Tests that need SQL Server carry [Trait("Category", "Database")] and [Collection(SqlServerCollection.Name)]; SqlServerFixture builds the database from the db/ scripts, so a broken deployment script fails the tests.
 - Database tests must not assume they are alone: create data under unique numbers, and roll back unless the test needs commits.
 - Matching rules exist twice (ThreeWayMatcher in C#, dbo.usp_MatchInvoice in SQL). Change both together; MatchProcedureTests compares them field by field.
+- The database runs with READ_COMMITTED_SNAPSHOT (db/database.sql, run by db-init and SqlServerFixture): reads never wait for writers (LockingTests). Explicit locks (app locks, UPDLOCK/READPAST) still apply.
+- Query plan tests (tests/.../Performance/QueryPlanTests) add 5,000 invoices in their rolled-back transaction and run WITH RECOMPILE: plans on six seeded rows say nothing.
+- Load test (tests/load, k6 in the pinned grafana/k6 image) runs only locally against the separate database EInvoiceLoad (db-init with EINVOICE_DB). Performance numbers in docs/performance.md and the README come only from runs saved in tests/load/results, quoted with machine, date and commit.
 - Every response gets SecurityHeaders (one strict CSP: script-src 'self', no inline scripts, so no <ImportMap />; isolation, permissions and referrer policies), pinned by SecurityHeaderTests. Antiforgery cookie __Host-einvoice-antiforgery (Secure, SameSite=Strict). HSTS a year outside Development only.
 - Browser journeys run over HTTPS (Kestrel with the development certificate; CI runs dotnet dev-certs https).
 - ZAP (tests/zap, CI job zap): baseline scans public and signed in as the clerk. Any alert not in tests/zap/rules.tsv with a reason fails; add an IGNORE only with the reason or the test that pins it.

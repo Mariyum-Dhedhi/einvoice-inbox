@@ -1,0 +1,3 @@
+Matches|PagesPerMatch|CpuMsPerMatch|ElapsedMsPerMatch|Invoices|PurchaseOrderIndex
+-------|-------------|-------------|-----------------|--------|------------------
+3602|36816.4|32.35|39.87|106807|yes

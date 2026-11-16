@@ -45,6 +45,7 @@ public sealed partial class SqlServerFixture : IAsyncLifetime
 
         admin.InitialCatalog = "EInvoice";
         var db = Path.Combine(RepositoryRoot(), "db");
+        await RunScriptAsync(admin.ConnectionString, Path.Combine(db, "database.sql"));
         await RunScriptAsync(admin.ConnectionString, Path.Combine(db, "migrations", "schema.sql"));
         foreach (var procedure in Directory.EnumerateFiles(Path.Combine(db, "procedures"), "*.sql").Order())
         {

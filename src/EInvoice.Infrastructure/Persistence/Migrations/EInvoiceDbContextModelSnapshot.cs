@@ -114,6 +114,11 @@ namespace EInvoice.Infrastructure.Persistence.Migrations
 
                     SqlServerKeyBuilderExtensions.IsClustered(b.HasKey("Id"), false);
 
+                    b.HasIndex("PurchaseOrderNumber")
+                        .HasDatabaseName("IX_Invoice_PurchaseOrderNumber");
+
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("PurchaseOrderNumber"), new[] { "Id", "Status" });
+
                     b.HasIndex("RowId")
                         .HasDatabaseName("CX_Invoice_RowId");
 
@@ -243,6 +248,11 @@ namespace EInvoice.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("CX_InvoiceLine_RowId");
 
                     SqlServerIndexBuilderExtensions.IsClustered(b.HasIndex("RowId"));
+
+                    b.HasIndex("InvoiceId", "LineNumber")
+                        .HasDatabaseName("IX_InvoiceLine_Quantities");
+
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("InvoiceId", "LineNumber"), new[] { "Quantity", "PurchaseOrderLineNumber" });
 
                     b.ToTable("InvoiceLine", "dbo");
                 });
