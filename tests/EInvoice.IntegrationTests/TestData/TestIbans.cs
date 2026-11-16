@@ -8,9 +8,12 @@ namespace EInvoice.IntegrationTests.TestData;
 /// </summary>
 public static class TestIbans
 {
-    public static string New()
+    public static string New() =>
+        ForAccount(Random.Shared.NextInt64(1_000_000_000L, 9_999_999_999L).ToString(CultureInfo.InvariantCulture));
+
+    /// <summary>The IBAN of a 10-digit account at the non-existent bank 00000000 (fixed, for files that never change).</summary>
+    public static string ForAccount(string account)
     {
-        var account = Random.Shared.NextInt64(1_000_000_000L, 9_999_999_999L).ToString(CultureInfo.InvariantCulture);
         var bban = "00000000" + account;
         var numeric = bban + "131400"; // "DE" = 13 14, check digits 00 for the calculation
         var remainder = numeric.Aggregate(0, (r, c) => ((r * 10) + (c - '0')) % 97);
