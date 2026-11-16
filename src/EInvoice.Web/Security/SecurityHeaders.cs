@@ -18,6 +18,10 @@ internal static class SecurityHeaders
     public const string PermissionsPolicy =
         "camera=(), microphone=(), geolocation=(), payment=(), usb=(), clipboard-read=(), fullscreen=()";
 
+    /// <summary>
+    /// Sets (replaces, never appends) every header. Runs when the response starts, after the endpoint: so the policy
+    /// Blazor sets for interactive pages (frame-ancestors 'self') is replaced, and there is always exactly one.
+    /// </summary>
     public static void Apply(IHeaderDictionary headers)
     {
         headers.ContentSecurityPolicy = ContentSecurityPolicy;

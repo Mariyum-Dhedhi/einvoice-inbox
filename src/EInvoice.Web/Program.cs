@@ -93,8 +93,7 @@ app.MapControllers();
 app.MapStaticAssets().AllowAnonymous(); // stylesheets and scripts of the login page
 app.MapSignOut();
 app.MapRazorComponents<App>()
-    // Blazor would add a second policy (frame-ancestors 'self'); SecurityHeaders sends the one complete policy.
-    .AddInteractiveServerRenderMode(options => options.ContentSecurityFrameAncestorsPolicy = null);
+    .AddInteractiveServerRenderMode();
 
 app.Run();
 
