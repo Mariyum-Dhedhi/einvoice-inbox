@@ -8,6 +8,10 @@
   Each refers to its own historic order (PO-H000001, ...): those orders are not in the database, the invoices only
   have to be there, as old invoices are, when matching looks for other invoices of the same order.
 
+  Busy order: $(BusyOrderInvoices) earlier invoices of PO-0101 (a framework order billed in parts; Posted, one line of
+  copy paper each), the order the load test uploads for. Their issue dates lie in the first half of 2025, before any
+  date the load test uses, so no upload meets one with the same amount and date (POSSIBLE_DUPLICATE).
+
   Not written: audit events (the hash chain is appended only through the application), document content (a short
   placeholder: no query under test reads it).
   Vendor 6 is left out on purpose: the load test uploads for vendor 6, and its invoices must not meet a volume
@@ -31,6 +35,7 @@ BEGIN
 END;
 
 DECLARE @Count int = $(Invoices);
+DECLARE @Busy int = $(BusyOrderInvoices);
 DECLARE @Newest datetimeoffset = '2026-11-13T08:00:00+00:00';
 
 DROP TABLE IF EXISTS #V;
@@ -116,6 +121,46 @@ CROSS APPLY (SELECT CASE WHEN v.Status IN (5, 7) THEN 2 ELSE 1 END AS Outcome,
                     CASE WHEN v.Status IN (5, 7) THEN 1.05 ELSE 1.00 END AS Factor) AS m
 WHERE v.Status IN (4, 5, 6, 7, 8)
 ORDER BY v.n;
+
+-- The busy order: ids 00000000-0000-0000-0010-NNNNNNNNNNNN.
+DROP TABLE IF EXISTS #B;
+SELECT n,
+       CONVERT(uniqueidentifier, CONCAT('00000000-0000-0000-0010-', RIGHT(CONCAT('000000000000', n), 12))) AS Id,
+       DATEADD(MINUTE, n * 50, CAST('2025-01-01T08:00:00+00:00' AS datetimeoffset)) AS ReceivedAt,
+       CAST(1 + n % 7 AS decimal(18,4)) AS Quantity
+INTO #B
+FROM (
+    SELECT TOP (@Busy) CAST(ROW_NUMBER() OVER (ORDER BY (SELECT NULL)) AS int) AS n
+    FROM sys.all_objects AS a CROSS JOIN sys.all_objects AS b
+) AS numbers;
+
+INSERT INTO dbo.Invoice (Id, SourceFormat, SubmittedBy, Status, InvoiceNumber, VendorId, IssueDate, PurchaseOrderNumber,
+                         NetTotal_Amount, NetTotal_Currency, TaxTotal_Amount, TaxTotal_Currency, GrossTotal_Amount, GrossTotal_Currency)
+SELECT b.Id, 1, N'clerk@example.com', 8, CONCAT(N'VOL-B', b.n), '00000000-0000-0000-0001-000000000006',
+       CAST(b.ReceivedAt AS date), N'PO-0101', t.Net, 'EUR', t.Tax, 'EUR', t.Net + t.Tax, 'EUR'
+FROM #B AS b
+CROSS APPLY (SELECT ROUND(b.Quantity * 4.89, 2) AS Net, ROUND(ROUND(b.Quantity * 4.89, 2) * 0.19, 2) AS Tax) AS t
+ORDER BY b.n;
+
+INSERT INTO dbo.InvoiceDocument (InvoiceId, FileName, ContentType, Content, Sha256, SizeBytes, ReceivedAt)
+SELECT b.Id, CONCAT(N'VOL-B', b.n, N'.xml'), 'application/xml', d.Content, HASHBYTES('SHA2_256', d.Content), DATALENGTH(d.Content), b.ReceivedAt
+FROM #B AS b
+CROSS APPLY (SELECT CAST(CONCAT('<!-- load volume, busy order ', b.n, ' -->') AS varbinary(max)) AS Content) AS d
+ORDER BY b.n;
+
+INSERT INTO dbo.InvoiceLine (InvoiceId, LineNumber, Description, Quantity, UnitPrice, NetAmount_Amount, NetAmount_Currency, TaxRatePercent, PurchaseOrderLineNumber)
+SELECT b.Id, 1, N'Copy paper A4, 500 sheets', b.Quantity, 4.89, ROUND(b.Quantity * 4.89, 2), 'EUR', 19, 1
+FROM #B AS b
+ORDER BY b.n;
+
+INSERT INTO dbo.InvoiceStatusChange (InvoiceId, Sequence, FromStatus, ToStatus, Actor, At, Reason)
+SELECT b.Id, s.Sequence, s.FromStatus, s.ToStatus, s.Actor, DATEADD(MINUTE, s.Minutes, b.ReceivedAt), NULL
+FROM #B AS b
+CROSS JOIN (VALUES
+    (1, NULL, 1, N'clerk@example.com', 0), (2, 1, 2, N'system', 0), (3, 2, 3, N'system', 0), (4, 3, 4, N'system', 0),
+    (5, 4, 6, N'approver@example.com', 30), (6, 6, 8, N'erp-connector', 1440)
+) AS s(Sequence, FromStatus, ToStatus, Actor, Minutes)
+ORDER BY b.n, s.Sequence;
 
 COMMIT TRANSACTION;
 
