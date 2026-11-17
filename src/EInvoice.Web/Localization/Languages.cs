@@ -56,8 +56,9 @@ public static class Languages
             }
 
             var form = await context.Request.ReadFormAsync(context.RequestAborted).ConfigureAwait(false);
-            var language = form["culture"].ToString();
-            if (!Supported.Contains(language, StringComparer.Ordinal))
+            // The cookie gets the app's own value from the list, never the posted text.
+            var posted = form["culture"].ToString();
+            if (Supported.FirstOrDefault(l => string.Equals(l, posted, StringComparison.Ordinal)) is not { } language)
             {
                 return Results.Problem(statusCode: StatusCodes.Status400BadRequest, title: "This language is not offered.");
             }
