@@ -62,7 +62,15 @@ else
 
         <dl class="facts mt-3">
             <div><dt>@T["Common.Vendor"]</dt><dd data-testid="vendor">@(invoice.VendorName ?? T["Common.UnknownVendor"])</dd></div>
-            <div><dt>@T["Common.PurchaseOrder"]</dt><dd data-testid="order">@(invoice.PurchaseOrderNumber ?? "–")</dd></div>
+            <div><dt>@T["Common.PurchaseOrder"]</dt><dd data-testid="order">@if (invoice.PurchaseOrderNumber is { } orderNumber)
+                {
+                    @* What it is matched against: every invoice reader may read the orders. *@
+                    <MudLink Href="@($"/purchasing?q={Uri.EscapeDataString(orderNumber)}")" Underline="Underline.Always">@orderNumber</MudLink>
+                }
+                else
+                {
+                    <span>–</span>
+                }</dd></div>
             <div><dt>@T["Common.IssueDate"]</dt><dd>@Formats.Date(invoice.IssueDate)</dd></div>
             <div><dt>@T["Common.Net"]</dt><dd class="tabular" data-testid="net">@Formats.Money(invoice.NetTotal, invoice.Currency)</dd></div>
             <div><dt>@T["Common.Vat"]</dt><dd class="tabular" data-testid="tax">@Formats.Money(invoice.TaxTotal, invoice.Currency)</dd></div>

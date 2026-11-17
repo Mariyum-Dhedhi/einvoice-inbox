@@ -66,6 +66,8 @@ internal static class TextResources
         keys.UnionWith(Enum.GetNames<RematchOutcome>().Select(n => $"Rematch.{n}"));
         keys.UnionWith(Enum.GetNames<BankAccountOutcome>().Select(n => $"BankAccount.{n}"));
         keys.UnionWith(Enum.GetNames<AuditProblem>().Select(n => $"AuditProblem.{n}"));
+        keys.UnionWith(Enum.GetNames<EInvoice.Application.Purchasing.PurchasingOutcome>().Select(n => $"Purchasing.{n}"));
+        keys.UnionWith(Enum.GetNames<EInvoice.Application.Purchasing.ReceiptState>().Select(n => $"ReceiptState.{n}"));
         keys.UnionWith(Constants(typeof(AuditActions)).Select(a => $"AuditAction.{a}"));
         keys.UnionWith(Constants(typeof(Roles)).Select(r => $"Role.{r}"));
         return keys;

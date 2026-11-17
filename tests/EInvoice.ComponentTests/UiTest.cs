@@ -4,6 +4,7 @@ using EInvoice.Application.Explanation;
 using EInvoice.Application.Intake;
 using EInvoice.Application.Kpi;
 using EInvoice.Application.Matching;
+using EInvoice.Application.Purchasing;
 using EInvoice.Application.Queries;
 using EInvoice.Application.Security;
 using EInvoice.Application.Vendors;
@@ -46,6 +47,8 @@ public abstract class UiTest : BunitContext, IAsyncLifetime
         Services.AddSingleton<IKpiQueries>(Kpis);
         Services.AddSingleton<IBankAccountQueries>(BankAccounts);
         Services.AddSingleton<IBankAccountAdministration>(BankAccountAdmin);
+        Services.AddSingleton<IPurchasingQueries>(PurchasingQueries);
+        Services.AddSingleton<IPurchasing>(Purchasing);
         Services.AddSingleton(Microsoft.Extensions.Options.Options.Create(new ApprovalSettings { DefaultLimitEur = DefaultLimit }));
         Services.AddSingleton<Microsoft.AspNetCore.Components.Forms.AntiforgeryStateProvider>(new FixedAntiforgery());
         Auth = AddAuthorization();
@@ -64,14 +67,17 @@ public abstract class UiTest : BunitContext, IAsyncLifetime
     /// What a clerk may do. bUnit does not map roles to policies; that mapping is tested end to end in RoleMatrixTests.
     /// Here a test sets the policies of the role it plays.
     /// </summary>
-    public static readonly string[] ClerkPolicies = [Policies.ReadInvoices, Policies.UploadInvoices, Policies.RematchInvoices, Policies.ExplainWithAi];
+    public static readonly string[] ClerkPolicies = [Policies.ReadInvoices, Policies.UploadInvoices, Policies.RematchInvoices, Policies.ExplainWithAi, Policies.ReadPurchasing];
 
-    public static readonly string[] ApproverPolicies = [Policies.ReadInvoices, Policies.ExplainWithAi, Policies.DecideInvoices];
+    public static readonly string[] ApproverPolicies = [Policies.ReadInvoices, Policies.ExplainWithAi, Policies.DecideInvoices, Policies.ReadPurchasing];
+
+    /// <summary>Records orders and goods receipts; reads no invoices.</summary>
+    public static readonly string[] BuyerPolicies = [Policies.ReadPurchasing, Policies.ManagePurchasing];
 
     /// <summary>The approval limit when the account has none (Approval:DefaultLimitEur).</summary>
     public const decimal DefaultLimit = 5_000m;
 
-    public static readonly string[] AuditorPolicies = [Policies.ReadInvoices];
+    public static readonly string[] AuditorPolicies = [Policies.ReadInvoices, Policies.ReadPurchasing];
 
     public const string AntiforgeryToken = "test-antiforgery-token";
 
@@ -94,6 +100,10 @@ public abstract class UiTest : BunitContext, IAsyncLifetime
     protected FakeBankAccountAdministration BankAccountAdmin { get; } = new();
 
     protected FakeQueries Queries { get; } = new();
+
+    protected FakePurchasingQueries PurchasingQueries { get; } = new();
+
+    protected FakePurchasing Purchasing { get; } = new();
 
     protected FakeIntake Intake { get; } = new();
 
@@ -374,4 +384,61 @@ public static class Views
         string number, InvoiceStatus status = InvoiceStatus.Matched, decimal gross = 1234.56m, string currency = "EUR",
         string submittedBy = "clerk@test", bool blocking = false) =>
         new(Guid.NewGuid(), status, number, "Beispiel Bürobedarf GmbH", gross, currency, submittedBy, Received, blocking);
+}
+
+public sealed class FakePurchasingQueries : IPurchasingQueries
+{
+    public PurchaseOrderList Page { get; set; } = new([], 1, PurchaseOrderListQuery.DefaultPageSize, 0);
+
+    public List<PurchaseOrderListQuery> ListCalls { get; } = [];
+
+    public Dictionary<Guid, PurchaseOrderDetail> Details { get; } = [];
+
+    public List<(Guid Id, bool WithInvoices)> DetailCalls { get; } = [];
+
+    public List<VendorChoice> Vendors { get; } = [];
+
+    public int VendorCalls { get; private set; }
+
+    public Task<PurchaseOrderList> ListAsync(PurchaseOrderListQuery query, CancellationToken cancellationToken)
+    {
+        ListCalls.Add(query);
+        return Task.FromResult(Page);
+    }
+
+    public Task<PurchaseOrderDetail?> GetAsync(Guid id, bool withInvoices, CancellationToken cancellationToken)
+    {
+        DetailCalls.Add((id, withInvoices));
+        return Task.FromResult(Details.GetValueOrDefault(id));
+    }
+
+    public Task<IReadOnlyList<VendorChoice>> ActiveVendorsAsync(CancellationToken cancellationToken)
+    {
+        VendorCalls++;
+        return Task.FromResult<IReadOnlyList<VendorChoice>>(Vendors);
+    }
+}
+
+public sealed class FakePurchasing : IPurchasing
+{
+    public List<(OrderDraft Draft, string Buyer)> Orders { get; } = [];
+
+    public List<(Guid OrderId, ReceiptDraft Draft, string Buyer)> Receipts { get; } = [];
+
+    public Guid CreatedId { get; } = Guid.NewGuid();
+
+    /// <summary>Set to answer with a refusal; otherwise every call succeeds.</summary>
+    public PurchasingResult? Result { get; set; }
+
+    public Task<PurchasingResult> CreateOrderAsync(OrderDraft draft, string buyer, CancellationToken cancellationToken)
+    {
+        Orders.Add((draft, buyer));
+        return Task.FromResult(Result ?? new PurchasingResult(PurchasingOutcome.OrderCreated, CreatedId));
+    }
+
+    public Task<PurchasingResult> RecordReceiptAsync(Guid orderId, ReceiptDraft draft, string buyer, CancellationToken cancellationToken)
+    {
+        Receipts.Add((orderId, draft, buyer));
+        return Task.FromResult(Result ?? new PurchasingResult(PurchasingOutcome.ReceiptRecorded, Guid.NewGuid()));
+    }
 }

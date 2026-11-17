@@ -48,6 +48,24 @@ public static class Formats
     public static string FileSize(long bytes) =>
         bytes < 1024 ? $"{bytes}{Nbsp}B" : (bytes / 1024m).ToString("#,##0.#", German) + Nbsp + "KB";
 
+    /// <summary>
+    /// A number typed in a form, in the same German format the pages show: digits and at most one decimal comma
+    /// ("7,4125", "40"). A point or a thousands separator is refused, never guessed: "7.5" could mean 75 or 7,5.
+    /// </summary>
+    public static bool TryParseNumber(string? text, out decimal value)
+    {
+        value = 0m;
+        var trimmed = text?.Trim() ?? string.Empty;
+        return trimmed.Length is > 0 and <= 30
+            && trimmed.All(c => char.IsAsciiDigit(c) || c == ',')
+            && trimmed.Count(c => c == ',') <= 1
+            && char.IsAsciiDigit(trimmed[0]) && char.IsAsciiDigit(trimmed[^1])
+            && decimal.TryParse(trimmed, NumberStyles.AllowDecimalPoint, German, out value);
+    }
+
+    /// <summary>A number as a form field shows it for editing: German decimals, no thousands separator.</summary>
+    public static string Editable(decimal value) => value.ToString("0.######", German);
+
     private static string Symbol(string? currency) => currency switch
     {
         null or "" => string.Empty,

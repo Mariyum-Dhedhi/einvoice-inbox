@@ -995,4 +995,193 @@
   <data name="BankAccount.ReasonTooLong" xml:space="preserve">
     <value>Der Grund ist länger als 200 Zeichen.</value>
   </data>
+  <data name="Nav.Purchasing" xml:space="preserve">
+    <value>Einkauf</value>
+  </data>
+  <data name="Role.Buyer" xml:space="preserve">
+    <value>Einkauf</value>
+  </data>
+  <data name="AuditAction.PurchaseOrderCreated" xml:space="preserve">
+    <value>Bestellung angelegt</value>
+  </data>
+  <data name="AuditAction.GoodsReceiptRecorded" xml:space="preserve">
+    <value>Wareneingang gebucht</value>
+  </data>
+  <data name="Purchasing.Title" xml:space="preserve">
+    <value>Bestellungen</value>
+  </data>
+  <data name="Purchasing.Intro" xml:space="preserve">
+    <value>Was bestellt wurde und was geliefert wurde: Damit wird jede Rechnung abgeglichen.</value>
+  </data>
+  <data name="Purchasing.New" xml:space="preserve">
+    <value>Neue Bestellung</value>
+  </data>
+  <data name="Purchasing.NewIntro" xml:space="preserve">
+    <value>Erfassen Sie eine Bestellung so, wie sie beim Lieferanten aufgegeben wurde. Erfasstes lässt sich danach nicht mehr ändern.</value>
+  </data>
+  <data name="Purchasing.SearchLabel" xml:space="preserve">
+    <value>Bestellungen suchen</value>
+  </data>
+  <data name="Purchasing.SearchPlaceholder" xml:space="preserve">
+    <value>Bestellnummer oder Lieferant</value>
+  </data>
+  <data name="Purchasing.Search" xml:space="preserve">
+    <value>Suchen</value>
+  </data>
+  <data name="Purchasing.Loading" xml:space="preserve">
+    <value>Bestellungen werden geladen</value>
+  </data>
+  <data name="Purchasing.LoadingOrder" xml:space="preserve">
+    <value>Bestellung wird geladen</value>
+  </data>
+  <data name="Purchasing.Empty" xml:space="preserve">
+    <value>Noch keine Bestellungen.</value>
+  </data>
+  <data name="Purchasing.NoneFound" xml:space="preserve">
+    <value>Keine Bestellung passt zur Suche.</value>
+  </data>
+  <data name="Purchasing.OrderDate" xml:space="preserve">
+    <value>Bestelldatum</value>
+  </data>
+  <data name="Purchasing.Delivery" xml:space="preserve">
+    <value>Lieferung</value>
+  </data>
+  <data name="Purchasing.NotFound" xml:space="preserve">
+    <value>Bestellung nicht gefunden</value>
+  </data>
+  <data name="Purchasing.Back" xml:space="preserve">
+    <value>Zurück zu den Bestellungen</value>
+  </data>
+  <data name="Purchasing.Lines" xml:space="preserve">
+    <value>Bestellpositionen</value>
+  </data>
+  <data name="Purchasing.LinesIntro" xml:space="preserve">
+    <value>Eine Rechnungsposition wird mit ihrer Bestellposition verglichen: der Preis mit dem Bestellpreis, die Menge mit dem, was geliefert und noch nicht berechnet ist.</value>
+  </data>
+  <data name="Purchasing.Item" xml:space="preserve">
+    <value>Artikelnr.</value>
+  </data>
+  <data name="Purchasing.Ordered" xml:space="preserve">
+    <value>Bestellt</value>
+  </data>
+  <data name="Purchasing.Received" xml:space="preserve">
+    <value>Geliefert</value>
+  </data>
+  <data name="Purchasing.Open" xml:space="preserve">
+    <value>Offen</value>
+  </data>
+  <data name="Purchasing.Invoiced" xml:space="preserve">
+    <value>Berechnet</value>
+  </data>
+  <data name="Purchasing.RecordReceipt" xml:space="preserve">
+    <value>Wareneingang buchen</value>
+  </data>
+  <data name="Purchasing.RecordReceiptIntro" xml:space="preserve">
+    <value>Was geliefert wurde, je Position. Die offenen Mengen sind eingetragen; ändern Sie sie bei einer Teillieferung, leeren Sie eine Position, wenn nichts kam.</value>
+  </data>
+  <data name="Purchasing.ReceiptNumber" xml:space="preserve">
+    <value>Wareneingangsnr.</value>
+  </data>
+  <data name="Purchasing.ReceivedDate" xml:space="preserve">
+    <value>Geliefert am</value>
+  </data>
+  <data name="Purchasing.ReceivedOnLine" xml:space="preserve">
+    <value>Position {0}: {1}</value>
+  </data>
+  <data name="Purchasing.OpenOnLine" xml:space="preserve">
+    <value>Offen: {0}</value>
+  </data>
+  <data name="Purchasing.RecordReceiptButton" xml:space="preserve">
+    <value>Wareneingang buchen</value>
+  </data>
+  <data name="Purchasing.Receipts" xml:space="preserve">
+    <value>Wareneingänge</value>
+  </data>
+  <data name="Purchasing.NoReceipts" xml:space="preserve">
+    <value>Es wurde noch nichts geliefert.</value>
+  </data>
+  <data name="Purchasing.ReceiptLines" xml:space="preserve">
+    <value>Geliefert</value>
+  </data>
+  <data name="Purchasing.ReceiptLine" xml:space="preserve">
+    <value>Pos. {0}: {1}</value>
+  </data>
+  <data name="Purchasing.Invoices" xml:space="preserve">
+    <value>Rechnungen zu dieser Bestellung</value>
+  </data>
+  <data name="Purchasing.NoInvoices" xml:space="preserve">
+    <value>Noch keine Rechnung nennt diese Bestellung.</value>
+  </data>
+  <data name="Purchasing.OrderNumber" xml:space="preserve">
+    <value>Bestellnr.</value>
+  </data>
+  <data name="Purchasing.NumberHelp" xml:space="preserve">
+    <value>So, wie der Lieferant sie auf der Rechnung angibt.</value>
+  </data>
+  <data name="Purchasing.ChooseVendor" xml:space="preserve">
+    <value>Wählen Sie einen Lieferanten.</value>
+  </data>
+  <data name="Purchasing.NumberFormatHelp" xml:space="preserve">
+    <value>Zahlen wie auf den Rechnungsseiten: Komma für Dezimalstellen, ohne Tausenderpunkt (7,4125).</value>
+  </data>
+  <data name="Purchasing.LineLegend" xml:space="preserve">
+    <value>Position {0}</value>
+  </data>
+  <data name="Purchasing.UnitPriceEur" xml:space="preserve">
+    <value>Einzelpreis (EUR)</value>
+  </data>
+  <data name="Purchasing.RemoveLine" xml:space="preserve">
+    <value>Position {0} entfernen</value>
+  </data>
+  <data name="Purchasing.AddLine" xml:space="preserve">
+    <value>Position hinzufügen</value>
+  </data>
+  <data name="Purchasing.Save" xml:space="preserve">
+    <value>Bestellung speichern</value>
+  </data>
+  <data name="Purchasing.NotANumber" xml:space="preserve">
+    <value>Position {0}: Geben Sie Zahlen mit Komma und ohne Tausenderpunkt ein, zum Beispiel 7,4125.</value>
+  </data>
+  <data name="Purchasing.OrderCreated" xml:space="preserve">
+    <value>Bestellung gespeichert.</value>
+  </data>
+  <data name="Purchasing.ReceiptRecorded" xml:space="preserve">
+    <value>Wareneingang gebucht. Rechnungen, die darauf warten, können erneut abgeglichen werden.</value>
+  </data>
+  <data name="Purchasing.InvalidNumber" xml:space="preserve">
+    <value>Die Nummer hat bis zu 20 Buchstaben, Ziffern oder . _ / - und beginnt mit einem Buchstaben oder einer Ziffer; keine Leerzeichen.</value>
+  </data>
+  <data name="Purchasing.NumberTaken" xml:space="preserve">
+    <value>Diese Nummer gibt es bereits.</value>
+  </data>
+  <data name="Purchasing.VendorNotFound" xml:space="preserve">
+    <value>Den Lieferanten gibt es nicht mehr.</value>
+  </data>
+  <data name="Purchasing.VendorInactive" xml:space="preserve">
+    <value>Der Lieferant ist deaktiviert und erhält keine neuen Bestellungen.</value>
+  </data>
+  <data name="Purchasing.InvalidDate" xml:space="preserve">
+    <value>Das Datum darf nicht in der Zukunft liegen, und eine Lieferung nicht vor ihrer Bestellung.</value>
+  </data>
+  <data name="Purchasing.InvalidLine" xml:space="preserve">
+    <value>Position {0} lässt sich so nicht speichern: Prüfen Sie Artikelnummer, Beschreibung (Pflicht), Menge (über 0, bis 4 Dezimalstellen), Preis (bis 6 Dezimalstellen) und Steuersatz.</value>
+  </data>
+  <data name="Purchasing.OrderNotFound" xml:space="preserve">
+    <value>Die Bestellung gibt es nicht mehr.</value>
+  </data>
+  <data name="Purchasing.NothingReceived" xml:space="preserve">
+    <value>Geben Sie mindestens eine gelieferte Menge ein.</value>
+  </data>
+  <data name="Purchasing.OverReceived" xml:space="preserve">
+    <value>Position {0}: Es würde mehr geliefert als bestellt.</value>
+  </data>
+  <data name="ReceiptState.NothingReceived" xml:space="preserve">
+    <value>Nichts geliefert</value>
+  </data>
+  <data name="ReceiptState.Partly" xml:space="preserve">
+    <value>Teilweise geliefert</value>
+  </data>
+  <data name="ReceiptState.Complete" xml:space="preserve">
+    <value>Vollständig geliefert</value>
+  </data>
 </root>
