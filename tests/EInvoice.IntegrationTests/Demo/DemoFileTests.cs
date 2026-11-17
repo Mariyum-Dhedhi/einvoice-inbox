@@ -32,6 +32,53 @@ public sealed class DemoFileTests
             $"{demo.FileName} differs from what the generator builds"));
     }
 
+    private static IEnumerable<DemoAiInvoice> Letterheads => DemoAiInvoices.All.Where(d => d.Render is not null);
+
+    [Fact]
+    public void Every_letterhead_supplier_has_a_logo_of_its_own()
+    {
+        // The shape, not the bytes: a different colour alone would make every logo "different".
+        var marks = Letterheads.Select(d =>
+        {
+            using var pdf = UglyToad.PdfPig.PdfDocument.Open(d.Content);
+            Assert.True(Assert.Single(pdf.GetPage(1).GetImages()).TryGetBytesAsMemory(out var rgb), d.FileName);
+            var pixels = rgb.Span;
+            var white = new char[pixels.Length / 3];
+            for (var i = 0; i < white.Length; i++)
+            {
+                white[i] = Math.Min(pixels[i * 3], Math.Min(pixels[(i * 3) + 1], pixels[(i * 3) + 2])) > 200 ? '1' : '0';
+            }
+
+            return new string(white);
+        }).ToList();
+
+        Assert.True(marks.Count >= 5, "13 to 17 are letterhead samples");
+        Assert.Equal(marks.Count, marks.Distinct().Count());
+    }
+
+    [Fact]
+    public void No_letterhead_text_runs_past_the_margins()
+    {
+        Assert.All(Letterheads, d =>
+        {
+            using var pdf = UglyToad.PdfPig.PdfDocument.Open(d.Content);
+            var outside = pdf.GetPage(1).Letters.Where(l => l.BoundingBox.Left < 55 || l.BoundingBox.Right > 540).Select(l => l.Value);
+            Assert.True(!outside.Any(), $"{d.FileName}: '{string.Concat(outside)}' is outside the margins");
+        });
+    }
+
+    [Fact]
+    public void The_new_bank_account_sample_announces_the_change_and_prints_the_unapproved_iban()
+    {
+        var demo = DemoAiInvoices.All.Single(d => d.FileName == "17-ai-letterhead-new-bank-account.pdf");
+        using var pdf = UglyToad.PdfPig.PdfDocument.Open(demo.Content);
+        var text = string.Join(" ", pdf.GetPage(1).GetWords().Select(w => w.Text));
+
+        Assert.Contains("Unsere Bankverbindung hat sich geaendert.", text, StringComparison.Ordinal);
+        Assert.Contains(EInvoice.AiEvaluation.EvalTruth.Printable(demo.Case.VisibleNote!), text, StringComparison.Ordinal); // all of it, every row
+        Assert.Contains(string.Join(' ', DemoAiInvoices.NewBankAccount.Chunk(4).Select(c => new string(c))), text, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void The_ai_samples_are_plain_pdfs_without_an_embedded_invoice()
     {

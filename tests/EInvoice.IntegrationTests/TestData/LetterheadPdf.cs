@@ -22,8 +22,19 @@ internal static class LetterheadPdf
 
     private static readonly CultureInfo German = CultureInfo.GetCultureInfo("de-DE");
 
+    /// <summary>The white sign on the logo: one per supplier, so the samples look like different companies.</summary>
+    public enum Mark
+    {
+        Bolt,
+        Hexagon,
+        Bars,
+        Arrow,
+        Rings,
+    }
+
     /// <summary>The letterhead details of the fictional supplier (not master data: the invoice states them).</summary>
-    public sealed record Company(string Tagline, string Street, string City, string Phone, string Web, string Register, string Bic, (byte R, byte G, byte B) Colour);
+    public sealed record Company(
+        string Tagline, string Street, string City, string Phone, string Web, string Register, string Bic, (byte R, byte G, byte B) Colour, Mark Logo = Mark.Bolt);
 
     public static byte[] Render(EvalCase c, Company company)
     {
@@ -50,7 +61,7 @@ internal static class LetterheadPdf
         void Black() => page.SetTextAndFillColor(0, 0, 0);
 
         // ---- Letterhead: logo, name, tagline; contact block on the right --------------------------------------------
-        page.AddPng(Logo(company.Colour), new PdfRectangle(Left, 762, Left + 54, 816));
+        page.AddPng(Logo(company.Colour, company.Logo), new PdfRectangle(Left, 762, Left + 54, 816));
         page.SetTextAndFillColor(r, g, b);
         Write(t.SellerName, Left + 66, 795, 17, strong: true);
         Grey();
@@ -151,8 +162,22 @@ internal static class LetterheadPdf
         Write("Rechnungsbetrag", 330, y, 10.5, strong: true);
         WriteRight($"{t.GrossTotal.ToString("#,##0.00", German)} EUR", Right - 4, y, 10.5, strong: true);
 
-        // ---- Payment terms ---------------------------------------------------------------------------------------------------
+        // ---- A note from the supplier, in its colour, as real letters put one (wrapped to the text width) ------------------
         y -= 40;
+        if (c.VisibleNote is { } note)
+        {
+            page.SetTextAndFillColor(r, g, b);
+            foreach (var row in Wrap(EvalTruth.Printable(note), Right - Left, 9.5))
+            {
+                Write(row, Left, y, 9.5, strong: true);
+                y -= 13;
+            }
+
+            Black();
+            y -= 10;
+        }
+
+        // ---- Payment terms ---------------------------------------------------------------------------------------------------
         Write($"Zahlbar bis {c.IssueDate.AddDays(30).ToString("dd.MM.yyyy", German)} ohne Abzug auf das unten genannte Konto.", Left, y, 9.5);
         Write("Vielen Dank fuer Ihren Auftrag.", Left, y - 14, 9.5);
 
@@ -175,17 +200,68 @@ internal static class LetterheadPdf
         }
 
         return WithFixedId(builder.Build(), c.Id);
+
+        IEnumerable<string> Wrap(string text, double width, double size)
+        {
+            var row = "";
+            foreach (var word in text.Split(' ', StringSplitOptions.RemoveEmptyEntries))
+            {
+                var longer = row.Length == 0 ? word : $"{row} {word}";
+                var letters = page.MeasureText(longer, size, new PdfPoint(0, 0), bold);
+                if (row.Length > 0 && letters[^1].EndBaseLine.X - letters[0].StartBaseLine.X > width)
+                {
+                    yield return row;
+                    longer = word;
+                }
+
+                row = longer;
+            }
+
+            if (row.Length > 0)
+            {
+                yield return row;
+            }
+        }
     }
 
-    // ---- The logo: a rounded square in the company colour with a white bolt and ring, drawn pixel by pixel. ------------
+    // ---- The logo: a rounded square in the company colour with a white mark, drawn pixel by pixel. ----------------------
 
     private const int LogoSize = 160;
 
-    private static byte[] Logo((byte R, byte G, byte B) colour)
+    private static readonly (double X, double Y)[] BoltShape = [(0.56, 0.16), (0.30, 0.55), (0.48, 0.55), (0.42, 0.84), (0.70, 0.43), (0.52, 0.43), (0.60, 0.16)];
+    private static readonly (double X, double Y)[] Chevron = [(0.20, 0.26), (0.38, 0.26), (0.60, 0.50), (0.38, 0.74), (0.20, 0.74), (0.42, 0.50)];
+
+    /// <summary>Whether a point of the logo (0..1, y downwards) is white.</summary>
+    private static bool IsWhite(Mark mark, double x, double y)
+    {
+        var d = Distance(x, y, 0.5, 0.5);
+        return mark switch
+        {
+            Mark.Bolt => d is > 0.36 and < 0.41 || InPolygon(x, y, BoltShape),
+            Mark.Hexagon => (InHexagon(x, y, 0.34) && !InHexagon(x, y, 0.25)) || d < 0.09,
+            Mark.Bars => (y is > 0.27 and < 0.36 && x is > 0.24 and < 0.76)
+                || (y is > 0.455 and < 0.545 && x is > 0.24 and < 0.66)
+                || (y is > 0.64 and < 0.73 && x is > 0.24 and < 0.56),
+            Mark.Arrow => InPolygon(x, y, Chevron) || InPolygon(x - 0.22, y, Chevron),
+            Mark.Rings => Distance(x, y, 0.39, 0.5) is > 0.15 and < 0.21 || Distance(x, y, 0.61, 0.5) is > 0.15 and < 0.21,
+            _ => throw new ArgumentOutOfRangeException(nameof(mark)),
+        };
+    }
+
+    private static double Distance(double x, double y, double cx, double cy) => Math.Sqrt(((x - cx) * (x - cx)) + ((y - cy) * (y - cy)));
+
+    /// <summary>A hexagon with a point at the top, centred, with the given distance from centre to corner.</summary>
+    private static bool InHexagon(double x, double y, double radius)
+    {
+        var dx = Math.Abs(x - 0.5);
+        var dy = Math.Abs(y - 0.5);
+        return dx <= radius * Math.Sqrt(3) / 2 && dy + (dx / Math.Sqrt(3)) <= radius;
+    }
+
+    private static byte[] Logo((byte R, byte G, byte B) colour, Mark mark)
     {
         const int sub = 3; // 3 x 3 samples per pixel: smooth edges
         var pixels = new byte[LogoSize * LogoSize * 3];
-        (double X, double Y)[] bolt = [(0.56, 0.16), (0.30, 0.55), (0.48, 0.55), (0.42, 0.84), (0.70, 0.43), (0.52, 0.43), (0.60, 0.16)];
         for (var py = 0; py < LogoSize; py++)
         {
             for (var px = 0; px < LogoSize; px++)
@@ -203,8 +279,7 @@ internal static class LetterheadPdf
                         }
 
                         inSquare++;
-                        var d = Math.Sqrt(((x - 0.5) * (x - 0.5)) + ((yy - 0.5) * (yy - 0.5)));
-                        if ((d is > 0.36 and < 0.41) || InPolygon(x, yy, bolt))
+                        if (IsWhite(mark, x, yy))
                         {
                             white++;
                         }
