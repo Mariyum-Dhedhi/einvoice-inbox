@@ -24,6 +24,26 @@ dotnet run --project src/EInvoice.Web --launch-profile https
 Open https://localhost:7169. To show posting to the (mock) ERP as well, start the app with
 `Erp__Enabled=true` and `Erp__BaseUrl=http://127.0.0.1:8090/` set as environment variables.
 
+### With AI (plain PDF invoices)
+
+Plain PDFs are read by a local language model, which is off unless switched on. Once per machine: install
+[Ollama](https://ollama.com) and run `ollama pull qwen2.5:7b` (about 4.7 GB; a GPU with 8 GB makes a page take a few
+seconds). Ollama listens on `127.0.0.1:11434`, on this machine only. Then start the app with AI and ERP on:
+
+```bash
+Ai__Enabled=true Ai__OllamaUrl=http://127.0.0.1:11434/ Ai__Model=qwen2.5:7b Erp__Enabled=true Erp__BaseUrl=http://127.0.0.1:8090/ dotnet run --project src/EInvoice.Web --launch-profile https
+```
+
+(PowerShell: `$env:Ai__Enabled="true"; $env:Ai__OllamaUrl="http://127.0.0.1:11434/"; $env:Ai__Model="qwen2.5:7b"`, then
+`dotnet run ...`.) With AI on, *Explain with AI* also appears on exceptions. The first PDF after a start takes longer
+while Ollama loads the model.
+
+Before a demo, check that the model gives every AI sample its outcome on this machine (a minute or two, needs Docker):
+
+```bash
+EINVOICE_OLLAMA_URL=http://127.0.0.1:11434/ EINVOICE_OLLAMA_MODEL=qwen2.5:7b dotnet test tests/EInvoice.IntegrationTests --filter FullyQualifiedName~DemoAiOllamaTests
+```
+
 ## Sign in
 
 All demo accounts share the password set in `DemoUsers:Password`
@@ -52,6 +72,19 @@ Upload them from `demo/invoices` as the clerk. Each one uses its own seeded orde
 | `08-unreadable.xml` | Breaks off in the middle: **Failed**, the original file is kept |
 | `01-full-match.xml` again | Refused as a duplicate; nothing is stored |
 
+With AI on (plain PDFs, no XML inside; the model reads them):
+
+| File | What happens |
+|---|---|
+| `09-ai-full-match.pdf` | German layout, three lines: read, every value found in the document, **Matched** |
+| `10-ai-price-variance.pdf` | 14 desks billed at 379,00 instead of 349,00: **Exception**, price variance |
+| `11-ai-hidden-instruction.pdf` | Correct values, plus white-on-white text telling the AI to approve it and report a total of 1.00. The model never sees hidden text; the app reports it: **Exception**, HIDDEN_TEXT, values unchanged |
+| `12-ai-english-numbers.pdf` | International layout with English numbers (1,234.56): read correctly, **Matched** |
+
+With AI off, the PDFs are refused ("PDF invoices are read by AI, which is switched off"); nothing is stored.
+`DemoAiInvoiceTests` checks these outcomes in CI with a perfect reader; `DemoAiOllamaTests` with the real model (local
+only, not a measurement: the measured numbers are in `testdata/ai-eval`).
+
 `DemoInvoiceTests` checks every one of these outcomes against the seeded database, and the XML passes the
 official KoSIT validator.
 
@@ -68,7 +101,11 @@ official KoSIT validator.
    latest hash.
 5. **Dashboard.** `/dashboard` shows invoices by status, what blocks the exception queue, the straight-through rate
    per month and the ERP posting health.
-6. **Admin: bank accounts.** `/admin/vendors`, pick a vendor, propose a new bank account as `admin@`; it stays
+6. **AI (if switched on).** As the clerk, upload 09: the invoice carries an *AI · read from PDF* badge, and the
+   inbox marks it. Upload 11: the values are the document's, and the finding says hidden text was found; open the
+   PDF to see that the page looks normal. Upload 10, open it, and press *Explain with AI*: a suggestion in words, whose
+   numbers are checked against the match result before it is shown. A person still decides.
+7. **Admin: bank accounts.** `/admin/vendors`, pick a vendor, propose a new bank account as `admin@`; it stays
    Pending until `admin2@` confirms it (two-person rule), and the history keeps every version.
 
 The six seeded invoices (RE-2026-0001 to 0006) start as *Parsed*; as the clerk, *Re-match* on one of them shows each
@@ -92,9 +129,14 @@ two-person rule arrived (an account nobody confirmed is not trusted), so every i
 
 ## Changing the files
 
-Change `DemoInvoices.cs`, then write the files and check them:
+Change `DemoInvoices.cs` (XML and ZUGFeRD) or `DemoAiInvoices.cs` (plain PDFs, drawn by the AI evaluation's renderer),
+then write the files and check them:
 
 ```bash
 EINVOICE_WRITE_DEMO_FILES=1 dotnet test tests/EInvoice.IntegrationTests --filter FullyQualifiedName~DemoFileTests
-dotnet test tests/EInvoice.IntegrationTests --filter FullyQualifiedName~DemoInvoiceTests
+dotnet test tests/EInvoice.IntegrationTests --filter "FullyQualifiedName~DemoInvoiceTests|FullyQualifiedName~DemoAiInvoiceTests"
 ```
+
+A changed AI sample is checked with the real model too (`DemoAiOllamaTests`, above) before it is committed: a layout the
+model misreads still ends safely (the line and VAT checks catch it, nothing wrong is matched) but shows a different
+story. A two-line version of `10` did exactly that with qwen2.5:7b, every time; the desk-only invoice reads cleanly.
