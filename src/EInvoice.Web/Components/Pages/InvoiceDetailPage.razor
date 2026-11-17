@@ -15,64 +15,64 @@
 
 @if (!_loaded)
 {
-    <MudProgressLinear Indeterminate="true" Color="Color.Primary" aria-label="Loading the invoice" />
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" aria-label="@T["Detail.Loading"]" />
 }
 else if (_invoice is null)
 {
-    <PageTitle>Invoice not found – E-Invoice Inbox</PageTitle>
+    <PageTitle>@T["Page.Title", T["Detail.NotFound"]]</PageTitle>
     <MudPaper Outlined="true" Class="pa-6" data-testid="not-found">
-        <MudText Typo="Typo.h5" HtmlTag="h1">Invoice not found</MudText>
-        <MudText Class="my-2">There is no invoice with this address. It may have been typed wrong.</MudText>
-        <MudLink Href="/">Back to the inbox</MudLink>
+        <MudText Typo="Typo.h5" HtmlTag="h1">@T["Detail.NotFound"]</MudText>
+        <MudText Class="my-2">@T["Detail.NotFoundText"]</MudText>
+        <MudLink Href="/">@T["Detail.BackToInbox"]</MudLink>
     </MudPaper>
 }
 else
 {
     var invoice = _invoice;
-    <PageTitle>@(invoice.InvoiceNumber ?? "Invoice") – E-Invoice Inbox</PageTitle>
+    <PageTitle>@T["Page.Title", invoice.InvoiceNumber ?? T["Detail.Invoice"]]</PageTitle>
 
     <MudLink Href="/" Typo="Typo.body2" Class="d-inline-flex align-center mb-2">
-        <MudIcon Icon="@Icons.Material.Outlined.ArrowBack" Size="Size.Small" Class="mr-1" aria-hidden="true" /> Inbox
+        <MudIcon Icon="@Icons.Material.Outlined.ArrowBack" Size="Size.Small" Class="mr-1" aria-hidden="true" /> @T["Nav.Inbox"]
     </MudLink>
 
     @* ---- Header ---------------------------------------------------------------------------------------- *@
     <MudPaper Outlined="true" Class="pa-4 mb-3">
         <div class="d-flex flex-wrap align-center gap-3">
-            <MudText Typo="Typo.h4" HtmlTag="h1">@(invoice.InvoiceNumber ?? "Not readable")</MudText>
+            <MudText Typo="Typo.h4" HtmlTag="h1">@(invoice.InvoiceNumber ?? T["Common.NotReadable"])</MudText>
             <StatusChip Status="invoice.Status" />
             @if (invoice.SourceFormat == SourceFormat.Pdf)
             {
                 <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Info" Icon="@Icons.Material.Outlined.AutoAwesome" Class="ma-0"
-                         data-testid="ai-extracted" title="The fields were read from a PDF by a language model and checked against the document. Findings name every field a person has to confirm.">AI · read from PDF</MudChip>
+                         data-testid="ai-extracted" title="@T["Detail.AiChipHelp"]">@T["Detail.AiChip"]</MudChip>
             }
             else if (invoice.SourceFormat == SourceFormat.Zugferd)
             {
                 <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Default" Icon="@Icons.Material.Outlined.DataObject" Class="ma-0"
-                         data-testid="zugferd" title="A ZUGFeRD / Factur-X invoice: the data was read from the XML embedded in the PDF, not by AI.">ZUGFeRD · XML in PDF</MudChip>
+                         data-testid="zugferd" title="@T["Detail.ZugferdChipHelp"]">@T["Detail.ZugferdChip"]</MudChip>
             }
             <MudSpacer />
             @if (CanRematch(invoice))
             {
                 <AuthorizeView Policy="@Policies.RematchInvoices" Context="auth">
                     <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Outlined.Sync" Disabled="_rematching"
-                               OnClick="RematchAsync" data-testid="rematch">@(_rematching ? "Matching…" : "Match again")</MudButton>
+                               OnClick="RematchAsync" data-testid="rematch">@(_rematching ? T["Detail.Rematching"] : T["Detail.Rematch"])</MudButton>
                 </AuthorizeView>
             }
         </div>
 
         <dl class="facts mt-3">
-            <div><dt>Vendor</dt><dd data-testid="vendor">@(invoice.VendorName ?? "Unknown vendor")</dd></div>
-            <div><dt>Purchase order</dt><dd data-testid="order">@(invoice.PurchaseOrderNumber ?? "–")</dd></div>
-            <div><dt>Issue date</dt><dd>@Formats.Date(invoice.IssueDate)</dd></div>
-            <div><dt>Net</dt><dd class="tabular" data-testid="net">@Formats.Money(invoice.NetTotal, invoice.Currency)</dd></div>
-            <div><dt>VAT</dt><dd class="tabular" data-testid="tax">@Formats.Money(invoice.TaxTotal, invoice.Currency)</dd></div>
-            <div><dt>Gross</dt><dd class="tabular strong" data-testid="gross">@Formats.Money(invoice.GrossTotal, invoice.Currency)</dd></div>
+            <div><dt>@T["Common.Vendor"]</dt><dd data-testid="vendor">@(invoice.VendorName ?? T["Common.UnknownVendor"])</dd></div>
+            <div><dt>@T["Common.PurchaseOrder"]</dt><dd data-testid="order">@(invoice.PurchaseOrderNumber ?? "–")</dd></div>
+            <div><dt>@T["Common.IssueDate"]</dt><dd>@Formats.Date(invoice.IssueDate)</dd></div>
+            <div><dt>@T["Common.Net"]</dt><dd class="tabular" data-testid="net">@Formats.Money(invoice.NetTotal, invoice.Currency)</dd></div>
+            <div><dt>@T["Common.Vat"]</dt><dd class="tabular" data-testid="tax">@Formats.Money(invoice.TaxTotal, invoice.Currency)</dd></div>
+            <div><dt>@T["Common.Gross"]</dt><dd class="tabular strong" data-testid="gross">@Formats.Money(invoice.GrossTotal, invoice.Currency)</dd></div>
         </dl>
 
         @if (invoice.Status == InvoiceStatus.Failed && invoice.History.LastOrDefault()?.Reason is { } failure)
         {
             <MudAlert Severity="Severity.Error" Class="mt-3" data-testid="failure-reason">
-                The file could not be processed: @failure
+                @T["Detail.FailedBecause"] <span lang="en">@failure</span>
             </MudAlert>
         }
 
@@ -89,7 +89,7 @@ else
             @_decisionMessage
             @if (_decisionConflict)
             {
-                <MudButton Variant="Variant.Text" Size="Size.Small" OnClick="ReloadAsync" data-testid="decision-reload" Class="ml-2">Reload</MudButton>
+                <MudButton Variant="Variant.Text" Size="Size.Small" OnClick="ReloadAsync" data-testid="decision-reload" Class="ml-2">@T["Detail.Reload"]</MudButton>
             }
         </MudAlert>
     }
@@ -98,10 +98,10 @@ else
     {
         <AuthorizeView Policy="@Policies.DecideInvoices" Context="auth">
             <MudPaper Outlined="true" Class="pa-4 mb-3" data-testid="decision">
-                <MudText Typo="Typo.h6" HtmlTag="h2" Class="mb-2">Decision</MudText>
+                <MudText Typo="Typo.h6" HtmlTag="h2" Class="mb-2">@T["Detail.Decision"]</MudText>
                 @if (ApprovalRules.IsOwn(invoice.SubmittedBy, approver))
                 {
-                    <MudText>You submitted this invoice, so someone else has to decide it.</MudText>
+                    <MudText>@T["Decision.OwnInvoice"]</MudText>
                 }
                 else
                 {
@@ -111,22 +111,22 @@ else
                     var approveNeedsReason = ApprovalRules.ReasonRequired(Decision.Approve, invoice.Status);
                     <div data-testid="decision-reason">
                         <MudTextField T="string" @bind-Value="_reason" Immediate="true" Lines="3" MaxLength="@ApprovalLimits.MaxReasonLength"
-                                      Counter="@ApprovalLimits.MaxReasonLength" Variant="Variant.Outlined" Label="Reason"
-                                      HelperText="@ReasonHelp(approveNeedsReason)" />
+                                      Counter="@ApprovalLimits.MaxReasonLength" Variant="Variant.Outlined" Label="@T["Detail.Reason"]"
+                                      HelperText="@(approveNeedsReason ? T["Detail.ReasonBoth"] : T["Detail.ReasonReject"])" />
                     </div>
                     @if (approveBlock is not null)
                     {
                         <MudText Typo="Typo.body2" Class="mt-2 d-flex align-center gap-1" data-testid="approve-blocked">
-                            <MudIcon Icon="@Icons.Material.Outlined.Info" Size="Size.Small" aria-hidden="true" /> @approveBlock.Detail
+                            <MudIcon Icon="@Icons.Material.Outlined.Info" Size="Size.Small" aria-hidden="true" /> @DecisionText(approveBlock.Outcome)
                         </MudText>
                     }
                     <div class="d-flex flex-wrap gap-2 mt-3">
                         <MudButton Variant="Variant.Filled" Color="Color.Success" StartIcon="@Icons.Material.Outlined.Check" data-testid="approve"
                                    Disabled="@(_deciding || approveBlock is not null || (approveNeedsReason && reasonMissing))"
-                                   OnClick="() => DecideAsync(Decision.Approve)">Approve</MudButton>
+                                   OnClick="() => DecideAsync(Decision.Approve)">@T["Detail.Approve"]</MudButton>
                         <MudButton Variant="Variant.Outlined" Color="Color.Error" StartIcon="@Icons.Material.Outlined.Close" data-testid="reject"
                                    Disabled="@(_deciding || reasonMissing)"
-                                   OnClick="() => DecideAsync(Decision.Reject)">Reject</MudButton>
+                                   OnClick="() => DecideAsync(Decision.Reject)">@T["Detail.Reject"]</MudButton>
                     </div>
                 }
             </MudPaper>
@@ -136,25 +136,25 @@ else
     @* ---- Why is this an exception? ------------------------------------------------------------------- *@
     @if (invoice.Status == InvoiceStatus.Exception)
     {
-        var rules = RuleBasedExplainer.Explain(invoice);
+        var rules = Explanations.For(T, invoice);
         <MudPaper Outlined="true" Class="pa-4 mb-3" data-testid="explanation">
             <div class="d-flex flex-wrap align-center gap-3 mb-2">
-                <MudText Typo="Typo.h6" HtmlTag="h2">Why is this an exception?</MudText>
+                <MudText Typo="Typo.h6" HtmlTag="h2">@T["Detail.WhyException"]</MudText>
                 <MudSpacer />
                 @if (Explainer.UsesAi)
                 {
                     <AuthorizeView Policy="@Policies.ExplainWithAi" Context="auth">
                         <MudButton Variant="Variant.Outlined" Size="Size.Small" StartIcon="@Icons.Material.Outlined.AutoAwesome" Disabled="_explaining"
-                                   OnClick="ExplainWithAiAsync" data-testid="explain-ai">@(_explaining ? "Explaining…" : "Explain with AI")</MudButton>
+                                   OnClick="ExplainWithAiAsync" data-testid="explain-ai">@(_explaining ? T["Detail.Explaining"] : T["Detail.ExplainWithAi"])</MudButton>
                     </AuthorizeView>
                 }
             </div>
-            @foreach (var line in rules.Text.Split('\n'))
+            @foreach (var line in rules.Problems)
             {
                 <MudText Typo="Typo.body2">@line</MudText>
             }
-            <MudText Typo="Typo.subtitle2" Class="mt-2">Suggested next step</MudText>
-            @foreach (var line in rules.SuggestedStep.Split('\n'))
+            <MudText Typo="Typo.subtitle2" Class="mt-2">@T["Detail.NextStep"]</MudText>
+            @foreach (var line in rules.Steps)
             {
                 <MudText Typo="Typo.body2">@line</MudText>
             }
@@ -162,15 +162,16 @@ else
             @if (_aiExplanation is { Source: ExplanationSource.Ai } ai)
             {
                 <MudAlert Severity="Severity.Info" Icon="@Icons.Material.Outlined.AutoAwesome" Class="mt-3" data-testid="explanation-ai" role="status">
-                    <MudText Typo="Typo.subtitle2">AI suggestion · a person decides</MudText>
-                    <MudText Typo="Typo.body2">@ai.Text</MudText>
-                    <MudText Typo="Typo.body2" Class="mt-1"><strong>Suggested step:</strong> @ai.SuggestedStep</MudText>
+                    <MudText Typo="Typo.subtitle2">@T["Detail.AiSuggestion"]</MudText>
+                    @* The model writes English; its numbers are checked against the facts (ExplanationFacts). *@
+                    <MudText Typo="Typo.body2" lang="en">@ai.Text</MudText>
+                    <MudText Typo="Typo.body2" Class="mt-1"><strong>@T["Detail.AiStep"]</strong> <span lang="en">@ai.SuggestedStep</span></MudText>
                 </MudAlert>
             }
             else if (_aiExplanation is { FallbackReason: { } reason })
             {
                 <MudAlert Severity="Severity.Normal" Class="mt-3" data-testid="explanation-fallback" role="status">
-                    The AI explanation was not used: @reason The explanation above applies.
+                    @T["Detail.AiNotUsed"] <span lang="en">@reason</span> @T["Detail.AiNotUsedAfter"]
                 </MudAlert>
             }
         </MudPaper>
@@ -180,10 +181,10 @@ else
     @if (invoice.Findings.Count > 0)
     {
         <MudPaper Outlined="true" Class="pa-4 mb-3">
-            <MudText Typo="Typo.h6" HtmlTag="h2" Class="mb-2">Validation findings</MudText>
+            <MudText Typo="Typo.h6" HtmlTag="h2" Class="mb-2">@T["Detail.Findings"]</MudText>
             <div class="table-scroll">
                 <MudSimpleTable Elevation="0" Dense="true">
-                    <thead><tr><th scope="col">Severity</th><th scope="col">Rule</th><th scope="col">Finding</th><th scope="col">Line</th></tr></thead>
+                    <thead><tr><th scope="col">@T["Detail.Severity"]</th><th scope="col">@T["Detail.Rule"]</th><th scope="col">@T["Detail.Finding"]</th><th scope="col">@T["Common.Line"]</th></tr></thead>
                     <tbody>
                         @foreach (var finding in invoice.Findings)
                         {
@@ -191,11 +192,12 @@ else
                                 <td>
                                     <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Labels.SeverityColor(finding.Severity)" Class="ma-0"
                                              Icon="@(finding.Severity == FindingSeverity.Blocking ? Icons.Material.Outlined.Block : Icons.Material.Outlined.Visibility)">
-                                        @finding.Severity
+                                        @Labels.Severity(T, finding.Severity)
                                     </MudChip>
                                 </td>
-                                <td class="code">@finding.RuleCode</td>
-                                <td>@finding.Message</td>
+                                <td>@Labels.Rule(T, finding.RuleCode) <code class="code d-block">@finding.RuleCode</code></td>
+                                @* As the rule recorded it: English, with the amounts and business terms it found. *@
+                                <td lang="en">@finding.Message</td>
                                 <td>@(finding.LinePosition?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "–")</td>
                             </tr>
                         }
@@ -208,18 +210,16 @@ else
     @* ---- Match panel ----------------------------------------------------------------------------------- *@
     <MudPaper Outlined="true" Class="pa-4 mb-3">
         <div class="d-flex flex-wrap align-baseline gap-3 mb-2">
-            <MudText Typo="Typo.h6" HtmlTag="h2">Three-way match</MudText>
+            <MudText Typo="Typo.h6" HtmlTag="h2">@T["Detail.Match"]</MudText>
             @if (invoice.MatchResults.Count > 0)
             {
-                <MudText Typo="Typo.body2" Color="Color.Secondary" data-testid="tolerance">Price tolerance: @Formats.Rate(invoice.MatchResults[0].PriceTolerancePercent)</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary" data-testid="tolerance">@T["Detail.Tolerance"] @Formats.Rate(invoice.MatchResults[0].PriceTolerancePercent)</MudText>
             }
         </div>
         @if (invoice.MatchResults.Count == 0)
         {
             <MudText data-testid="no-match">
-                This invoice was not matched: @(invoice.Status == InvoiceStatus.Failed
-                    ? "its file could not be read."
-                    : "it has validation findings that a person has to review first.")
+                @(invoice.Status == InvoiceStatus.Failed ? T["Detail.NotMatchedFailed"] : T["Detail.NotMatchedFindings"])
             </MudText>
         }
         else
@@ -228,14 +228,14 @@ else
                 <MudSimpleTable Elevation="0" Dense="true">
                     <thead>
                         <tr>
-                            <th scope="col">Line</th>
-                            <th scope="col">Order line</th>
-                            <th scope="col">Result</th>
-                            <th scope="col" class="num">Invoice price</th>
-                            <th scope="col" class="num">Order price</th>
-                            <th scope="col" class="num">Difference</th>
-                            <th scope="col" class="num">Invoiced qty</th>
-                            <th scope="col" class="num">Received, not yet invoiced</th>
+                            <th scope="col">@T["Common.Line"]</th>
+                            <th scope="col">@T["Common.OrderLine"]</th>
+                            <th scope="col">@T["Detail.Result"]</th>
+                            <th scope="col" class="num">@T["Detail.InvoicePrice"]</th>
+                            <th scope="col" class="num">@T["Detail.OrderPrice"]</th>
+                            <th scope="col" class="num">@T["Detail.Difference"]</th>
+                            <th scope="col" class="num">@T["Detail.InvoicedQuantity"]</th>
+                            <th scope="col" class="num">@T["Detail.Available"]</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -262,18 +262,18 @@ else
     @if (invoice.Lines.Count > 0)
     {
         <MudPaper Outlined="true" Class="pa-4 mb-3">
-            <MudText Typo="Typo.h6" HtmlTag="h2" Class="mb-2">Invoice lines</MudText>
+            <MudText Typo="Typo.h6" HtmlTag="h2" Class="mb-2">@T["Detail.Lines"]</MudText>
             <div class="table-scroll">
                 <MudSimpleTable Elevation="0" Dense="true">
                     <thead>
                         <tr>
-                            <th scope="col">Line</th>
-                            <th scope="col">Description</th>
-                            <th scope="col" class="num">Quantity</th>
-                            <th scope="col" class="num">Unit price</th>
-                            <th scope="col" class="num">Net amount</th>
-                            <th scope="col" class="num">VAT</th>
-                            <th scope="col">Order line</th>
+                            <th scope="col">@T["Common.Line"]</th>
+                            <th scope="col">@T["Common.Description"]</th>
+                            <th scope="col" class="num">@T["Common.Quantity"]</th>
+                            <th scope="col" class="num">@T["Common.UnitPrice"]</th>
+                            <th scope="col" class="num">@T["Common.NetAmount"]</th>
+                            <th scope="col" class="num">@T["Common.Vat"]</th>
+                            <th scope="col">@T["Common.OrderLine"]</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -298,7 +298,7 @@ else
     <div class="two-columns">
         @* ---- History --------------------------------------------------------------------------------------- *@
         <MudPaper Outlined="true" Class="pa-4 mb-3">
-            <MudText Typo="Typo.h6" HtmlTag="h2" Class="mb-2">History</MudText>
+            <MudText Typo="Typo.h6" HtmlTag="h2" Class="mb-2">@T["Detail.History"]</MudText>
             <ol class="history">
                 @foreach (var change in invoice.History)
                 {
@@ -309,7 +309,7 @@ else
                         </div>
                         @if (change.Reason is not null)
                         {
-                            <MudText Typo="Typo.body2" Class="mt-1">@change.Reason</MudText>
+                            <MudText Typo="Typo.body2" Class="mt-1">@ChangeReason(change.Reason)</MudText>
                         }
                     </li>
                 }
@@ -320,12 +320,12 @@ else
         @if (invoice.Document is { } document)
         {
             <MudPaper Outlined="true" Class="pa-4 mb-3">
-                <MudText Typo="Typo.h6" HtmlTag="h2" Class="mb-2">Original file</MudText>
+                <MudText Typo="Typo.h6" HtmlTag="h2" Class="mb-2">@T["Detail.OriginalFile"]</MudText>
                 <MudText data-testid="file-name" Class="break-all">@document.FileName</MudText>
-                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2">@Formats.FileSize(document.SizeBytes) · received @Formats.Timestamp(document.ReceivedAt)</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2">@Formats.FileSize(document.SizeBytes) · @T["Detail.ReceivedAt", Formats.Timestamp(document.ReceivedAt)]</MudText>
                 @* "download": the browser saves the file (served as an attachment) and the Blazor router leaves the link alone. *@
                 <MudButton Href="@($"/api/invoices/{invoice.Id}/document")" Variant="Variant.Outlined" StartIcon="@Icons.Material.Outlined.Download"
-                           download="@document.FileName" data-testid="download">Download original</MudButton>
+                           download="@document.FileName" data-testid="download">@T["Detail.Download"]</MudButton>
             </MudPaper>
         }
     </div>
@@ -392,13 +392,13 @@ else
             var request = new DecisionRequest(Id, decision, _invoice.Version, string.IsNullOrWhiteSpace(_reason) ? null : _reason);
             var result = await Operations.RunAsync<IInvoiceApproval, DecisionResult>(a => a.DecideAsync(request, approver, _disposed.Token));
             _decisionConflict = result.Outcome == DecisionOutcome.Conflict;
-            (_decisionSeverity, _decisionMessage) = result.Outcome switch
+            _decisionSeverity = result.Outcome switch
             {
-                DecisionOutcome.Approved => (Severity.Success, "Approved. The invoice is ready for posting."),
-                DecisionOutcome.Rejected => (Severity.Success, "Rejected. The reason is in the history."),
-                DecisionOutcome.Conflict => (Severity.Warning, result.Detail ?? "The invoice changed since you opened it."),
-                _ => (Severity.Error, result.Detail ?? "The decision was refused."),
+                DecisionOutcome.Approved or DecisionOutcome.Rejected => Severity.Success,
+                DecisionOutcome.Conflict => Severity.Warning,
+                _ => Severity.Error,
             };
+            _decisionMessage = DecisionText(result.Outcome);
             if (result.Outcome is DecisionOutcome.Approved or DecisionOutcome.Rejected)
             {
                 _reason = null;
@@ -418,8 +418,26 @@ else
         await LoadAsync();
     }
 
-    private static string ReasonHelp(bool approveNeedsReason) =>
-        approveNeedsReason ? "Required for either decision: why it is fine, or why not." : "Required to reject; kept in the history.";
+    /// <summary>What a decision did, or why it was refused, by its outcome; the numbers come from this page's data.</summary>
+    private string DecisionText(DecisionOutcome outcome) => outcome switch
+    {
+        DecisionOutcome.OverLimit => T["Decision.OverLimit", Formats.Money(_approver?.LimitEur, "EUR")],
+        DecisionOutcome.ReasonTooLong => T["Decision.ReasonTooLong", ApprovalLimits.MaxReasonLength],
+        _ => T[$"Decision.{outcome}"],
+    };
+
+    /// <summary>
+    /// A status change's reason. The pipeline writes codes ("PriceVariance, NoGoodsReceipt" or "IBAN_NOT_APPROVED"):
+    /// those get their words. A person's reason or a recorded failure is shown as written.
+    /// </summary>
+    private string ChangeReason(string reason)
+    {
+        var parts = reason.Split(", ");
+        var words = parts.Select(p => Enum.GetNames<MatchOutcome>().Contains(p, StringComparer.Ordinal)
+            ? Labels.Outcome(T, Enum.Parse<MatchOutcome>(p))
+            : T[$"Rule.{p}.Title"] is { ResourceNotFound: false } rule ? rule.Value : null).ToList();
+        return words.All(w => w is not null) ? string.Join(", ", words) : reason;
+    }
 
     /// <summary>Same rule as the use case: only an exception that comes from the match, not from findings.</summary>
     private static bool CanRematch(InvoiceDetail invoice) => invoice.Status == InvoiceStatus.Exception && invoice.Findings.Count == 0;
@@ -436,13 +454,15 @@ else
         {
             var actor = await SignedInUser.NameAsync(AuthState);
             var result = await Operations.RunAsync<IInvoiceRematch, RematchResult>(r => r.RematchAsync(Id, actor, _disposed.Token));
-            (_rematchSeverity, _rematchMessage) = result.Outcome switch
+            _rematchSeverity = result.Outcome switch
             {
-                RematchOutcome.Matched => (Severity.Success, "Matched again: the invoice now matches its order and goods receipts."),
-                RematchOutcome.StillException => (Severity.Warning, $"Still an exception: {string.Join(", ", result.Reasons.Select(Labels.Outcome))}."),
-                RematchOutcome.NotFound => (Severity.Error, "The invoice no longer exists."),
-                _ => (Severity.Error, result.Detail ?? "The invoice cannot be matched again."),
+                RematchOutcome.Matched => Severity.Success,
+                RematchOutcome.StillException => Severity.Warning,
+                _ => Severity.Error,
             };
+            _rematchMessage = result.Outcome == RematchOutcome.StillException
+                ? T["Rematch.StillException", string.Join(", ", result.Reasons.Select(r => Labels.Outcome(T, r)))]
+                : T[$"Rematch.{result.Outcome}"];
             _aiExplanation = null; // it described the invoice before the re-match
             await LoadAsync();
         }

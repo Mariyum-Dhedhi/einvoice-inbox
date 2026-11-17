@@ -1,0 +1,998 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  UI texts in English (the neutral language). Generated from one table with both languages and kept in step by
+  tests/EInvoice.ComponentTests/Localization/TextResourcesTests.cs: a key in one file only fails the build's tests.
+  Placeholders {0}, {1} ... are filled by the page; both languages use the same ones.
+-->
+<root>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="App.Name" xml:space="preserve">
+    <value>E-Invoice Inbox</value>
+  </data>
+  <data name="Page.Title" xml:space="preserve">
+    <value>{0} – E-Invoice Inbox</value>
+  </data>
+  <data name="Layout.MainNav" xml:space="preserve">
+    <value>Main</value>
+  </data>
+  <data name="Layout.Subtitle" xml:space="preserve">
+    <value>Accounts payable</value>
+  </data>
+  <data name="Layout.SignOut" xml:space="preserve">
+    <value>Sign out</value>
+  </data>
+  <data name="Layout.Unhandled" xml:space="preserve">
+    <value>An unhandled error has occurred.</value>
+  </data>
+  <data name="Layout.Reload" xml:space="preserve">
+    <value>Reload</value>
+  </data>
+  <data name="Common.Dismiss" xml:space="preserve">
+    <value>Dismiss</value>
+  </data>
+  <data name="Nav.Inbox" xml:space="preserve">
+    <value>Inbox</value>
+  </data>
+  <data name="Nav.Dashboard" xml:space="preserve">
+    <value>Dashboard</value>
+  </data>
+  <data name="Nav.Approvals" xml:space="preserve">
+    <value>Approvals</value>
+  </data>
+  <data name="Nav.Audit" xml:space="preserve">
+    <value>Audit</value>
+  </data>
+  <data name="Nav.Vendors" xml:space="preserve">
+    <value>Vendors</value>
+  </data>
+  <data name="Nav.Users" xml:space="preserve">
+    <value>Users</value>
+  </data>
+  <data name="Language.Label" xml:space="preserve">
+    <value>Language</value>
+  </data>
+  <data name="Language.German" xml:space="preserve">
+    <value>Deutsch</value>
+  </data>
+  <data name="Language.English" xml:space="preserve">
+    <value>English</value>
+  </data>
+  <data name="Reconnect.Rejoining" xml:space="preserve">
+    <value>Rejoining the server…</value>
+  </data>
+  <data name="Reconnect.RetryBefore" xml:space="preserve">
+    <value>Rejoin failed… trying again in</value>
+  </data>
+  <data name="Reconnect.RetryAfter" xml:space="preserve">
+    <value>seconds.</value>
+  </data>
+  <data name="Reconnect.Failed" xml:space="preserve">
+    <value>Failed to rejoin.</value>
+  </data>
+  <data name="Reconnect.RetryOrReload" xml:space="preserve">
+    <value>Please retry or reload the page.</value>
+  </data>
+  <data name="Reconnect.Retry" xml:space="preserve">
+    <value>Retry</value>
+  </data>
+  <data name="Reconnect.Paused" xml:space="preserve">
+    <value>The session has been paused by the server.</value>
+  </data>
+  <data name="Reconnect.ResumeFailed" xml:space="preserve">
+    <value>Failed to resume the session.</value>
+  </data>
+  <data name="Reconnect.Resume" xml:space="preserve">
+    <value>Resume</value>
+  </data>
+  <data name="Error.Title" xml:space="preserve">
+    <value>Error</value>
+  </data>
+  <data name="Error.Text" xml:space="preserve">
+    <value>An error occurred while processing your request.</value>
+  </data>
+  <data name="Error.RequestId" xml:space="preserve">
+    <value>Request ID:</value>
+  </data>
+  <data name="NotFound.Title" xml:space="preserve">
+    <value>Not found</value>
+  </data>
+  <data name="NotFound.Text" xml:space="preserve">
+    <value>Sorry, the content you are looking for does not exist.</value>
+  </data>
+  <data name="NotFound.Home" xml:space="preserve">
+    <value>Back to the start page</value>
+  </data>
+  <data name="AccessDenied.PageTitle" xml:space="preserve">
+    <value>No access</value>
+  </data>
+  <data name="AccessDenied.Title" xml:space="preserve">
+    <value>No access to this page</value>
+  </data>
+  <data name="AccessDenied.SignedInAs" xml:space="preserve">
+    <value>You are signed in as</value>
+  </data>
+  <data name="AccessDenied.Explain" xml:space="preserve">
+    <value>This page needs a role you do not have. If you need it, ask an administrator.</value>
+  </data>
+  <data name="AccessDenied.SignInAgain" xml:space="preserve">
+    <value>Sign in as someone else</value>
+  </data>
+  <data name="AccessDenied.NoRole" xml:space="preserve">
+    <value>with no role</value>
+  </data>
+  <data name="AccessDenied.Roles" xml:space="preserve">
+    <value>with the role {0}</value>
+  </data>
+  <data name="Login.Title" xml:space="preserve">
+    <value>Sign in</value>
+  </data>
+  <data name="Login.UserName" xml:space="preserve">
+    <value>User name</value>
+  </data>
+  <data name="Login.Password" xml:space="preserve">
+    <value>Password</value>
+  </data>
+  <data name="Login.Submit" xml:space="preserve">
+    <value>Sign in</value>
+  </data>
+  <data name="Login.Failed" xml:space="preserve">
+    <value>Sign-in failed. Check your user name and password, or try again later.</value>
+  </data>
+  <data name="Login.EnterUserName" xml:space="preserve">
+    <value>Enter your user name.</value>
+  </data>
+  <data name="Login.EnterPassword" xml:space="preserve">
+    <value>Enter your password.</value>
+  </data>
+  <data name="Login.TooLong" xml:space="preserve">
+    <value>At most {0} characters.</value>
+  </data>
+  <data name="Paging.Label" xml:space="preserve">
+    <value>Pages</value>
+  </data>
+  <data name="Paging.Previous" xml:space="preserve">
+    <value>Previous</value>
+  </data>
+  <data name="Paging.Next" xml:space="preserve">
+    <value>Next</value>
+  </data>
+  <data name="Paging.Range" xml:space="preserve">
+    <value>{0}–{1} of {2}</value>
+  </data>
+  <data name="Common.Status" xml:space="preserve">
+    <value>Status</value>
+  </data>
+  <data name="Common.Vendor" xml:space="preserve">
+    <value>Vendor</value>
+  </data>
+  <data name="Common.IssueDate" xml:space="preserve">
+    <value>Issue date</value>
+  </data>
+  <data name="Common.Received" xml:space="preserve">
+    <value>Received</value>
+  </data>
+  <data name="Common.NotReadable" xml:space="preserve">
+    <value>Not readable</value>
+  </data>
+  <data name="Common.UnknownVendor" xml:space="preserve">
+    <value>Unknown vendor</value>
+  </data>
+  <data name="Common.PurchaseOrder" xml:space="preserve">
+    <value>Purchase order</value>
+  </data>
+  <data name="Common.Net" xml:space="preserve">
+    <value>Net</value>
+  </data>
+  <data name="Common.Vat" xml:space="preserve">
+    <value>VAT</value>
+  </data>
+  <data name="Common.Gross" xml:space="preserve">
+    <value>Gross</value>
+  </data>
+  <data name="Common.Line" xml:space="preserve">
+    <value>Line</value>
+  </data>
+  <data name="Common.OrderLine" xml:space="preserve">
+    <value>Order line</value>
+  </data>
+  <data name="Common.Description" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="Common.Quantity" xml:space="preserve">
+    <value>Quantity</value>
+  </data>
+  <data name="Common.UnitPrice" xml:space="preserve">
+    <value>Unit price</value>
+  </data>
+  <data name="Common.NetAmount" xml:space="preserve">
+    <value>Net amount</value>
+  </data>
+  <data name="Common.Number" xml:space="preserve">
+    <value>Number</value>
+  </data>
+  <data name="Common.Name" xml:space="preserve">
+    <value>Name</value>
+  </data>
+  <data name="Common.Iban" xml:space="preserve">
+    <value>IBAN</value>
+  </data>
+  <data name="Common.Cancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="Common.Detail" xml:space="preserve">
+    <value>Details:</value>
+  </data>
+  <data name="Inbox.Title" xml:space="preserve">
+    <value>Inbox</value>
+  </data>
+  <data name="Inbox.Uploading" xml:space="preserve">
+    <value>Uploading…</value>
+  </data>
+  <data name="Inbox.Upload" xml:space="preserve">
+    <value>Upload invoice</value>
+  </data>
+  <data name="Inbox.OpenExisting" xml:space="preserve">
+    <value>Open the existing invoice</value>
+  </data>
+  <data name="Inbox.FilterLabel" xml:space="preserve">
+    <value>Filter by status</value>
+  </data>
+  <data name="Inbox.All" xml:space="preserve">
+    <value>All</value>
+  </data>
+  <data name="Inbox.Loading" xml:space="preserve">
+    <value>Loading invoices</value>
+  </data>
+  <data name="Inbox.EmptyStatus" xml:space="preserve">
+    <value>No invoices with status {0}.</value>
+  </data>
+  <data name="Inbox.Empty" xml:space="preserve">
+    <value>No invoices yet. Upload an XRechnung or PDF invoice to start.</value>
+  </data>
+  <data name="Inbox.InvoiceNumber" xml:space="preserve">
+    <value>Invoice no.</value>
+  </data>
+  <data name="Inbox.Gross" xml:space="preserve">
+    <value>Gross amount</value>
+  </data>
+  <data name="Inbox.AiBadge" xml:space="preserve">
+    <value>Read by AI from a PDF</value>
+  </data>
+  <data name="Inbox.ZugferdBadge" xml:space="preserve">
+    <value>ZUGFeRD: read from the XML inside the PDF</value>
+  </data>
+  <data name="Inbox.ReadFailed" xml:space="preserve">
+    <value>The file could not be read. Try again.</value>
+  </data>
+  <data name="Intake.Empty" xml:space="preserve">
+    <value>The file is empty.</value>
+  </data>
+  <data name="Intake.TooLarge" xml:space="preserve">
+    <value>The file is larger than {0}.</value>
+  </data>
+  <data name="Intake.UnsupportedType" xml:space="preserve">
+    <value>This file is not accepted.</value>
+  </data>
+  <data name="Intake.DuplicateFile" xml:space="preserve">
+    <value>This file was uploaded before.</value>
+  </data>
+  <data name="Intake.DuplicateInvoiceNumber" xml:space="preserve">
+    <value>The vendor already has an invoice with this number.</value>
+  </data>
+  <data name="Intake.ExtractionUnavailable" xml:space="preserve">
+    <value>AI extraction is unavailable right now. Nothing was stored; try again later.</value>
+  </data>
+  <data name="Detail.Loading" xml:space="preserve">
+    <value>Loading the invoice</value>
+  </data>
+  <data name="Detail.NotFound" xml:space="preserve">
+    <value>Invoice not found</value>
+  </data>
+  <data name="Detail.NotFoundText" xml:space="preserve">
+    <value>There is no invoice with this address. It may have been typed wrong.</value>
+  </data>
+  <data name="Detail.BackToInbox" xml:space="preserve">
+    <value>Back to the inbox</value>
+  </data>
+  <data name="Detail.Invoice" xml:space="preserve">
+    <value>Invoice</value>
+  </data>
+  <data name="Detail.AiChipHelp" xml:space="preserve">
+    <value>The fields were read from a PDF by a language model and checked against the document. Findings name every field a person has to confirm.</value>
+  </data>
+  <data name="Detail.AiChip" xml:space="preserve">
+    <value>AI · read from PDF</value>
+  </data>
+  <data name="Detail.ZugferdChipHelp" xml:space="preserve">
+    <value>A ZUGFeRD / Factur-X invoice: the data was read from the XML embedded in the PDF, not by AI.</value>
+  </data>
+  <data name="Detail.ZugferdChip" xml:space="preserve">
+    <value>ZUGFeRD · XML in PDF</value>
+  </data>
+  <data name="Detail.Rematching" xml:space="preserve">
+    <value>Matching…</value>
+  </data>
+  <data name="Detail.Rematch" xml:space="preserve">
+    <value>Match again</value>
+  </data>
+  <data name="Detail.FailedBecause" xml:space="preserve">
+    <value>The file could not be processed:</value>
+  </data>
+  <data name="Detail.Reload" xml:space="preserve">
+    <value>Reload</value>
+  </data>
+  <data name="Detail.Decision" xml:space="preserve">
+    <value>Decision</value>
+  </data>
+  <data name="Detail.Reason" xml:space="preserve">
+    <value>Reason</value>
+  </data>
+  <data name="Detail.ReasonBoth" xml:space="preserve">
+    <value>Required for either decision: why it is fine, or why not.</value>
+  </data>
+  <data name="Detail.ReasonReject" xml:space="preserve">
+    <value>Required to reject; kept in the history.</value>
+  </data>
+  <data name="Detail.Approve" xml:space="preserve">
+    <value>Approve</value>
+  </data>
+  <data name="Detail.Reject" xml:space="preserve">
+    <value>Reject</value>
+  </data>
+  <data name="Detail.WhyException" xml:space="preserve">
+    <value>Why is this an exception?</value>
+  </data>
+  <data name="Detail.Explaining" xml:space="preserve">
+    <value>Explaining…</value>
+  </data>
+  <data name="Detail.ExplainWithAi" xml:space="preserve">
+    <value>Explain with AI</value>
+  </data>
+  <data name="Detail.NextStep" xml:space="preserve">
+    <value>Suggested next step</value>
+  </data>
+  <data name="Detail.AiSuggestion" xml:space="preserve">
+    <value>AI suggestion · a person decides</value>
+  </data>
+  <data name="Detail.AiStep" xml:space="preserve">
+    <value>Suggested step:</value>
+  </data>
+  <data name="Detail.AiNotUsed" xml:space="preserve">
+    <value>The AI explanation was not used:</value>
+  </data>
+  <data name="Detail.AiNotUsedAfter" xml:space="preserve">
+    <value>The explanation above applies.</value>
+  </data>
+  <data name="Detail.Findings" xml:space="preserve">
+    <value>Validation findings</value>
+  </data>
+  <data name="Detail.Severity" xml:space="preserve">
+    <value>Severity</value>
+  </data>
+  <data name="Detail.Rule" xml:space="preserve">
+    <value>Rule</value>
+  </data>
+  <data name="Detail.Finding" xml:space="preserve">
+    <value>Finding</value>
+  </data>
+  <data name="Detail.Match" xml:space="preserve">
+    <value>Three-way match</value>
+  </data>
+  <data name="Detail.Tolerance" xml:space="preserve">
+    <value>Price tolerance:</value>
+  </data>
+  <data name="Detail.NotMatchedFailed" xml:space="preserve">
+    <value>This invoice was not matched: its file could not be read.</value>
+  </data>
+  <data name="Detail.NotMatchedFindings" xml:space="preserve">
+    <value>This invoice was not matched: it has validation findings that a person has to review first.</value>
+  </data>
+  <data name="Detail.Result" xml:space="preserve">
+    <value>Result</value>
+  </data>
+  <data name="Detail.InvoicePrice" xml:space="preserve">
+    <value>Invoice price</value>
+  </data>
+  <data name="Detail.OrderPrice" xml:space="preserve">
+    <value>Order price</value>
+  </data>
+  <data name="Detail.Difference" xml:space="preserve">
+    <value>Difference</value>
+  </data>
+  <data name="Detail.InvoicedQuantity" xml:space="preserve">
+    <value>Invoiced qty</value>
+  </data>
+  <data name="Detail.Available" xml:space="preserve">
+    <value>Received, not yet invoiced</value>
+  </data>
+  <data name="Detail.Lines" xml:space="preserve">
+    <value>Invoice lines</value>
+  </data>
+  <data name="Detail.History" xml:space="preserve">
+    <value>History</value>
+  </data>
+  <data name="Detail.OriginalFile" xml:space="preserve">
+    <value>Original file</value>
+  </data>
+  <data name="Detail.ReceivedAt" xml:space="preserve">
+    <value>received {0}</value>
+  </data>
+  <data name="Detail.Download" xml:space="preserve">
+    <value>Download original</value>
+  </data>
+  <data name="Decision.Approved" xml:space="preserve">
+    <value>Approved. The invoice is ready for posting.</value>
+  </data>
+  <data name="Decision.Rejected" xml:space="preserve">
+    <value>Rejected. The reason is in the history.</value>
+  </data>
+  <data name="Decision.NotFound" xml:space="preserve">
+    <value>The invoice no longer exists.</value>
+  </data>
+  <data name="Decision.NotAllowed" xml:space="preserve">
+    <value>This invoice is not waiting for a decision.</value>
+  </data>
+  <data name="Decision.Conflict" xml:space="preserve">
+    <value>The invoice changed since you opened it. Reload it and decide again.</value>
+  </data>
+  <data name="Decision.OwnInvoice" xml:space="preserve">
+    <value>You submitted this invoice, so someone else has to decide it.</value>
+  </data>
+  <data name="Decision.OverLimit" xml:space="preserve">
+    <value>Above your approval limit of {0}: you can only reject.</value>
+  </data>
+  <data name="Decision.CurrencyNotSupported" xml:space="preserve">
+    <value>Not in EUR: approval limits are in EUR, so you can only reject.</value>
+  </data>
+  <data name="Decision.BlockingFindings" xml:space="preserve">
+    <value>A finding blocks payment: you can only reject.</value>
+  </data>
+  <data name="Decision.ReasonRequired" xml:space="preserve">
+    <value>Give a reason.</value>
+  </data>
+  <data name="Decision.ReasonTooLong" xml:space="preserve">
+    <value>The reason is longer than {0} characters.</value>
+  </data>
+  <data name="Decision.VersionRequired" xml:space="preserve">
+    <value>Reload the invoice and decide again.</value>
+  </data>
+  <data name="Rematch.Matched" xml:space="preserve">
+    <value>Matched again: the invoice now matches its order and goods receipts.</value>
+  </data>
+  <data name="Rematch.StillException" xml:space="preserve">
+    <value>Still an exception: {0}.</value>
+  </data>
+  <data name="Rematch.NotFound" xml:space="preserve">
+    <value>The invoice no longer exists.</value>
+  </data>
+  <data name="Rematch.NotAllowed" xml:space="preserve">
+    <value>Only an invoice that is an exception because of its match can be matched again.</value>
+  </data>
+  <data name="Rematch.Conflict" xml:space="preserve">
+    <value>Someone else changed the invoice at the same time. Nothing was saved; reload it.</value>
+  </data>
+  <data name="Status.Received" xml:space="preserve">
+    <value>Received</value>
+  </data>
+  <data name="Status.Parsed" xml:space="preserve">
+    <value>Parsed</value>
+  </data>
+  <data name="Status.Validated" xml:space="preserve">
+    <value>Validated</value>
+  </data>
+  <data name="Status.Matched" xml:space="preserve">
+    <value>Matched</value>
+  </data>
+  <data name="Status.Exception" xml:space="preserve">
+    <value>Exception</value>
+  </data>
+  <data name="Status.Approved" xml:space="preserve">
+    <value>Approved</value>
+  </data>
+  <data name="Status.Rejected" xml:space="preserve">
+    <value>Rejected</value>
+  </data>
+  <data name="Status.Posted" xml:space="preserve">
+    <value>Posted</value>
+  </data>
+  <data name="Status.Failed" xml:space="preserve">
+    <value>Failed</value>
+  </data>
+  <data name="Outcome.FullMatch" xml:space="preserve">
+    <value>Matches order</value>
+  </data>
+  <data name="Outcome.PriceVariance" xml:space="preserve">
+    <value>Price above order</value>
+  </data>
+  <data name="Outcome.QuantityVariance" xml:space="preserve">
+    <value>More than received</value>
+  </data>
+  <data name="Outcome.NoPurchaseOrder" xml:space="preserve">
+    <value>No order line</value>
+  </data>
+  <data name="Outcome.NoGoodsReceipt" xml:space="preserve">
+    <value>Nothing received</value>
+  </data>
+  <data name="Severity.Review" xml:space="preserve">
+    <value>Review</value>
+  </data>
+  <data name="Severity.Blocking" xml:space="preserve">
+    <value>Blocking</value>
+  </data>
+  <data name="Rule.CONFORMANCE.Title" xml:space="preserve">
+    <value>Not a valid e-invoice</value>
+  </data>
+  <data name="Rule.CONFORMANCE.Step" xml:space="preserve">
+    <value>Reject the invoice and ask the supplier for one that meets the e-invoice standard.</value>
+  </data>
+  <data name="Rule.CONFORMANCE_UNAVAILABLE.Title" xml:space="preserve">
+    <value>Conformance check unavailable</value>
+  </data>
+  <data name="Rule.CONFORMANCE_UNAVAILABLE.Step" xml:space="preserve">
+    <value>Check the invoice yourself, or wait until the validator can be reached again.</value>
+  </data>
+  <data name="Rule.CONFORMANCE_NOT_CHECKED.Title" xml:space="preserve">
+    <value>Conformance not checked (ZUGFeRD)</value>
+  </data>
+  <data name="Rule.CONFORMANCE_NOT_CHECKED.Step" xml:space="preserve">
+    <value>Check the invoice data against the PDF and the order; the official conformance check covers XRechnung only.</value>
+  </data>
+  <data name="Rule.LINE_SUM.Title" xml:space="preserve">
+    <value>Lines do not add up</value>
+  </data>
+  <data name="Rule.LINE_SUM.Step" xml:space="preserve">
+    <value>Ask the supplier for a corrected invoice; do not approve amounts that do not add up.</value>
+  </data>
+  <data name="Rule.TOTALS.Title" xml:space="preserve">
+    <value>Totals do not add up</value>
+  </data>
+  <data name="Rule.TOTALS.Step" xml:space="preserve">
+    <value>Ask the supplier for a corrected invoice; do not approve totals that do not add up.</value>
+  </data>
+  <data name="Rule.LINE_AMOUNT.Title" xml:space="preserve">
+    <value>Line amount is wrong</value>
+  </data>
+  <data name="Rule.LINE_AMOUNT.Step" xml:space="preserve">
+    <value>Compare the line with the order and ask the supplier to correct the line amount.</value>
+  </data>
+  <data name="Rule.VAT_BREAKDOWN.Title" xml:space="preserve">
+    <value>VAT breakdown is wrong</value>
+  </data>
+  <data name="Rule.VAT_BREAKDOWN.Step" xml:space="preserve">
+    <value>Check the VAT with the supplier; a wrong VAT amount cannot be deducted as input tax.</value>
+  </data>
+  <data name="Rule.IBAN_CHECKSUM.Title" xml:space="preserve">
+    <value>Invalid IBAN</value>
+  </data>
+  <data name="Rule.IBAN_CHECKSUM.Step" xml:space="preserve">
+    <value>Reject the invoice: the bank account is not valid, so it cannot be paid.</value>
+  </data>
+  <data name="Rule.IBAN_NOT_APPROVED.Title" xml:space="preserve">
+    <value>Bank account not approved</value>
+  </data>
+  <data name="Rule.IBAN_NOT_APPROVED.Step" xml:space="preserve">
+    <value>Confirm the bank account with the supplier using a phone number you already know before approving; a changed account can be payment fraud.</value>
+  </data>
+  <data name="Rule.VENDOR_UNKNOWN.Title" xml:space="preserve">
+    <value>Unknown vendor</value>
+  </data>
+  <data name="Rule.VENDOR_UNKNOWN.Step" xml:space="preserve">
+    <value>Check who the seller is; add them to the vendor master data if they are a real supplier, otherwise reject.</value>
+  </data>
+  <data name="Rule.VENDOR_INACTIVE.Title" xml:space="preserve">
+    <value>Vendor deactivated</value>
+  </data>
+  <data name="Rule.VENDOR_INACTIVE.Step" xml:space="preserve">
+    <value>Find out why the vendor was deactivated before approving anything from them.</value>
+  </data>
+  <data name="Rule.DUPLICATE_NUMBER.Title" xml:space="preserve">
+    <value>Duplicate invoice number</value>
+  </data>
+  <data name="Rule.DUPLICATE_NUMBER.Step" xml:space="preserve">
+    <value>Reject the invoice: this vendor already has an invoice with this number.</value>
+  </data>
+  <data name="Rule.POSSIBLE_DUPLICATE.Title" xml:space="preserve">
+    <value>Possible duplicate</value>
+  </data>
+  <data name="Rule.POSSIBLE_DUPLICATE.Step" xml:space="preserve">
+    <value>Compare it with the other invoice of the same amount and date before approving, so it is not paid twice.</value>
+  </data>
+  <data name="Rule.EXTRACTION_UNCONFIRMED.Title" xml:space="preserve">
+    <value>Field to confirm (AI)</value>
+  </data>
+  <data name="Rule.EXTRACTION_UNCONFIRMED.Step" xml:space="preserve">
+    <value>Open the original PDF and confirm the named field.</value>
+  </data>
+  <data name="Rule.HIDDEN_TEXT.Title" xml:space="preserve">
+    <value>Hidden text in the PDF</value>
+  </data>
+  <data name="Rule.HIDDEN_TEXT.Step" xml:space="preserve">
+    <value>Open the original PDF and check it carefully: hidden text can be an attempt to manipulate automatic processing.</value>
+  </data>
+  <data name="Explain.Blocking" xml:space="preserve">
+    <value>This finding blocks payment: reject the invoice unless it can be corrected.</value>
+  </data>
+  <data name="Explain.GenericStep" xml:space="preserve">
+    <value>Read the finding and decide whether the invoice can be approved.</value>
+  </data>
+  <data name="Explain.Nothing" xml:space="preserve">
+    <value>Nothing to explain: no problems were found.</value>
+  </data>
+  <data name="Explain.NothingStep" xml:space="preserve">
+    <value>No action is needed.</value>
+  </data>
+  <data name="Explain.PriceVariance.Text" xml:space="preserve">
+    <value>Line {0} was invoiced at {1} per unit; the order price is {3} ({2}). That is {4} more in total, over the {5} tolerance.</value>
+  </data>
+  <data name="Explain.PriceVariance.Step" xml:space="preserve">
+    <value>Ask the supplier for a credit note, or approve it if the price increase was agreed.</value>
+  </data>
+  <data name="Explain.QuantityVariance.Text" xml:space="preserve">
+    <value>Line {0}: {1} invoiced, but only {2} received and not yet invoiced.</value>
+  </data>
+  <data name="Explain.QuantityVariance.Step" xml:space="preserve">
+    <value>Check whether the rest was delivered: book the goods receipt and match again, or ask the supplier to correct the quantity.</value>
+  </data>
+  <data name="Explain.NoPurchaseOrder.Text" xml:space="preserve">
+    <value>Line {0} could not be linked to a purchase order line.</value>
+  </data>
+  <data name="Explain.NoPurchaseOrder.Step" xml:space="preserve">
+    <value>Find the purchase order and ask the supplier to quote it, or approve without an order if your rules allow it.</value>
+  </data>
+  <data name="Explain.NoGoodsReceipt.Text" xml:space="preserve">
+    <value>Line {0}: nothing has been received yet for order line {1}.</value>
+  </data>
+  <data name="Explain.NoGoodsReceipt.Step" xml:space="preserve">
+    <value>Check with goods receiving, and match again once the goods receipt is booked.</value>
+  </data>
+  <data name="Approvals.Title" xml:space="preserve">
+    <value>Approvals</value>
+  </data>
+  <data name="Approvals.Intro" xml:space="preserve">
+    <value>Invoices waiting for a decision, the one waiting longest first. Open an invoice to approve or reject it.</value>
+  </data>
+  <data name="Approvals.Loading" xml:space="preserve">
+    <value>Loading the approval queue</value>
+  </data>
+  <data name="Approvals.Empty" xml:space="preserve">
+    <value>Nothing is waiting for a decision.</value>
+  </data>
+  <data name="Approvals.You" xml:space="preserve">
+    <value>You</value>
+  </data>
+  <data name="Approvals.NoNumber" xml:space="preserve">
+    <value>(no number)</value>
+  </data>
+  <data name="Approvals.Own" xml:space="preserve">
+    <value>Submitted by you: someone else decides</value>
+  </data>
+  <data name="Approvals.Ready" xml:space="preserve">
+    <value>Ready to decide</value>
+  </data>
+  <data name="Approvals.OverLimit" xml:space="preserve">
+    <value>Above your limit of {0}: you can only reject</value>
+  </data>
+  <data name="Approvals.Currency" xml:space="preserve">
+    <value>Not in EUR: you can only reject</value>
+  </data>
+  <data name="Approvals.Blocked" xml:space="preserve">
+    <value>Only rejection: a finding blocks payment</value>
+  </data>
+  <data name="Dashboard.Title" xml:space="preserve">
+    <value>Dashboard</value>
+  </data>
+  <data name="Dashboard.Loading" xml:space="preserve">
+    <value>Loading the dashboard</value>
+  </data>
+  <data name="Dashboard.Posting" xml:space="preserve">
+    <value>ERP posting:</value>
+  </data>
+  <data name="Dashboard.PostingCounts" xml:space="preserve">
+    <value>{0} posted · {1} waiting · {2} retrying · {3} failed</value>
+  </data>
+  <data name="Dashboard.OldestWaiting" xml:space="preserve">
+    <value> · oldest waiting since {0}</value>
+  </data>
+  <data name="Dashboard.PostingFailed" xml:space="preserve">
+    <value>some postings failed for good; an admin has to look at them.</value>
+  </data>
+  <data name="Dashboard.PostingRetrying" xml:space="preserve">
+    <value>the ERP did not answer every time; postings are being retried.</value>
+  </data>
+  <data name="Dashboard.PostingHealthy" xml:space="preserve">
+    <value>healthy.</value>
+  </data>
+  <data name="Dashboard.ByStatus" xml:space="preserve">
+    <value>Invoices by status</value>
+  </data>
+  <data name="Dashboard.Invoices" xml:space="preserve">
+    <value>Invoices</value>
+  </data>
+  <data name="Dashboard.GrossEur" xml:space="preserve">
+    <value>Gross (EUR)</value>
+  </data>
+  <data name="Dashboard.Reasons" xml:space="preserve">
+    <value>What blocks the exception queue</value>
+  </data>
+  <data name="Dashboard.NoReasons" xml:space="preserve">
+    <value>No invoice is waiting in Exception.</value>
+  </data>
+  <data name="Dashboard.Reason" xml:space="preserve">
+    <value>Reason</value>
+  </data>
+  <data name="Dashboard.Months" xml:space="preserve">
+    <value>The last twelve months</value>
+  </data>
+  <data name="Dashboard.MonthsIntro" xml:space="preserve">
+    <value>By month of receipt (Berlin time). Straight through: approved without ever being an exception.</value>
+  </data>
+  <data name="Dashboard.Month" xml:space="preserve">
+    <value>Month</value>
+  </data>
+  <data name="Dashboard.StraightThrough" xml:space="preserve">
+    <value>Straight through</value>
+  </data>
+  <data name="Dashboard.Rate" xml:space="preserve">
+    <value>Rate</value>
+  </data>
+  <data name="Dashboard.Exceptions" xml:space="preserve">
+    <value>Exceptions</value>
+  </data>
+  <data name="Audit.Title" xml:space="preserve">
+    <value>Audit trail</value>
+  </data>
+  <data name="Audit.Verifying" xml:space="preserve">
+    <value>Verifying…</value>
+  </data>
+  <data name="Audit.Verify" xml:space="preserve">
+    <value>Verify now</value>
+  </data>
+  <data name="Audit.Intro" xml:space="preserve">
+    <value>Every event is linked to the one before it by a hash, so a changed, removed or reordered event is found. A chain cannot show that its newest events were cut off: note down the event count and latest hash after verifying, and compare them next time.</value>
+  </data>
+  <data name="Audit.Intact" xml:space="preserve">
+    <value>Intact: all {0} events checked. Latest hash:</value>
+  </data>
+  <data name="Audit.NoHash" xml:space="preserve">
+    <value>none (empty)</value>
+  </data>
+  <data name="Audit.Broken" xml:space="preserve">
+    <value>Broken at event {0}: {1}. {2} events before it are intact.</value>
+  </data>
+  <data name="Audit.Loading" xml:space="preserve">
+    <value>Loading the audit trail</value>
+  </data>
+  <data name="Audit.Empty" xml:space="preserve">
+    <value>No events yet.</value>
+  </data>
+  <data name="Audit.When" xml:space="preserve">
+    <value>When</value>
+  </data>
+  <data name="Audit.Who" xml:space="preserve">
+    <value>Who</value>
+  </data>
+  <data name="Audit.What" xml:space="preserve">
+    <value>What</value>
+  </data>
+  <data name="Audit.About" xml:space="preserve">
+    <value>About</value>
+  </data>
+  <data name="Audit.Details" xml:space="preserve">
+    <value>Details</value>
+  </data>
+  <data name="Audit.Newer" xml:space="preserve">
+    <value>Newer</value>
+  </data>
+  <data name="Audit.Older" xml:space="preserve">
+    <value>Older</value>
+  </data>
+  <data name="Audit.UnknownProblem" xml:space="preserve">
+    <value>unknown problem</value>
+  </data>
+  <data name="AuditProblem.HashMismatch" xml:space="preserve">
+    <value>the event was changed after it was written</value>
+  </data>
+  <data name="AuditProblem.ChainBroken" xml:space="preserve">
+    <value>the event does not follow the event before it</value>
+  </data>
+  <data name="AuditProblem.SequenceGap" xml:space="preserve">
+    <value>an event before it is missing</value>
+  </data>
+  <data name="AuditAction.InvoiceStatusChanged" xml:space="preserve">
+    <value>Invoice status changed</value>
+  </data>
+  <data name="AuditAction.SignedIn" xml:space="preserve">
+    <value>Signed in</value>
+  </data>
+  <data name="AuditAction.SignedOut" xml:space="preserve">
+    <value>Signed out</value>
+  </data>
+  <data name="AuditAction.SignInFailed" xml:space="preserve">
+    <value>Sign-in failed</value>
+  </data>
+  <data name="AuditAction.SignInLockedOut" xml:space="preserve">
+    <value>Account locked</value>
+  </data>
+  <data name="AuditAction.BankAccountProposed" xml:space="preserve">
+    <value>Bank account proposed</value>
+  </data>
+  <data name="AuditAction.BankAccountConfirmed" xml:space="preserve">
+    <value>Bank account confirmed</value>
+  </data>
+  <data name="AuditAction.BankAccountRemoved" xml:space="preserve">
+    <value>Bank account removed</value>
+  </data>
+  <data name="Role.Clerk" xml:space="preserve">
+    <value>Clerk</value>
+  </data>
+  <data name="Role.Approver" xml:space="preserve">
+    <value>Approver</value>
+  </data>
+  <data name="Role.Auditor" xml:space="preserve">
+    <value>Auditor</value>
+  </data>
+  <data name="Role.Admin" xml:space="preserve">
+    <value>Admin</value>
+  </data>
+  <data name="Vendors.Title" xml:space="preserve">
+    <value>Vendors</value>
+  </data>
+  <data name="Vendors.Intro" xml:space="preserve">
+    <value>Bank accounts count for payments only after a second admin has confirmed them.</value>
+  </data>
+  <data name="Vendors.Loading" xml:space="preserve">
+    <value>Loading vendors</value>
+  </data>
+  <data name="Vendors.BankAccounts" xml:space="preserve">
+    <value>Bank accounts</value>
+  </data>
+  <data name="Vendors.Confirmed" xml:space="preserve">
+    <value>{0} confirmed</value>
+  </data>
+  <data name="Vendors.Pending" xml:space="preserve">
+    <value>{0} waiting for a second admin</value>
+  </data>
+  <data name="Users.Title" xml:space="preserve">
+    <value>Users</value>
+  </data>
+  <data name="Users.Intro" xml:space="preserve">
+    <value>Every account with its roles. Read-only: creating, changing and unlocking accounts is not part of this version.</value>
+  </data>
+  <data name="Users.Loading" xml:space="preserve">
+    <value>Loading users</value>
+  </data>
+  <data name="Users.Empty" xml:space="preserve">
+    <value>No accounts yet.</value>
+  </data>
+  <data name="Users.Roles" xml:space="preserve">
+    <value>Roles</value>
+  </data>
+  <data name="Users.NoRole" xml:space="preserve">
+    <value>No role</value>
+  </data>
+  <data name="Users.LockedUntil" xml:space="preserve">
+    <value>Locked until {0}</value>
+  </data>
+  <data name="Users.Active" xml:space="preserve">
+    <value>Active</value>
+  </data>
+  <data name="Bank.Loading" xml:space="preserve">
+    <value>Loading the vendor</value>
+  </data>
+  <data name="Bank.NotFound" xml:space="preserve">
+    <value>Vendor not found</value>
+  </data>
+  <data name="Bank.BackToVendors" xml:space="preserve">
+    <value>Back to the vendors</value>
+  </data>
+  <data name="Bank.Compare" xml:space="preserve">
+    <value>Compare each IBAN with a source you trust (a letter or a phone call to a number you already know), not with the invoice.</value>
+  </data>
+  <data name="Bank.None" xml:space="preserve">
+    <value>No bank accounts.</value>
+  </data>
+  <data name="Bank.Actions" xml:space="preserve">
+    <value>Actions</value>
+  </data>
+  <data name="Bank.ActiveBy" xml:space="preserve">
+    <value>Active, confirmed by {0}</value>
+  </data>
+  <data name="Bank.PendingBy" xml:space="preserve">
+    <value>Waiting for a second admin (proposed by {0})</value>
+  </data>
+  <data name="Bank.YouProposed" xml:space="preserve">
+    <value>You proposed it; another admin confirms.</value>
+  </data>
+  <data name="Bank.Confirm" xml:space="preserve">
+    <value>Confirm</value>
+  </data>
+  <data name="Bank.Remove" xml:space="preserve">
+    <value>Remove</value>
+  </data>
+  <data name="Bank.RemoveReason" xml:space="preserve">
+    <value>Why is this account removed?</value>
+  </data>
+  <data name="Bank.RemoveReasonHelp" xml:space="preserve">
+    <value>Required; kept in the audit trail.</value>
+  </data>
+  <data name="Bank.RemoveAccount" xml:space="preserve">
+    <value>Remove account</value>
+  </data>
+  <data name="Bank.NewIban" xml:space="preserve">
+    <value>New IBAN</value>
+  </data>
+  <data name="Bank.NewIbanHelp" xml:space="preserve">
+    <value>Proposed now; it counts once a second admin has confirmed it.</value>
+  </data>
+  <data name="Bank.Propose" xml:space="preserve">
+    <value>Propose</value>
+  </data>
+  <data name="Bank.NoHistory" xml:space="preserve">
+    <value>No earlier versions.</value>
+  </data>
+  <data name="Bank.ProposedBy" xml:space="preserve">
+    <value>Proposed by</value>
+  </data>
+  <data name="Bank.ConfirmedBy" xml:space="preserve">
+    <value>Confirmed by</value>
+  </data>
+  <data name="Bank.From" xml:space="preserve">
+    <value>From</value>
+  </data>
+  <data name="Bank.Until" xml:space="preserve">
+    <value>Until</value>
+  </data>
+  <data name="Bank.Active" xml:space="preserve">
+    <value>Active</value>
+  </data>
+  <data name="Bank.Pending" xml:space="preserve">
+    <value>Pending</value>
+  </data>
+  <data name="BankAccount.Proposed" xml:space="preserve">
+    <value>Proposed. It waits for a second admin before it counts for payments.</value>
+  </data>
+  <data name="BankAccount.Confirmed" xml:space="preserve">
+    <value>Confirmed. Invoices may now ask for payment to this account.</value>
+  </data>
+  <data name="BankAccount.Removed" xml:space="preserve">
+    <value>Removed. Invoices asking for payment to it now need review.</value>
+  </data>
+  <data name="BankAccount.NotFound" xml:space="preserve">
+    <value>The bank account no longer exists.</value>
+  </data>
+  <data name="BankAccount.VendorNotFound" xml:space="preserve">
+    <value>The vendor no longer exists.</value>
+  </data>
+  <data name="BankAccount.InvalidIban" xml:space="preserve">
+    <value>That is not a valid IBAN.</value>
+  </data>
+  <data name="BankAccount.AlreadyExists" xml:space="preserve">
+    <value>This vendor already has this bank account.</value>
+  </data>
+  <data name="BankAccount.OwnProposal" xml:space="preserve">
+    <value>You proposed this account; a second admin has to confirm it.</value>
+  </data>
+  <data name="BankAccount.NotPending" xml:space="preserve">
+    <value>The account is not waiting for confirmation.</value>
+  </data>
+  <data name="BankAccount.Conflict" xml:space="preserve">
+    <value>Someone else changed the account at the same time. Nothing was saved; reload and try again.</value>
+  </data>
+  <data name="BankAccount.ReasonRequired" xml:space="preserve">
+    <value>Give a reason for removing the account.</value>
+  </data>
+  <data name="BankAccount.ReasonTooLong" xml:space="preserve">
+    <value>The reason is longer than 200 characters.</value>
+  </data>
+</root>

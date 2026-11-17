@@ -1,26 +1,30 @@
 using EInvoice.Application.Validation;
 using EInvoice.Domain.Invoices;
 using EInvoice.Domain.Matching;
+using Microsoft.Extensions.Localization;
 using MudBlazor;
 
 namespace EInvoice.Web.Components.Shared;
 
-/// <summary>Words, icons and colours for statuses and outcomes. The word and the icon carry the meaning; colour only supports it.</summary>
+/// <summary>
+/// Words, icons and colours for statuses, outcomes and codes. The word and the icon carry the meaning; colour only
+/// supports it. The words come from the texts by code (Status.Matched, Rule.IBAN_NOT_APPROVED.Title, ...), so every
+/// status and code has them in both languages (TextResourcesTests).
+/// </summary>
 public static class Labels
 {
-    public static string Status(InvoiceStatus status) => status switch
-    {
-        InvoiceStatus.Received => "Received",
-        InvoiceStatus.Parsed => "Parsed",
-        InvoiceStatus.Validated => "Validated",
-        InvoiceStatus.Matched => "Matched",
-        InvoiceStatus.Exception => "Exception",
-        InvoiceStatus.Approved => "Approved",
-        InvoiceStatus.Rejected => "Rejected",
-        InvoiceStatus.Posted => "Posted",
-        InvoiceStatus.Failed => "Failed",
-        _ => status.ToString(),
-    };
+    public static string Status(IStringLocalizer t, InvoiceStatus status) => t[$"Status.{status}"];
+
+    public static string Outcome(IStringLocalizer t, MatchOutcome outcome) => t[$"Outcome.{outcome}"];
+
+    public static string Severity(IStringLocalizer t, FindingSeverity severity) => t[$"Severity.{severity}"];
+
+    /// <summary>A rule's name; a code this version does not know (an older stored finding) is shown as it is.</summary>
+    public static string Rule(IStringLocalizer t, string code) => OrCode(t[$"Rule.{code}.Title"], code);
+
+    public static string Role(IStringLocalizer t, string role) => OrCode(t[$"Role.{role}"], role);
+
+    public static string AuditAction(IStringLocalizer t, string action) => OrCode(t[$"AuditAction.{action}"], action);
 
     public static string StatusIcon(InvoiceStatus status) => status switch
     {
@@ -41,16 +45,6 @@ public static class Labels
         _ => Color.Default,
     };
 
-    public static string Outcome(MatchOutcome outcome) => outcome switch
-    {
-        MatchOutcome.FullMatch => "Matches order",
-        MatchOutcome.PriceVariance => "Price above order",
-        MatchOutcome.QuantityVariance => "More than received",
-        MatchOutcome.NoPurchaseOrder => "No order line",
-        MatchOutcome.NoGoodsReceipt => "Nothing received",
-        _ => outcome.ToString(),
-    };
-
     public static string OutcomeIcon(MatchOutcome outcome) => outcome switch
     {
         MatchOutcome.FullMatch => Icons.Material.Outlined.CheckCircle,
@@ -63,4 +57,6 @@ public static class Labels
     public static Color OutcomeColor(MatchOutcome outcome) => outcome == MatchOutcome.FullMatch ? Color.Success : Color.Warning;
 
     public static Color SeverityColor(FindingSeverity severity) => severity == FindingSeverity.Blocking ? Color.Error : Color.Warning;
+
+    private static string OrCode(LocalizedString text, string code) => text.ResourceNotFound ? code : text.Value;
 }

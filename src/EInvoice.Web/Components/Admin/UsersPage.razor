@@ -3,29 +3,29 @@
 @using EInvoice.Application.Security
 @inject Operations Operations
 
-<PageTitle>Users – E-Invoice Inbox</PageTitle>
+<PageTitle>@T["Page.Title", T["Users.Title"]]</PageTitle>
 
-<MudText Typo="Typo.h4" HtmlTag="h1" Class="mb-1">Users</MudText>
+<MudText Typo="Typo.h4" HtmlTag="h1" Class="mb-1">@T["Users.Title"]</MudText>
 <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
-    Every account with its roles. Read-only: creating, changing and unlocking accounts is not part of this version.
+    @T["Users.Intro"]
 </MudText>
 
 @if (_users is null)
 {
-    <MudProgressLinear Indeterminate="true" aria-label="Loading users" />
+    <MudProgressLinear Indeterminate="true" aria-label="@T["Users.Loading"]" />
 }
 else if (_users.Count == 0)
 {
-    <MudText data-testid="no-users">No accounts yet.</MudText>
+    <MudText data-testid="no-users">@T["Users.Empty"]</MudText>
 }
 else
 {
     <MudSimpleTable Elevation="0" Dense="true" Hover="true">
         <thead>
             <tr>
-                <th scope="col">User name</th>
-                <th scope="col">Roles</th>
-                <th scope="col">Status</th>
+                <th scope="col">@T["Login.UserName"]</th>
+                <th scope="col">@T["Users.Roles"]</th>
+                <th scope="col">@T["Common.Status"]</th>
             </tr>
         </thead>
         <tbody>
@@ -33,21 +33,21 @@ else
             {
                 <tr data-testid="user-row">
                     <td class="break-all">@user.UserName</td>
-                    <td>@(user.Roles.Count == 0 ? "No role" : string.Join(", ", user.Roles))</td>
+                    <td>@(user.Roles.Count == 0 ? T["Users.NoRole"] : string.Join(", ", user.Roles.Select(r => Labels.Role(T, r))))</td>
                     <td>
                         @* Status in words with an icon, never colour alone. *@
                         @if (user.LockedUntil is { } until)
                         {
                             <span data-testid="user-status" data-status="locked" class="d-inline-flex align-center gap-1">
                                 <MudIcon Icon="@Icons.Material.Outlined.Lock" Size="Size.Small" Color="Color.Warning" aria-hidden="true" />
-                                Locked until @Formats.Timestamp(until)
+                                @T["Users.LockedUntil", Formats.Timestamp(until)]
                             </span>
                         }
                         else
                         {
                             <span data-testid="user-status" data-status="active" class="d-inline-flex align-center gap-1">
                                 <MudIcon Icon="@Icons.Material.Outlined.CheckCircle" Size="Size.Small" Color="Color.Success" aria-hidden="true" />
-                                Active
+                                @T["Users.Active"]
                             </span>
                         }
                     </td>

@@ -17,7 +17,9 @@ public sealed class MainLayoutTests : BunitContext, IAsyncLifetime
     public MainLayoutTests()
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
+        UiTest.UseLanguage("en");
         Services.AddMudServices();
+        Services.AddLocalization(o => o.ResourcesPath = "Resources");
         Services.AddSingleton<AntiforgeryStateProvider>(new FixedAntiforgery());
         Auth = AddAuthorization();
         Auth.SetAuthorized(UiTest.SignedInUser);

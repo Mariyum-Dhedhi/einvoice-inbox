@@ -1,3 +1,4 @@
+using EInvoice.Web.Components.Shared;
 using EInvoice.Application.Approval;
 using EInvoice.Application.Queries;
 using EInvoice.Application.Security;
@@ -64,7 +65,7 @@ public sealed class ApprovalsPageTests : ApproverTest
         Assert.Equal(new[] { "ready", "own", "over-limit", "currency", "blocked" }, rows.Select(StateOf));
         Assert.Contains("Ready to decide", rows[0].TextContent, StringComparison.Ordinal);
         Assert.Contains("Submitted by you", rows[1].TextContent, StringComparison.Ordinal);
-        Assert.Contains("Above your limit of 5,000.00 EUR", rows[2].TextContent, StringComparison.Ordinal);
+        Assert.Contains($"Above your limit of {Formats.Money(DefaultLimit, "EUR")}", rows[2].TextContent, StringComparison.Ordinal);
         Assert.Contains("Not in EUR", rows[3].TextContent, StringComparison.Ordinal);
         Assert.Contains("Only rejection", rows[4].TextContent, StringComparison.Ordinal);
         Assert.All(rows, r => Assert.NotNull(r.QuerySelector("[data-testid=decision-state] svg"))); // never colour alone
@@ -233,7 +234,7 @@ public sealed class DecisionPanelTests : ApproverTest
 
         Button(cut, "approve").Click();
 
-        Assert.Contains("approval limit of 5,000.00 EUR", cut.Find("[data-testid=decision-result]").TextContent, StringComparison.Ordinal);
+        Assert.Contains($"approval limit of {Formats.Money(DefaultLimit, "EUR")}", cut.Find("[data-testid=decision-result]").TextContent, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -256,7 +257,7 @@ public sealed class DecisionPanelTests : ApproverTest
         TypeReason(cut, "Bank account unknown.");
 
         Assert.True(Button(cut, "approve").HasAttribute("disabled"));
-        Assert.Contains("can only be rejected", cut.Find("[data-testid=approve-blocked]").TextContent, StringComparison.Ordinal);
+        Assert.Contains(T["Decision.BlockingFindings"], cut.Find("[data-testid=approve-blocked]").TextContent, StringComparison.Ordinal);
         Assert.False(Button(cut, "reject").HasAttribute("disabled"));
     }
 
@@ -268,7 +269,7 @@ public sealed class DecisionPanelTests : ApproverTest
         var cut = Show(); // gross 1,234.56 EUR
 
         Assert.True(Button(cut, "approve").HasAttribute("disabled"));
-        Assert.Contains("1,000.00 EUR", cut.Find("[data-testid=approve-blocked]").TextContent, StringComparison.Ordinal);
+        Assert.Contains(Formats.Money(1_000m, "EUR"), cut.Find("[data-testid=approve-blocked]").TextContent, StringComparison.Ordinal);
     }
 
     [Fact]

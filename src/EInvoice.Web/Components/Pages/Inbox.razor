@@ -8,10 +8,10 @@
 @inject NavigationManager Navigation
 @inject IAuthorizationService Authorization
 
-<PageTitle>Inbox – E-Invoice Inbox</PageTitle>
+<PageTitle>@T["Page.Title", T["Inbox.Title"]]</PageTitle>
 
 <div class="d-flex flex-wrap align-center justify-space-between gap-3 mb-3">
-    <MudText Typo="Typo.h4" HtmlTag="h1">Inbox</MudText>
+    <MudText Typo="Typo.h4" HtmlTag="h1">@T["Inbox.Title"]</MudText>
 
     @* The real file input stays focusable (visually hidden); the button is its label. Type checks happen on the server. *@
     <AuthorizeView Policy="@Policies.UploadInvoices">
@@ -19,7 +19,7 @@
             <InputFile id="upload-input" class="visually-hidden" OnChange="UploadAsync" accept=".xml,application/xml,text/xml,.pdf,application/pdf" disabled="@(!CanUpload)" />
             <MudButton HtmlTag="label" for="upload-input" Variant="Variant.Filled" Color="Color.Primary" Disabled="!CanUpload"
                        StartIcon="@Icons.Material.Outlined.UploadFile">
-                @(_uploading ? "Uploading…" : "Upload invoice")
+                @(_uploading ? T["Inbox.Uploading"] : T["Inbox.Upload"])
             </MudButton>
         </div>
     </AuthorizeView>
@@ -31,33 +31,36 @@
         @_uploadError
         @if (_existingInvoice is { } existing)
         {
-            <MudLink Href="@($"/invoices/{existing}")" data-testid="existing-invoice" Class="ml-1">Open the existing invoice</MudLink>
+            <MudLink Href="@($"/invoices/{existing}")" data-testid="existing-invoice" Class="ml-1">@T["Inbox.OpenExisting"]</MudLink>
+        }
+        @if (_uploadDetail is not null)
+        {
+            @* Only for a refused file type: the recorded reason (which format, which profile) as the server gave it. *@
+            <div class="mt-1" data-testid="upload-detail">@T["Common.Detail"] @_uploadDetail</div>
         }
     </MudAlert>
 }
 
-<nav aria-label="Filter by status" class="d-flex flex-wrap gap-2 mb-3">
+<nav aria-label="@T["Inbox.FilterLabel"]" class="d-flex flex-wrap gap-2 mb-3">
     <MudButton Href="/" Size="Size.Small" Variant="@(_status is null ? Variant.Filled : Variant.Outlined)" Color="Color.Primary"
-               data-testid="filter-all" aria-current="@(_status is null ? "page" : null)">All</MudButton>
+               data-testid="filter-all" aria-current="@(_status is null ? "page" : null)">@T["Inbox.All"]</MudButton>
     @foreach (var status in FilterStatuses)
     {
         var current = _status == status;
         <MudButton Href="@Link(status, 1)" Size="Size.Small" Variant="@(current ? Variant.Filled : Variant.Outlined)" Color="Color.Primary"
-                   data-testid="@($"filter-{status}")" aria-current="@(current ? "page" : null)">@Labels.Status(status)</MudButton>
+                   data-testid="@($"filter-{status}")" aria-current="@(current ? "page" : null)">@Labels.Status(T, status)</MudButton>
     }
 </nav>
 
 @if (_page is null)
 {
-    <MudProgressLinear Indeterminate="true" Color="Color.Primary" aria-label="Loading invoices" />
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" aria-label="@T["Inbox.Loading"]" />
 }
 else if (_page.TotalCount == 0)
 {
     <MudPaper Outlined="true" Class="pa-6 text-center" data-testid="empty">
         <MudText>
-            @(_status is { } status
-                ? $"No invoices with status {Labels.Status(status)}."
-                : "No invoices yet. Upload an XRechnung or PDF invoice to start.")
+            @(_status is { } status ? T["Inbox.EmptyStatus", Labels.Status(T, status)] : T["Inbox.Empty"])
         </MudText>
     </MudPaper>
 }
@@ -67,12 +70,12 @@ else
         <MudSimpleTable Elevation="0" Dense="true" Hover="true" FixedHeader="false">
             <thead>
                 <tr>
-                    <th scope="col">Status</th>
-                    <th scope="col">Invoice no.</th>
-                    <th scope="col">Vendor</th>
-                    <th scope="col">Issue date</th>
-                    <th scope="col" class="num">Gross amount</th>
-                    <th scope="col">Received</th>
+                    <th scope="col">@T["Common.Status"]</th>
+                    <th scope="col">@T["Inbox.InvoiceNumber"]</th>
+                    <th scope="col">@T["Common.Vendor"]</th>
+                    <th scope="col">@T["Common.IssueDate"]</th>
+                    <th scope="col" class="num">@T["Inbox.Gross"]</th>
+                    <th scope="col">@T["Common.Received"]</th>
                 </tr>
             </thead>
             <tbody>
@@ -80,19 +83,19 @@ else
                 {
                     <tr data-testid="invoice-row">
                         <td><StatusChip Status="invoice.Status" /></td>
-                        <td><MudLink Href="@($"/invoices/{invoice.Id}")" Underline="Underline.Always">@(invoice.InvoiceNumber ?? "Not readable")</MudLink>
+                        <td><MudLink Href="@($"/invoices/{invoice.Id}")" Underline="Underline.Always">@(invoice.InvoiceNumber ?? T["Common.NotReadable"])</MudLink>
                             @if (invoice.SourceFormat == SourceFormat.Pdf)
                             {
-                                <MudIcon Icon="@Icons.Material.Outlined.AutoAwesome" Size="Size.Small" Class="ml-1 ai-mark" Title="Read by AI from a PDF"
-                                         aria-label="Read by AI from a PDF" role="img" data-testid="ai-badge" />
+                                <MudIcon Icon="@Icons.Material.Outlined.AutoAwesome" Size="Size.Small" Class="ml-1 ai-mark" Title="@T["Inbox.AiBadge"]"
+                                         aria-label="@T["Inbox.AiBadge"]" role="img" data-testid="ai-badge" />
                             }
                             else if (invoice.SourceFormat == SourceFormat.Zugferd)
                             {
-                                <MudIcon Icon="@Icons.Material.Outlined.DataObject" Size="Size.Small" Class="ml-1" Title="ZUGFeRD: read from the XML inside the PDF"
-                                         aria-label="ZUGFeRD: read from the XML inside the PDF" role="img" data-testid="zugferd-badge" />
+                                <MudIcon Icon="@Icons.Material.Outlined.DataObject" Size="Size.Small" Class="ml-1" Title="@T["Inbox.ZugferdBadge"]"
+                                         aria-label="@T["Inbox.ZugferdBadge"]" role="img" data-testid="zugferd-badge" />
                             }
                         </td>
-                        <td>@(invoice.VendorName ?? "Unknown vendor")</td>
+                        <td>@(invoice.VendorName ?? T["Common.UnknownVendor"])</td>
                         <td class="nowrap">@Formats.Date(invoice.IssueDate)</td>
                         <td class="num nowrap">@Formats.Money(invoice.GrossTotal, invoice.Currency)</td>
                         <td class="nowrap">@Formats.Timestamp(invoice.ReceivedAt)</td>
@@ -102,17 +105,17 @@ else
         </MudSimpleTable>
     </MudPaper>
 
-    <nav aria-label="Pages" class="d-flex align-center justify-end gap-2 mt-2">
+    <nav aria-label="@T["Paging.Label"]" class="d-flex align-center justify-end gap-2 mt-2">
         <MudText Typo="Typo.body2" data-testid="page-range">@RangeText()</MudText>
         @if (_page.Page > 1)
         {
             <MudButton Href="@Link(_status, _page.Page - 1)" Size="Size.Small" Variant="Variant.Text" StartIcon="@Icons.Material.Outlined.ChevronLeft"
-                       data-testid="page-prev">Previous</MudButton>
+                       data-testid="page-prev">@T["Paging.Previous"]</MudButton>
         }
         @if (_page.Page * _page.PageSize < _page.TotalCount)
         {
             <MudButton Href="@Link(_status, _page.Page + 1)" Size="Size.Small" Variant="Variant.Text" EndIcon="@Icons.Material.Outlined.ChevronRight"
-                       data-testid="page-next">Next</MudButton>
+                       data-testid="page-next">@T["Paging.Next"]</MudButton>
         }
     </nav>
 }
@@ -134,6 +137,7 @@ else
     private InvoiceStatus? _status;
     private bool _uploading;
     private string? _uploadError;
+    private string? _uploadDetail;
     private Guid? _existingInvoice;
 
     // While the page is only prerendered nothing would handle a picked file; enable the upload once it is interactive.
@@ -181,11 +185,12 @@ else
         }
 
         _uploadError = null;
+        _uploadDetail = null;
         _existingInvoice = null;
         var file = e.File;
         if (file.Size > IntakeOptions.MaxDocumentBytes)
         {
-            _uploadError = $"The file is larger than {Formats.FileSize(IntakeOptions.MaxDocumentBytes)}.";
+            _uploadError = T["Intake.TooLarge", Formats.FileSize(IntakeOptions.MaxDocumentBytes)];
             return;
         }
 
@@ -207,13 +212,18 @@ else
                 return;
             }
 
-            _uploadError = result.Detail ?? "The file was not accepted.";
+            // The refusal by its outcome, in the page's language. A refused type has several reasons (format, ZUGFeRD
+            // profile, AI switched off): the server's reason is shown under it as recorded.
+            _uploadError = result.Outcome == IntakeOutcome.TooLarge
+                ? T["Intake.TooLarge", Formats.FileSize(IntakeOptions.MaxDocumentBytes)]
+                : T[$"Intake.{result.Outcome}"];
+            _uploadDetail = result.Outcome == IntakeOutcome.UnsupportedType ? result.Detail : null;
             _existingInvoice = result.Outcome == IntakeOutcome.DuplicateFile ? result.InvoiceId : null;
         }
         catch (IOException)
         {
             // The browser sent more than it announced, or the connection broke while reading.
-            _uploadError = "The file could not be read. Try again.";
+            _uploadError = T["Inbox.ReadFailed"];
         }
         finally
         {
@@ -234,7 +244,7 @@ else
     {
         var first = ((_page!.Page - 1) * _page.PageSize) + 1;
         var last = first + _page.Items.Count - 1;
-        return $"{first}–{last} of {_page.TotalCount}";
+        return T["Paging.Range", first, last, _page.TotalCount];
     }
 
     public void Dispose()

@@ -68,15 +68,18 @@ public sealed class StatusChipTests : UiTest
     {
         var cut = Render<StatusChip>(p => p.Add(c => c.Status, status));
 
-        Assert.Equal(Labels.Status(status), cut.Find("[data-testid=status]").TextContent.Trim());
+        Assert.Equal(Labels.Status(T, status), cut.Find("[data-testid=status]").TextContent.Trim());
         Assert.NotEmpty(cut.FindAll("[data-testid=status] svg"));
         Assert.Equal(status.ToString(), cut.Find("[data-testid=status]").GetAttribute("data-status"));
     }
 
-    [Fact]
-    public void Status_labels_are_distinct()
+    [Theory]
+    [InlineData("en")]
+    [InlineData("de")]
+    public void Status_labels_are_distinct(string language)
     {
-        var labels = Enum.GetValues<InvoiceStatus>().Select(Labels.Status).ToList();
+        UseLanguage(language);
+        var labels = Enum.GetValues<InvoiceStatus>().Select(s => Labels.Status(T, s)).ToList();
         Assert.Equal(labels.Count, labels.Distinct().Count());
     }
 
@@ -86,7 +89,7 @@ public sealed class StatusChipTests : UiTest
     {
         var cut = Render<OutcomeChip>(p => p.Add(c => c.Outcome, outcome));
 
-        Assert.Equal(Labels.Outcome(outcome), cut.Find("[data-testid=outcome]").TextContent.Trim());
+        Assert.Equal(Labels.Outcome(T, outcome), cut.Find("[data-testid=outcome]").TextContent.Trim());
         Assert.NotEmpty(cut.FindAll("[data-testid=outcome] svg"));
     }
 }

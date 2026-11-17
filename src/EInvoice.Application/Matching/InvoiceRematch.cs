@@ -15,6 +15,9 @@ public enum RematchOutcome
 
     /// <summary>Only an invoice in Exception because of its match can be re-matched (not one with validation findings).</summary>
     NotAllowed = 4,
+
+    /// <summary>Someone else changed the invoice's status in the meantime; nothing was saved.</summary>
+    Conflict = 5,
 }
 
 /// <param name="Reasons">Why the invoice is still an exception; empty when matched.</param>
@@ -83,7 +86,7 @@ public sealed class InvoiceRematch(IRematchStore store, IInvoiceMatcher matcher,
         }
         catch (ConcurrentStatusChangeException)
         {
-            return new RematchResult(RematchOutcome.NotAllowed, null, [], "The invoice was changed by someone else in the meantime; reload it.");
+            return new RematchResult(RematchOutcome.Conflict, null, [], "The invoice was changed by someone else in the meantime; reload it.");
         }
 
         return new RematchResult(RematchOutcome.Matched, invoice.Status, []);

@@ -87,6 +87,9 @@ db/                          stored procedures, views, seed data
 - Re-match only clears match problems: an invoice in Exception with validation findings stays for a human.
 - Committed test invoices for the same vendor need distinct amounts or dates, or the POSSIBLE_DUPLICATE rule (correctly) flags invoices in other tests.
 - UI pages run operations through Operations (one DI scope per operation): never inject DbContext-backed services straight into a Blazor Server component.
+- UI texts live in src/EInvoice.Web/Resources/Texts.resx (English) and Texts.de.resx (German); pages read them as T["Key"], helpers as t["Key"]. Both files get every key (TextResourcesTests); no page writes words of its own (HardCodedTextTests). Codes get words by key: Status.*, Outcome.*, Severity.*, Rule.<CODE>.Title/.Step, Intake.*, Decision.*, Rematch.*, BankAccount.*, AuditAction.*, Role.*: a new enum value, rule code, audit action or role needs both texts.
+- Language: cookie __Host-einvoice-culture (set only by POST /account/language with a token), else Accept-Language, else German (Languages). Formats stay German in both languages. Recorded English (finding messages, failure reasons, AI explanations) is shown as recorded with lang="en". The API is not translated.
+- Test clients from ApiFactory.CreateApiClient send Accept-Language: en; browser journeys use the en-US locale unless they test the language.
 - UI shows status and match outcome as text + icon (Labels), never colour alone. Amounts and dates use Formats (German formats, Berlin time).
 - No third-party web fonts or CDNs in the UI (Google Fonts sends visitor IPs to Google); system fonts and packaged assets only.
 - Filter and page state lives in the address (query string) so every view can be linked; address values are user input and are validated.

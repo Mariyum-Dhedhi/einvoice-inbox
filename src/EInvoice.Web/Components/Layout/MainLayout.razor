@@ -7,36 +7,37 @@
 
 <MudLayout>
     <MudAppBar Elevation="0" Dense="true">
-        <MudLink Href="/" Color="Color.Inherit" Underline="Underline.None" Typo="Typo.h6" Class="app-title">E-Invoice Inbox</MudLink>
-        <nav aria-label="Main" class="app-nav">
+        <MudLink Href="/" Color="Color.Inherit" Underline="Underline.None" Typo="Typo.h6" Class="app-title">@T["App.Name"]</MudLink>
+        <nav aria-label="@T["Layout.MainNav"]" class="app-nav">
             <AuthorizeView Policy="@Policies.ReadInvoices" Context="nav">
-                <MudLink Href="/" Color="Color.Inherit" data-testid="nav-inbox">Inbox</MudLink>
+                <MudLink Href="/" Color="Color.Inherit" data-testid="nav-inbox">@T["Nav.Inbox"]</MudLink>
             </AuthorizeView>
             <AuthorizeView Policy="@Policies.ReadInvoices" Context="nav">
-                <MudLink Href="/dashboard" Color="Color.Inherit" data-testid="nav-dashboard">Dashboard</MudLink>
+                <MudLink Href="/dashboard" Color="Color.Inherit" data-testid="nav-dashboard">@T["Nav.Dashboard"]</MudLink>
             </AuthorizeView>
             <AuthorizeView Policy="@Policies.DecideInvoices" Context="nav">
-                <MudLink Href="/approvals" Color="Color.Inherit" data-testid="nav-approvals">Approvals</MudLink>
+                <MudLink Href="/approvals" Color="Color.Inherit" data-testid="nav-approvals">@T["Nav.Approvals"]</MudLink>
             </AuthorizeView>
             <AuthorizeView Policy="@Policies.ReadAudit" Context="nav">
-                <MudLink Href="/audit" Color="Color.Inherit" data-testid="nav-audit">Audit</MudLink>
+                <MudLink Href="/audit" Color="Color.Inherit" data-testid="nav-audit">@T["Nav.Audit"]</MudLink>
             </AuthorizeView>
             <AuthorizeView Policy="@Policies.ManageVendors" Context="nav">
-                <MudLink Href="/admin/vendors" Color="Color.Inherit" data-testid="nav-vendors">Vendors</MudLink>
+                <MudLink Href="/admin/vendors" Color="Color.Inherit" data-testid="nav-vendors">@T["Nav.Vendors"]</MudLink>
             </AuthorizeView>
             <AuthorizeView Policy="@Policies.ManageUsers" Context="nav">
-                <MudLink Href="/admin/users" Color="Color.Inherit" data-testid="nav-users">Users</MudLink>
+                <MudLink Href="/admin/users" Color="Color.Inherit" data-testid="nav-users">@T["Nav.Users"]</MudLink>
             </AuthorizeView>
         </nav>
         <MudSpacer />
-        <MudText Typo="Typo.body2" Class="app-subtitle">Accounts payable</MudText>
+        <MudText Typo="Typo.body2" Class="app-subtitle">@T["Layout.Subtitle"]</MudText>
+        <LanguageSwitch />
         <AuthorizeView>
             <Authorized>
                 <span class="signed-in" data-testid="signed-in-user">@context.User.Identity?.Name</span>
                 @* A POST form with a token, not a link: another site or an <img> cannot sign anyone out. *@
                 <form method="post" action="@SignInSetup.LogoutPath" data-testid="sign-out" class="sign-out">
                     <AntiforgeryToken />
-                    <button type="submit">Sign out</button>
+                    <button type="submit">@T["Layout.SignOut"]</button>
                 </form>
             </Authorized>
         </AuthorizeView>
@@ -56,9 +57,9 @@
 }
 
 <div id="blazor-error-ui" data-nosnippet>
-    An unhandled error has occurred.
-    <a href="." class="reload">Reload</a>
-    <button type="button" class="dismiss" aria-label="Dismiss">×</button>
+    @T["Layout.Unhandled"]
+    <a href="." class="reload">@T["Layout.Reload"]</a>
+    <button type="button" class="dismiss" aria-label="@T["Common.Dismiss"]">×</button>
 </div>
 
 @code {

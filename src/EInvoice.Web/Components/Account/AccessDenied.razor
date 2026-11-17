@@ -4,27 +4,27 @@
 
 @* Any signed-in user may see this page: it explains why another page is closed to them. *@
 
-<PageTitle>No access – E-Invoice Inbox</PageTitle>
+<PageTitle>@T["Page.Title", T["AccessDenied.PageTitle"]]</PageTitle>
 
 <AuthorizeView Context="auth">
     <section class="sign-in" aria-labelledby="denied-title">
-        <h1 id="denied-title">No access to this page</h1>
+        <h1 id="denied-title">@T["AccessDenied.Title"]</h1>
         <p>
-            You are signed in as <strong data-testid="denied-user">@auth.User.Identity?.Name</strong>,
+            @T["AccessDenied.SignedInAs"] <strong data-testid="denied-user">@auth.User.Identity?.Name</strong>,
             <span data-testid="denied-roles">@RolesText(auth.User)</span>.
-            This page needs a role you do not have. If you need it, ask an administrator.
+            @T["AccessDenied.Explain"]
         </p>
         <form method="post" action="@SignInSetup.LogoutPath" data-testid="sign-out">
             <AntiforgeryToken />
-            <button type="submit">Sign in as someone else</button>
+            <button type="submit">@T["AccessDenied.SignInAgain"]</button>
         </form>
     </section>
 </AuthorizeView>
 
 @code {
-    private static string RolesText(ClaimsPrincipal user)
+    private string RolesText(ClaimsPrincipal user)
     {
-        var roles = user.FindAll(ClaimTypes.Role).Select(r => r.Value).Order(StringComparer.Ordinal).ToList();
-        return roles.Count == 0 ? "with no role" : $"with the role {string.Join(", ", roles)}";
+        var roles = user.FindAll(ClaimTypes.Role).Select(r => r.Value).Order(StringComparer.Ordinal).Select(r => Labels.Role(T, r)).ToList();
+        return roles.Count == 0 ? T["AccessDenied.NoRole"] : T["AccessDenied.Roles", string.Join(", ", roles)];
     }
 }

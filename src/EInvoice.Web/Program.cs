@@ -1,6 +1,7 @@
 using System.Text.Json.Serialization;
 using EInvoice.Web.Components;
 using EInvoice.Web.Configuration;
+using EInvoice.Web.Localization;
 using EInvoice.Web.Security;
 using MudBlazor.Services;
 
@@ -12,6 +13,7 @@ builder.Services.AddControllers()
     .AddJsonOptions(json => json.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter())); // statuses as names, not numbers
 builder.Services.AddOpenApi();
 builder.Services.AddMudServices();
+builder.Services.AddEInvoiceLanguages(); // English and German UI (Languages)
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
@@ -78,6 +80,9 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+// The language of the page: the person's choice (cookie), else the browser's, else German.
+app.UseRequestLocalization();
+
 // Who is calling, then whether they may: every endpoint requires sign-in unless it allows anonymous callers.
 app.UseAuthentication();
 app.UseAuthorization();
@@ -92,6 +97,7 @@ if (app.Environment.IsDevelopment())
 app.MapControllers();
 app.MapStaticAssets().AllowAnonymous(); // stylesheets and scripts of the login page
 app.MapSignOut();
+app.MapLanguageSwitch();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 

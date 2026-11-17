@@ -7,22 +7,22 @@
 
 @if (!_loaded)
 {
-    <MudProgressLinear Indeterminate="true" aria-label="Loading the vendor" />
+    <MudProgressLinear Indeterminate="true" aria-label="@T["Bank.Loading"]" />
 }
 else if (_vendor is null)
 {
-    <PageTitle>Vendor not found – E-Invoice Inbox</PageTitle>
+    <PageTitle>@T["Page.Title", T["Bank.NotFound"]]</PageTitle>
     <MudPaper Outlined="true" Class="pa-6" data-testid="vendor-not-found">
-        <MudText Typo="Typo.h5" HtmlTag="h1">Vendor not found</MudText>
-        <MudLink Href="/admin/vendors">Back to the vendors</MudLink>
+        <MudText Typo="Typo.h5" HtmlTag="h1">@T["Bank.NotFound"]</MudText>
+        <MudLink Href="/admin/vendors">@T["Bank.BackToVendors"]</MudLink>
     </MudPaper>
 }
 else
 {
     var vendor = _vendor;
-    <PageTitle>@vendor.Name – E-Invoice Inbox</PageTitle>
+    <PageTitle>@T["Page.Title", vendor.Name]</PageTitle>
     <MudLink Href="/admin/vendors" Typo="Typo.body2" Class="d-inline-flex align-center mb-2">
-        <MudIcon Icon="@Icons.Material.Outlined.ArrowBack" Size="Size.Small" Class="mr-1" aria-hidden="true" /> Vendors
+        <MudIcon Icon="@Icons.Material.Outlined.ArrowBack" Size="Size.Small" Class="mr-1" aria-hidden="true" /> @T["Vendors.Title"]
     </MudLink>
     <MudText Typo="Typo.h4" HtmlTag="h1" Class="break-all">@vendor.Name</MudText>
     <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">@vendor.Number</MudText>
@@ -34,19 +34,19 @@ else
 
     @* ---- Bank accounts today --------------------------------------------------------------------------------- *@
     <MudPaper Outlined="true" Class="pa-4 mb-3">
-        <MudText Typo="Typo.h6" HtmlTag="h2" Class="mb-2">Bank accounts</MudText>
+        <MudText Typo="Typo.h6" HtmlTag="h2" Class="mb-2">@T["Vendors.BankAccounts"]</MudText>
         <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2">
-            Compare each IBAN with a source you trust (a letter or a phone call to a number you already know), not with the invoice.
+            @T["Bank.Compare"]
         </MudText>
         @if (vendor.Accounts.Count == 0)
         {
-            <MudText>No bank accounts.</MudText>
+            <MudText>@T["Bank.None"]</MudText>
         }
         else
         {
             <MudSimpleTable Elevation="0" Dense="true">
                 <thead>
-                    <tr><th scope="col">IBAN</th><th scope="col">Status</th><th scope="col"><span class="visually-hidden">Actions</span></th></tr>
+                    <tr><th scope="col">@T["Common.Iban"]</th><th scope="col">@T["Common.Status"]</th><th scope="col"><span class="visually-hidden">@T["Bank.Actions"]</span></th></tr>
                 </thead>
                 <tbody>
                     @foreach (var account in vendor.Accounts)
@@ -59,14 +59,14 @@ else
                                 {
                                     <span data-testid="account-status" data-status="active" class="d-inline-flex align-center gap-1">
                                         <MudIcon Icon="@Icons.Material.Outlined.VerifiedUser" Size="Size.Small" Color="Color.Success" aria-hidden="true" />
-                                        Active, confirmed by @account.ConfirmedBy
+                                        @T["Bank.ActiveBy", account.ConfirmedBy ?? "–"]
                                     </span>
                                 }
                                 else
                                 {
                                     <span data-testid="account-status" data-status="pending" class="d-inline-flex align-center gap-1">
                                         <MudIcon Icon="@Icons.Material.Outlined.HourglassTop" Size="Size.Small" Color="Color.Warning" aria-hidden="true" />
-                                        Waiting for a second admin (proposed by @account.ProposedBy)
+                                        @T["Bank.PendingBy", account.ProposedBy]
                                     </span>
                                 }
                             </td>
@@ -75,16 +75,16 @@ else
                                 {
                                     if (mine)
                                     {
-                                        <MudText Typo="Typo.body2">You proposed it; another admin confirms.</MudText>
+                                        <MudText Typo="Typo.body2">@T["Bank.YouProposed"]</MudText>
                                     }
                                     else
                                     {
                                         <MudButton Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" Disabled="_busy"
-                                                   OnClick="() => ConfirmAsync(account.Id)" data-testid="confirm">Confirm</MudButton>
+                                                   OnClick="() => ConfirmAsync(account.Id)" data-testid="confirm">@T["Bank.Confirm"]</MudButton>
                                     }
                                 }
                                 <MudButton Variant="Variant.Outlined" Color="Color.Error" Size="Size.Small" Disabled="_busy" Class="ml-2"
-                                           OnClick="() => StartRemove(account.Id)" data-testid="remove">Remove</MudButton>
+                                           OnClick="() => StartRemove(account.Id)" data-testid="remove">@T["Bank.Remove"]</MudButton>
                             </td>
                         </tr>
                         @if (_removing == account.Id)
@@ -93,12 +93,12 @@ else
                                 <td colspan="3">
                                     <div data-testid="remove-reason">
                                         <MudTextField T="string" @bind-Value="_removeReason" Immediate="true" Lines="2" MaxLength="200" Counter="200"
-                                                      Variant="Variant.Outlined" Label="Why is this account removed?" HelperText="Required; kept in the audit trail." />
+                                                      Variant="Variant.Outlined" Label="@T["Bank.RemoveReason"]" HelperText="@T["Bank.RemoveReasonHelp"]" />
                                     </div>
                                     <div class="d-flex gap-2 mt-2">
                                         <MudButton Variant="Variant.Filled" Color="Color.Error" Disabled="@(_busy || string.IsNullOrWhiteSpace(_removeReason))"
-                                                   OnClick="RemoveAsync" data-testid="remove-confirm">Remove account</MudButton>
-                                        <MudButton Variant="Variant.Text" OnClick="() => _removing = null">Cancel</MudButton>
+                                                   OnClick="RemoveAsync" data-testid="remove-confirm">@T["Bank.RemoveAccount"]</MudButton>
+                                        <MudButton Variant="Variant.Text" OnClick="() => _removing = null">@T["Common.Cancel"]</MudButton>
                                     </div>
                                 </td>
                             </tr>
@@ -110,33 +110,33 @@ else
 
         <div class="d-flex flex-wrap align-end gap-2 mt-4">
             <div data-testid="new-iban" class="flex-grow-1" style="min-width: 16rem">
-                <MudTextField T="string" @bind-Value="_newIban" Immediate="true" Variant="Variant.Outlined" Label="New IBAN" MaxLength="42"
-                              HelperText="Proposed now; it counts once a second admin has confirmed it." />
+                <MudTextField T="string" @bind-Value="_newIban" Immediate="true" Variant="Variant.Outlined" Label="@T["Bank.NewIban"]" MaxLength="42"
+                              HelperText="@T["Bank.NewIbanHelp"]" />
             </div>
             <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@(_busy || string.IsNullOrWhiteSpace(_newIban))"
-                       OnClick="ProposeAsync" data-testid="propose">Propose</MudButton>
+                       OnClick="ProposeAsync" data-testid="propose">@T["Bank.Propose"]</MudButton>
         </div>
     </MudPaper>
 
     @* ---- Earlier versions (temporal history) ----------------------------------------------------------------- *@
     <MudPaper Outlined="true" Class="pa-4">
-        <MudText Typo="Typo.h6" HtmlTag="h2" Class="mb-2">History</MudText>
+        <MudText Typo="Typo.h6" HtmlTag="h2" Class="mb-2">@T["Detail.History"]</MudText>
         @if (vendor.History.Count == 0)
         {
-            <MudText>No earlier versions.</MudText>
+            <MudText>@T["Bank.NoHistory"]</MudText>
         }
         else
         {
             <MudSimpleTable Elevation="0" Dense="true">
                 <thead>
-                    <tr><th scope="col">IBAN</th><th scope="col">Status</th><th scope="col">Proposed by</th><th scope="col">Confirmed by</th><th scope="col">From</th><th scope="col">Until</th></tr>
+                    <tr><th scope="col">@T["Common.Iban"]</th><th scope="col">@T["Common.Status"]</th><th scope="col">@T["Bank.ProposedBy"]</th><th scope="col">@T["Bank.ConfirmedBy"]</th><th scope="col">@T["Bank.From"]</th><th scope="col">@T["Bank.Until"]</th></tr>
                 </thead>
                 <tbody>
                     @foreach (var h in vendor.History)
                     {
                         <tr data-testid="history-row">
                             <td class="nowrap">@h.MaskedIban</td>
-                            <td>@(h.Status == BankAccountStatus.Active ? "Active" : "Pending")</td>
+                            <td>@(h.Status == BankAccountStatus.Active ? T["Bank.Active"] : T["Bank.Pending"])</td>
                             <td class="break-all">@h.ProposedBy</td>
                             <td class="break-all">@(h.ConfirmedBy ?? "–")</td>
                             <td class="nowrap">@Formats.Timestamp(h.ValidFrom)</td>
@@ -210,13 +210,10 @@ else
         try
         {
             var result = await Operations.RunAsync<IBankAccountAdministration, BankAccountResult>(action);
-            (_messageSeverity, _message) = result.Outcome switch
-            {
-                BankAccountOutcome.Proposed => (Severity.Success, "Proposed. It waits for a second admin before it counts for payments."),
-                BankAccountOutcome.Confirmed => (Severity.Success, "Confirmed. Invoices may now ask for payment to this account."),
-                BankAccountOutcome.Removed => (Severity.Success, "Removed. Invoices asking for payment to it now need review."),
-                _ => (Severity.Error, result.Detail ?? "The change was refused."),
-            };
+            _messageSeverity = result.Outcome is BankAccountOutcome.Proposed or BankAccountOutcome.Confirmed or BankAccountOutcome.Removed
+                ? Severity.Success
+                : Severity.Error;
+            _message = T[$"BankAccount.{result.Outcome}"];
             var success = _messageSeverity == Severity.Success;
             if (success)
             {

@@ -19,3 +19,7 @@
 # Informational: the comment is the Blazor template's note in ReconnectModal.razor.js ("reload the page so the user
 # can continue"), not a secret.
 10027	IGNORE	(Information Disclosure - Suspicious Comments)
+# The language switch writes the posted language into its cookie. Only "de" or "en" are accepted (anything else: 400,
+# no cookie), and the value is rebuilt from that list, not copied; pinned by LanguageTests (A_language_the_app_does_not_
+# speak_is_refused_and_nothing_is_kept).
+10029	IGNORE	(Cookie Poisoning)
