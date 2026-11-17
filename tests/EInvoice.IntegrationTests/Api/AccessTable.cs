@@ -26,11 +26,11 @@ internal sealed record Access(bool Anonymous, bool AnySignedIn, IReadOnlySet<str
 /// </summary>
 internal static partial class AccessTable
 {
-    /// <summary>Signed in, but with none of the four roles.</summary>
+    /// <summary>Signed in, but with none of the five roles.</summary>
     public const string NoRole = "(no role)";
 
-    /// <summary>Who calls: the four roles, a signed-in user without a role, and nobody signed in (null).</summary>
-    public static IReadOnlyList<string?> Callers { get; } = ["Clerk", "Approver", "Auditor", "Admin", NoRole, null];
+    /// <summary>Who calls: the five roles, a signed-in user without a role, and nobody signed in (null).</summary>
+    public static IReadOnlyList<string?> Callers { get; } = ["Clerk", "Approver", "Auditor", "Admin", "Buyer", NoRole, null];
 
     private static readonly Access Readers = Access.Only("Clerk", "Approver", "Auditor");
 
@@ -57,6 +57,9 @@ internal static partial class AccessTable
         ["PAGE /admin/users"] = Access.Only("Admin"),
         ["PAGE /admin/vendors"] = Access.Only("Admin"),
         ["PAGE /admin/vendors/{Id:guid}"] = Access.Only("Admin"),
+        ["PAGE /purchasing"] = Access.Only("Clerk", "Approver", "Auditor", "Buyer"),
+        ["PAGE /purchasing/{Id:guid}"] = Access.Only("Clerk", "Approver", "Auditor", "Buyer"),
+        ["PAGE /purchasing/new"] = Access.Only("Buyer"),
         ["PAGE /account/access-denied"] = Access.SignedIn,
         ["PAGE /account/login"] = Access.Open,
         ["PAGE /Error"] = Access.Open,

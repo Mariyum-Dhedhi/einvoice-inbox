@@ -116,3 +116,25 @@ tr.problem > td:first-child { box-shadow: inset 4px 0 0 var(--mud-palette-warnin
 }
 .app-nav { display: flex; gap: 1.25rem; margin-left: 2rem; }
 .app-nav a { display: inline-flex; align-items: center; min-height: 2.75rem; }
+
+/* Purchasing forms: native date and select fields beside MudBlazor's outlined fields, same height and border. */
+.search-form { display: flex; flex-wrap: wrap; gap: 0.5rem; max-width: 36rem; }
+.search-form input { flex: 1 1 16rem; min-height: 2.5rem; padding: 0 0.75rem; border: 1px solid var(--mud-palette-lines-inputs); border-radius: 4px; font: inherit; background: var(--mud-palette-surface); color: inherit; }
+.search-form button, .date-field input, .select-field select {
+    min-height: 2.5rem; padding: 0 0.75rem; border: 1px solid var(--mud-palette-lines-inputs); border-radius: 4px;
+    font: inherit; background: var(--mud-palette-surface); color: inherit;
+}
+.search-form button { cursor: pointer; }
+.search-form input:focus-visible, .search-form button:focus-visible, .date-field input:focus-visible, .select-field select:focus-visible {
+    outline: 2px solid var(--mud-palette-primary); outline-offset: 1px;
+}
+.date-field, .select-field { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.875rem; }
+.select-field select { min-width: 6rem; max-width: 100%; }
+.draft-line {
+    display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: flex-end; margin: 0 0 0.75rem; padding: 0.5rem 0.75rem 0.75rem;
+    border: 1px solid var(--mud-palette-lines-default); border-radius: 6px;
+}
+.draft-line legend { padding: 0 0.25rem; font-size: 0.875rem; font-weight: 600; }
+.draft-line .field-item { flex: 0 1 10rem; }
+.draft-line .field-description { flex: 1 1 18rem; }
+.draft-line .field-number { flex: 0 1 9rem; }

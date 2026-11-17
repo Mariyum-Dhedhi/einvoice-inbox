@@ -18,6 +18,9 @@
             <AuthorizeView Policy="@Policies.DecideInvoices" Context="nav">
                 <MudLink Href="/approvals" Color="Color.Inherit" data-testid="nav-approvals">@T["Nav.Approvals"]</MudLink>
             </AuthorizeView>
+            <AuthorizeView Policy="@Policies.ReadPurchasing" Context="nav">
+                <MudLink Href="/purchasing" Color="Color.Inherit" data-testid="nav-purchasing">@T["Nav.Purchasing"]</MudLink>
+            </AuthorizeView>
             <AuthorizeView Policy="@Policies.ReadAudit" Context="nav">
                 <MudLink Href="/audit" Color="Color.Inherit" data-testid="nav-audit">@T["Nav.Audit"]</MudLink>
             </AuthorizeView>

@@ -1,122 +1,247 @@
-@page "/account/login"
-@using EInvoice.Application.Audit
-@using EInvoice.Application.Security
-@using EInvoice.Infrastructure.Identity
-@using Microsoft.AspNetCore.Identity
-@attribute [AllowAnonymous]
-@attribute [ExcludeFromInteractiveRouting]
-@inject SignInManager<AppUser> SignIn
-@inject NavigationManager Navigation
-@inject IAuditLog Audit
-@inject TimeProvider Time
-
-@*
-    Server-rendered form, no WebSocket connection: only a normal HTTP response can set the sign-in cookie.
-    SignInManager is injected here because this page lives for exactly one request (not an interactive component).
-*@
-
-<PageTitle>@T["Page.Title", T["Login.Title"]]</PageTitle>
-
-<section class="sign-in" aria-labelledby="sign-in-title">
-    <h1 id="sign-in-title">@T["Login.Title"]</h1>
-
-    @if (_failed)
-    {
-        <p class="sign-in-error" role="alert" data-testid="login-error">@T["Login.Failed"]</p>
-    }
-
-    @* Checked here, not with data annotations: their messages would exist in one language only. *@
-    <EditForm Model="Input" method="post" OnSubmit="SubmitAsync" FormName="login">
-        <label for="username">@T["Login.UserName"]</label>
-        <InputText id="username" @bind-Value="Input!.UserName" autocomplete="username" required aria-required="true" />
-        <ValidationMessage For="() => Input!.UserName" />
-
-        <label for="password">@T["Login.Password"]</label>
-        @* Not bound for output: a re-shown form never writes the password back into the page. *@
-        <input id="password" name="Input.Password" type="password" autocomplete="current-password" required aria-required="true" />
-        <ValidationMessage For="() => Input!.Password" />
-
-        <button type="submit">@T["Login.Submit"]</button>
-    </EditForm>
-</section>
-
-@code {
-    [SupplyParameterFromForm]
-    private LoginInput? Input { get; set; }
-
-    [SupplyParameterFromQuery]
-    private string? ReturnUrl { get; set; }
-
-    private bool _failed;
-
-    protected override void OnInitialized() => Input ??= new();
-
-    /// <summary>Both fields required, at most <see cref="MaxLength"/> characters (the user name column); otherwise no sign-in is tried.</summary>
-    private async Task SubmitAsync(EditContext form)
-    {
-        var messages = new ValidationMessageStore(form);
-        Check(messages, () => Input!.UserName, Input!.UserName, T["Login.EnterUserName"]);
-        Check(messages, () => Input!.Password, Input.Password, T["Login.EnterPassword"]);
-        if (form.GetValidationMessages().Any())
-        {
-            form.NotifyValidationStateChanged();
-            return;
-        }
-
-        await SignInAsync();
-    }
-
-    private void Check(ValidationMessageStore messages, System.Linq.Expressions.Expression<Func<object>> field, string? value, string missing)
-    {
-        if (string.IsNullOrWhiteSpace(value))
-        {
-            messages.Add(field, missing);
-        }
-        else if (value.Length > MaxLength)
-        {
-            messages.Add(field, T["Login.TooLong", MaxLength]);
-        }
-    }
-
-    private async Task SignInAsync()
-    {
-        // Lockout counts failures; the answer is the same for every kind of failure.
-        var result = await SignIn.PasswordSignInAsync(Input!.UserName, Input.Password, isPersistent: false, lockoutOnFailure: true);
-
-        // Audited under the name as typed (for a failure there may be no such account). Never the password.
-        var action = result.Succeeded ? AuditActions.SignedIn : result.IsLockedOut ? AuditActions.SignInLockedOut : AuditActions.SignInFailed;
-        await Audit.AppendAsync(new AuditDraft(Time.GetUtcNow(), Input.UserName, action, $"User/{Input.UserName}", "{}"), CancellationToken.None);
-
-        if (result.Succeeded)
-        {
-            var target = SignInSetup.SafeReturnUrl(ReturnUrl);
-            Navigation.NavigateTo(target == "/" ? await StartPageAsync(Input.UserName) : target);
-            return;
-        }
-
-        _failed = true;
-    }
-
-    /// <summary>The approval queue for an approver, the user list for an admin (no invoice pages), else the inbox.</summary>
-    private async Task<string> StartPageAsync(string userName)
-    {
-        var user = await SignIn.UserManager.FindByNameAsync(userName);
-        var roles = user is null ? [] : await SignIn.UserManager.GetRolesAsync(user);
-        var readsInvoices = roles.Any(r => r is Roles.Clerk or Roles.Approver or Roles.Auditor);
-        if (roles.Contains(Roles.Approver))
-        {
-            return "/approvals"; // the queue of invoices waiting for them
-        }
-
-        return !readsInvoices && roles.Contains(Roles.Admin) ? "/admin/users" : "/";
-    }
-
-    private const int MaxLength = 256;
-
-    private sealed class LoginInput
-    {
-        public string UserName { get; set; } = string.Empty;
-
-        public string Password { get; set; } = string.Empty;
-    }
-}
+@page "/account/login"
+
+@using EInvoice.Application.Audit
+
+@using EInvoice.Application.Security
+
+@using EInvoice.Infrastructure.Identity
+
+@using Microsoft.AspNetCore.Identity
+
+@attribute [AllowAnonymous]
+
+@attribute [ExcludeFromInteractiveRouting]
+
+@inject SignInManager<AppUser> SignIn
+
+@inject NavigationManager Navigation
+
+@inject IAuditLog Audit
+
+@inject TimeProvider Time
+
+
+
+@*
+
+    Server-rendered form, no WebSocket connection: only a normal HTTP response can set the sign-in cookie.
+
+    SignInManager is injected here because this page lives for exactly one request (not an interactive component).
+
+*@
+
+
+
+<PageTitle>@T["Page.Title", T["Login.Title"]]</PageTitle>
+
+
+
+<section class="sign-in" aria-labelledby="sign-in-title">
+
+    <h1 id="sign-in-title">@T["Login.Title"]</h1>
+
+
+
+    @if (_failed)
+
+    {
+
+        <p class="sign-in-error" role="alert" data-testid="login-error">@T["Login.Failed"]</p>
+
+    }
+
+
+
+    @* Checked here, not with data annotations: their messages would exist in one language only. *@
+
+    <EditForm Model="Input" method="post" OnSubmit="SubmitAsync" FormName="login">
+
+        <label for="username">@T["Login.UserName"]</label>
+
+        <InputText id="username" @bind-Value="Input!.UserName" autocomplete="username" required aria-required="true" />
+
+        <ValidationMessage For="() => Input!.UserName" />
+
+
+
+        <label for="password">@T["Login.Password"]</label>
+
+        @* Not bound for output: a re-shown form never writes the password back into the page. *@
+
+        <input id="password" name="Input.Password" type="password" autocomplete="current-password" required aria-required="true" />
+
+        <ValidationMessage For="() => Input!.Password" />
+
+
+
+        <button type="submit">@T["Login.Submit"]</button>
+
+    </EditForm>
+
+</section>
+
+
+
+@code {
+
+    [SupplyParameterFromForm]
+
+    private LoginInput? Input { get; set; }
+
+
+
+    [SupplyParameterFromQuery]
+
+    private string? ReturnUrl { get; set; }
+
+
+
+    private bool _failed;
+
+
+
+    protected override void OnInitialized() => Input ??= new();
+
+
+
+    /// <summary>Both fields required, at most <see cref="MaxLength"/> characters (the user name column); otherwise no sign-in is tried.</summary>
+
+    private async Task SubmitAsync(EditContext form)
+
+    {
+
+        var messages = new ValidationMessageStore(form);
+
+        Check(messages, () => Input!.UserName, Input!.UserName, T["Login.EnterUserName"]);
+
+        Check(messages, () => Input!.Password, Input.Password, T["Login.EnterPassword"]);
+
+        if (form.GetValidationMessages().Any())
+
+        {
+
+            form.NotifyValidationStateChanged();
+
+            return;
+
+        }
+
+
+
+        await SignInAsync();
+
+    }
+
+
+
+    private void Check(ValidationMessageStore messages, System.Linq.Expressions.Expression<Func<object>> field, string? value, string missing)
+
+    {
+
+        if (string.IsNullOrWhiteSpace(value))
+
+        {
+
+            messages.Add(field, missing);
+
+        }
+
+        else if (value.Length > MaxLength)
+
+        {
+
+            messages.Add(field, T["Login.TooLong", MaxLength]);
+
+        }
+
+    }
+
+
+
+    private async Task SignInAsync()
+
+    {
+
+        // Lockout counts failures; the answer is the same for every kind of failure.
+
+        var result = await SignIn.PasswordSignInAsync(Input!.UserName, Input.Password, isPersistent: false, lockoutOnFailure: true);
+
+
+
+        // Audited under the name as typed (for a failure there may be no such account). Never the password.
+
+        var action = result.Succeeded ? AuditActions.SignedIn : result.IsLockedOut ? AuditActions.SignInLockedOut : AuditActions.SignInFailed;
+
+        await Audit.AppendAsync(new AuditDraft(Time.GetUtcNow(), Input.UserName, action, $"User/{Input.UserName}", "{}"), CancellationToken.None);
+
+
+
+        if (result.Succeeded)
+
+        {
+
+            var target = SignInSetup.SafeReturnUrl(ReturnUrl);
+
+            Navigation.NavigateTo(target == "/" ? await StartPageAsync(Input.UserName) : target);
+
+            return;
+
+        }
+
+
+
+        _failed = true;
+
+    }
+
+
+
+    /// <summary>The approval queue for an approver, the orders for a buyer and the user list for an admin (neither has invoice pages), else the inbox.</summary>
+
+    private async Task<string> StartPageAsync(string userName)
+
+    {
+
+        var user = await SignIn.UserManager.FindByNameAsync(userName);
+
+        var roles = user is null ? [] : await SignIn.UserManager.GetRolesAsync(user);
+
+        var readsInvoices = roles.Any(r => r is Roles.Clerk or Roles.Approver or Roles.Auditor);
+
+        if (roles.Contains(Roles.Approver))
+
+        {
+
+            return "/approvals"; // the queue of invoices waiting for them
+
+        }
+
+
+
+        return readsInvoices ? "/"
+            : roles.Contains(Roles.Buyer) ? "/purchasing"
+            : roles.Contains(Roles.Admin) ? "/admin/users"
+            : "/";
+
+    }
+
+
+
+    private const int MaxLength = 256;
+
+
+
+    private sealed class LoginInput
+
+    {
+
+        public string UserName { get; set; } = string.Empty;
+
+
+
+        public string Password { get; set; } = string.Empty;
+
+    }
+
+}
+

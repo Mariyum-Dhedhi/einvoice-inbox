@@ -1,0 +1,114 @@
+@page "/purchasing"
+@attribute [Authorize(Policy = Policies.ReadPurchasing)]
+@implements IDisposable
+@using EInvoice.Application.Purchasing
+@inject Operations Operations
+
+<PageTitle>@T["Page.Title", T["Purchasing.Title"]]</PageTitle>
+
+<div class="d-flex flex-wrap align-center justify-space-between gap-3 mb-1">
+    <MudText Typo="Typo.h4" HtmlTag="h1">@T["Purchasing.Title"]</MudText>
+    <AuthorizeView Policy="@Policies.ManagePurchasing" Context="auth">
+        <MudButton Href="/purchasing/new" Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Outlined.Add"
+                   data-testid="new-order">@T["Purchasing.New"]</MudButton>
+    </AuthorizeView>
+</div>
+<MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">@T["Purchasing.Intro"]</MudText>
+
+@* A plain GET form: the search lands in the address, so every view can be linked. *@
+<form method="get" action="/purchasing" data-testid="search" role="search" class="search-form mb-3">
+    <label for="order-search" class="visually-hidden">@T["Purchasing.SearchLabel"]</label>
+    <input id="order-search" name="q" type="search" value="@_search" maxlength="@PurchaseOrderListQuery.MaxSearchLength"
+           placeholder="@T["Purchasing.SearchPlaceholder"]" />
+    <button type="submit">@T["Purchasing.Search"]</button>
+</form>
+
+@if (_page is null)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" aria-label="@T["Purchasing.Loading"]" />
+}
+else if (_page.TotalCount == 0)
+{
+    <MudPaper Outlined="true" Class="pa-6 text-center">
+        <MudText data-testid="orders-empty">@(_search is null ? T["Purchasing.Empty"] : T["Purchasing.NoneFound"])</MudText>
+    </MudPaper>
+}
+else
+{
+    <MudPaper Outlined="true" Class="table-scroll">
+        <MudSimpleTable Elevation="0" Dense="true" Hover="true">
+            <thead>
+                <tr>
+                    <th scope="col">@T["Common.PurchaseOrder"]</th>
+                    <th scope="col">@T["Common.Vendor"]</th>
+                    <th scope="col">@T["Purchasing.OrderDate"]</th>
+                    <th scope="col" class="num">@T["Common.Net"]</th>
+                    <th scope="col">@T["Purchasing.Delivery"]</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var order in _page.Items)
+                {
+                    <tr data-testid="order-row">
+                        <td class="nowrap"><MudLink Href="@($"/purchasing/{order.Id}")" Underline="Underline.Always">@order.Number</MudLink></td>
+                        <td class="break-all">@order.VendorName</td>
+                        <td class="nowrap">@Formats.Date(order.OrderDate)</td>
+                        <td class="num nowrap">@Formats.Money(order.NetTotal, order.Currency)</td>
+                        <td><ReceiptStateLabel State="order.Received" /></td>
+                    </tr>
+                }
+            </tbody>
+        </MudSimpleTable>
+    </MudPaper>
+
+    <nav aria-label="@T["Paging.Label"]" class="d-flex align-center justify-end gap-2 mt-2">
+        @if (_page.Page > 1)
+        {
+            <MudButton Href="@Link(_page.Page - 1)" Size="Size.Small" Variant="Variant.Text" StartIcon="@Icons.Material.Outlined.ChevronLeft"
+                       data-testid="page-prev">@T["Paging.Previous"]</MudButton>
+        }
+        @if (_page.Page * _page.PageSize < _page.TotalCount)
+        {
+            <MudButton Href="@Link(_page.Page + 1)" Size="Size.Small" Variant="Variant.Text" EndIcon="@Icons.Material.Outlined.ChevronRight"
+                       data-testid="page-next">@T["Paging.Next"]</MudButton>
+        }
+    </nav>
+}
+
+@code {
+    private readonly CancellationTokenSource _disposed = new();
+    private PurchaseOrderList? _page;
+    private string? _search;
+
+    [SupplyParameterFromQuery(Name = "q")]
+    public string? SearchQuery { get; set; }
+
+    [SupplyParameterFromQuery(Name = "page")]
+    public string? PageQuery { get; set; }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        // The address is user input: blank or too long means no search; anything but a positive number means page 1.
+        var search = SearchQuery?.Trim();
+        _search = string.IsNullOrEmpty(search) || search.Length > PurchaseOrderListQuery.MaxSearchLength ? null : search;
+        var page = int.TryParse(PageQuery, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var p) && p > 0 ? p : 1;
+
+        var query = new PurchaseOrderListQuery(_search, page, PurchaseOrderListQuery.DefaultPageSize);
+        _page = await Operations.RunAsync<IPurchasingQueries, PurchaseOrderList>(q => q.ListAsync(query, _disposed.Token));
+    }
+
+    private string Link(int page) =>
+        (_search, page) switch
+        {
+            (null, 1) => "/purchasing",
+            (null, _) => $"/purchasing?page={page}",
+            (_, 1) => $"/purchasing?q={Uri.EscapeDataString(_search)}",
+            _ => $"/purchasing?q={Uri.EscapeDataString(_search)}&page={page}",
+        };
+
+    public void Dispose()
+    {
+        _disposed.Cancel();
+        _disposed.Dispose();
+    }
+}

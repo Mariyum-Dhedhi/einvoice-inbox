@@ -1,8 +1,9 @@
 namespace EInvoice.Application.Security;
 
 /// <summary>
-/// The four roles, with separated duties: whoever uploads cannot approve, the auditor only reads, and the admin
-/// manages users and master data but never touches invoices. What each role may do is decided per endpoint.
+/// The five roles, with separated duties: whoever uploads cannot approve, the auditor only reads, the admin
+/// manages users and master data but never touches invoices, and the buyer records what was ordered and received
+/// (what invoices are matched against) but never touches invoices either. What each role may do is decided per endpoint.
 /// </summary>
 public static class Roles
 {
@@ -18,5 +19,8 @@ public static class Roles
     /// <summary>Manages users and vendor master data, including bank accounts (package 11); no access to invoices.</summary>
     public const string Admin = "Admin";
 
-    public static IReadOnlyList<string> All { get; } = [Clerk, Approver, Auditor, Admin];
+    /// <summary>Records purchase orders and goods receipts; reads no invoices.</summary>
+    public const string Buyer = "Buyer";
+
+    public static IReadOnlyList<string> All { get; } = [Clerk, Approver, Auditor, Admin, Buyer];
 }

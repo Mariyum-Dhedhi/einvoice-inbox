@@ -56,6 +56,7 @@ public sealed class SignInTests(SqlServerFixture fixture) : IAsyncLifetime
     [InlineData("Approver", "/approvals")] // the queue of invoices waiting for them
     [InlineData("Auditor", "/")]
     [InlineData("Admin", "/admin/users")] // the admin has no invoice pages: starts on the user list
+    [InlineData("Buyer", "/purchasing")] // the buyer has no invoice pages either: starts on the orders
     public async Task Without_a_return_address_each_role_starts_on_its_own_page(string role, string start)
     {
         var (user, password) = await TestUsers.CreateAsync(_factory, role);

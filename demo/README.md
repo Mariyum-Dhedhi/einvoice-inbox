@@ -55,6 +55,7 @@ All demo accounts share the password set in `DemoUsers:Password`
 | `approver@example.com` | Approver | approve or reject (never their own upload), read invoices |
 | `auditor@example.com` | Auditor | read everything, verify the audit trail; changes nothing |
 | `admin@example.com`, `admin2@example.com` | Admin | users, vendors, bank accounts; never touches invoices |
+| `buyer@example.com` | Buyer | purchase orders and goods receipts (what invoices are matched against); never touches invoices |
 
 ## The files
 
@@ -90,6 +91,11 @@ official KoSIT validator.
 
 ## A ten-minute demo
 
+0. **Buyer: what invoices are matched against.** As `buyer@example.com`, `/purchasing` lists the seeded orders
+   with what arrived. Open PO-0110: ordered, nothing received. Record a goods receipt (the open quantities are
+   filled in). Later, as the clerk, *Match again* on `05-no-goods-receipt.xml` turns it **Matched**. A new order
+   (*New purchase order*) works the same way; nothing recorded can be edited afterwards, and every addition is in
+   the audit trail. The buyer cannot open the inbox.
 1. **Clerk: intake.** Upload 01, 03, 07 and 02. Each lands with a status in words and an icon. Open 03: the
    three-way match panel shows order price, invoiced price and the tolerance; *Explain* says why in plain words.
    Open 07: the bank account is shown masked, and the finding says it is not an approved account of this vendor.

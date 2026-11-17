@@ -1,0 +1,177 @@
+@page "/purchasing/new"
+@attribute [Authorize(Policy = Policies.ManagePurchasing)]
+@implements IDisposable
+@using EInvoice.Application.Purchasing
+@inject Operations Operations
+@inject IAuthorizationService Authorization
+@inject NavigationManager Navigation
+
+<PageTitle>@T["Page.Title", T["Purchasing.New"]]</PageTitle>
+
+<MudLink Href="/purchasing" Typo="Typo.body2" Class="d-inline-flex align-center mb-2">
+    <MudIcon Icon="@Icons.Material.Outlined.ArrowBack" Size="Size.Small" Class="mr-1" aria-hidden="true" /> @T["Purchasing.Title"]
+</MudLink>
+<MudText Typo="Typo.h4" HtmlTag="h1" Class="mb-1">@T["Purchasing.New"]</MudText>
+<MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-3">@T["Purchasing.NewIntro"]</MudText>
+
+@if (_message is not null)
+{
+    <MudAlert Severity="Severity.Error" Class="mb-3" role="alert" data-testid="purchasing-result">@_message</MudAlert>
+}
+
+<MudPaper Outlined="true" Class="pa-4 mb-3">
+    <div class="d-flex flex-wrap gap-3 align-end">
+        <div data-testid="order-number" style="min-width: 14rem">
+            <MudTextField T="string" @bind-Value="_number" Label="@T["Purchasing.OrderNumber"]" Variant="Variant.Outlined"
+                          MaxLength="@PurchasingLimits.MaxNumberLength" Margin="Margin.Dense" HelperText="@T["Purchasing.NumberHelp"]" />
+        </div>
+        <div class="select-field">
+            <label for="order-vendor">@T["Common.Vendor"]</label>
+            <select id="order-vendor" data-testid="order-vendor" @bind="_vendor">
+                <option value="">@T["Purchasing.ChooseVendor"]</option>
+                @foreach (var vendor in _vendors)
+                {
+                    <option value="@vendor.Id">@($"{vendor.Number} · {vendor.Name}")</option>
+                }
+            </select>
+        </div>
+        <div class="date-field">
+            <label for="order-date">@T["Purchasing.OrderDate"]</label>
+            <input id="order-date" type="date" data-testid="order-date" @bind="_date" />
+        </div>
+    </div>
+</MudPaper>
+
+<MudPaper Outlined="true" Class="pa-4 mb-3">
+    <MudText Typo="Typo.h6" HtmlTag="h2" Class="mb-1">@T["Purchasing.Lines"]</MudText>
+    <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2">@T["Purchasing.NumberFormatHelp"]</MudText>
+    @for (var i = 0; i < _lines.Count; i++)
+    {
+        var line = _lines[i];
+        var position = i + 1;
+        <fieldset class="draft-line" data-testid="draft-line">
+            <legend>@T["Purchasing.LineLegend", position]</legend>
+            <div data-testid="line-item" class="field-item">
+                <MudTextField T="string" @bind-Value="line.Item" Label="@T["Purchasing.Item"]" Variant="Variant.Outlined" Margin="Margin.Dense"
+                              MaxLength="@PurchasingLimits.MaxItemNumberLength" />
+            </div>
+            <div data-testid="line-description" class="field-description">
+                <MudTextField T="string" @bind-Value="line.Description" Label="@T["Common.Description"]" Variant="Variant.Outlined" Margin="Margin.Dense"
+                              MaxLength="@PurchasingLimits.MaxDescriptionLength" />
+            </div>
+            <div data-testid="line-quantity" class="field-number">
+                <MudTextField T="string" @bind-Value="line.Quantity" Label="@T["Common.Quantity"]" Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </div>
+            <div data-testid="line-price" class="field-number">
+                <MudTextField T="string" @bind-Value="line.Price" Label="@T["Purchasing.UnitPriceEur"]" Variant="Variant.Outlined" Margin="Margin.Dense" />
+            </div>
+            <div class="select-field">
+                <label for="@($"line-tax-{position}")">@T["Common.Vat"]</label>
+                <select id="@($"line-tax-{position}")" data-testid="line-tax" @bind="line.Tax">
+                    <option value="19">19 %</option>
+                    <option value="7">7 %</option>
+                    <option value="0">0 %</option>
+                </select>
+            </div>
+            @if (_lines.Count > 1)
+            {
+                <MudIconButton Icon="@Icons.Material.Outlined.Delete" aria-label="@T["Purchasing.RemoveLine", position]" OnClick="() => _lines.Remove(line)"
+                               data-testid="remove-line" />
+            }
+        </fieldset>
+    }
+    <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Outlined.Add" OnClick="AddLine" data-testid="add-line"
+               Disabled="@(_lines.Count >= PurchasingLimits.MaxLines)">@T["Purchasing.AddLine"]</MudButton>
+</MudPaper>
+
+<MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Outlined.Save" Disabled="_busy" OnClick="SaveAsync"
+           data-testid="save-order">@T["Purchasing.Save"]</MudButton>
+
+@code {
+    private sealed class DraftLine
+    {
+        public string? Item { get; set; }
+
+        public string? Description { get; set; }
+
+        public string? Quantity { get; set; }
+
+        public string? Price { get; set; }
+
+        public string Tax { get; set; } = "19";
+    }
+
+    private readonly CancellationTokenSource _disposed = new();
+    private readonly List<DraftLine> _lines = [new()];
+    private IReadOnlyList<VendorChoice> _vendors = [];
+    private string? _number;
+    private string? _vendor;
+    private DateOnly _date = Formats.TodayInBerlin();
+    private string? _message;
+    private bool _busy;
+
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthState { get; set; } = default!;
+
+    private async Task<bool> MayAsync(string policy) =>
+        (await Authorization.AuthorizeAsync((await AuthState).User, policy)).Succeeded;
+
+    protected override async Task OnInitializedAsync() =>
+        _vendors = await Operations.RunAsync<IPurchasingQueries, IReadOnlyList<VendorChoice>>(q => q.ActiveVendorsAsync(_disposed.Token));
+
+    private void AddLine() => _lines.Add(new DraftLine());
+
+    /// <summary>Numbers are checked here (German format, never guessed); every other rule is the use case's.</summary>
+    private async Task SaveAsync()
+    {
+        if (!await MayAsync(Policies.ManagePurchasing))
+        {
+            return;
+        }
+
+        if (!Guid.TryParse(_vendor, out var vendor))
+        {
+            _message = T["Purchasing.ChooseVendor"];
+            return;
+        }
+
+        var lines = new List<OrderLineDraft>();
+        for (var i = 0; i < _lines.Count; i++)
+        {
+            var line = _lines[i];
+            if (!Formats.TryParseNumber(line.Quantity, out var quantity) || !Formats.TryParseNumber(line.Price, out var price)
+                || !Formats.TryParseNumber(line.Tax, out var tax))
+            {
+                _message = T["Purchasing.NotANumber", i + 1];
+                return;
+            }
+
+            lines.Add(new OrderLineDraft(i + 1, line.Item ?? string.Empty, line.Description ?? string.Empty, quantity, price, tax));
+        }
+
+        _busy = true;
+        try
+        {
+            var draft = new OrderDraft(_number ?? string.Empty, vendor, _date, lines);
+            var buyer = await SignedInUser.NameAsync(AuthState);
+            var result = await Operations.RunAsync<IPurchasing, PurchasingResult>(p => p.CreateOrderAsync(draft, buyer, _disposed.Token));
+            if (result is { Outcome: PurchasingOutcome.OrderCreated, Id: { } id })
+            {
+                Navigation.NavigateTo($"/purchasing/{id}");
+                return;
+            }
+
+            _message = T[$"Purchasing.{result.Outcome}", result.Position ?? 0]; // everything typed stays on the form
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    public void Dispose()
+    {
+        _disposed.Cancel();
+        _disposed.Dispose();
+    }
+}

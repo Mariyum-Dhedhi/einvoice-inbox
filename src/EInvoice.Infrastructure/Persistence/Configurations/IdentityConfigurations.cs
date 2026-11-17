@@ -47,6 +47,7 @@ internal sealed class AppRoleConfiguration : IEntityTypeConfiguration<AppRole>
         [Roles.Approver] = new("6f1c2a35-2f61-4d4e-9a0b-1b7a3f0c1002"),
         [Roles.Auditor] = new("6f1c2a35-2f61-4d4e-9a0b-1b7a3f0c1003"),
         [Roles.Admin] = new("6f1c2a35-2f61-4d4e-9a0b-1b7a3f0c1004"),
+        [Roles.Buyer] = new("6f1c2a35-2f61-4d4e-9a0b-1b7a3f0c1005"),
     };
 
     public void Configure(EntityTypeBuilder<AppRole> builder)

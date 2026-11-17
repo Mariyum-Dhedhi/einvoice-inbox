@@ -1,0 +1,28 @@
+@using EInvoice.Application.Purchasing
+
+@* What arrived, in words with an icon: never colour alone. *@
+<span data-testid="receipt-state" data-state="@StateName" class="d-inline-flex align-center gap-1">
+    <MudIcon Icon="@Icon" Size="Size.Small" Color="@Colour" aria-hidden="true" />
+    @T[$"ReceiptState.{State}"]
+</span>
+
+@code {
+    [Parameter, EditorRequired]
+    public ReceiptState State { get; set; }
+
+    private string StateName => State switch
+    {
+        ReceiptState.Complete => "complete",
+        ReceiptState.Partly => "partly",
+        _ => "none",
+    };
+
+    private string Icon => State switch
+    {
+        ReceiptState.Complete => Icons.Material.Outlined.Inventory2,
+        ReceiptState.Partly => Icons.Material.Outlined.LocalShipping,
+        _ => Icons.Material.Outlined.HourglassEmpty,
+    };
+
+    private Color Colour => State == ReceiptState.Complete ? Color.Success : Color.Default;
+}

@@ -1,0 +1,256 @@
+@page "/purchasing/{Id:guid}"
+@attribute [Authorize(Policy = Policies.ReadPurchasing)]
+@implements IDisposable
+@using EInvoice.Application.Purchasing
+@inject Operations Operations
+@inject IAuthorizationService Authorization
+
+@if (!_loaded)
+{
+    <MudProgressLinear Indeterminate="true" Color="Color.Primary" aria-label="@T["Purchasing.LoadingOrder"]" />
+}
+else if (_order is null)
+{
+    <PageTitle>@T["Page.Title", T["Purchasing.NotFound"]]</PageTitle>
+    <MudPaper Outlined="true" Class="pa-6" data-testid="order-not-found">
+        <MudText Typo="Typo.h5" HtmlTag="h1">@T["Purchasing.NotFound"]</MudText>
+        <MudLink Href="/purchasing" Class="mt-2 d-inline-block">@T["Purchasing.Back"]</MudLink>
+    </MudPaper>
+}
+else
+{
+    var order = _order;
+    <PageTitle>@T["Page.Title", order.Number]</PageTitle>
+    <MudLink Href="/purchasing" Typo="Typo.body2" Class="d-inline-flex align-center mb-2">
+        <MudIcon Icon="@Icons.Material.Outlined.ArrowBack" Size="Size.Small" Class="mr-1" aria-hidden="true" /> @T["Purchasing.Title"]
+    </MudLink>
+
+    <MudPaper Outlined="true" Class="pa-4 mb-3">
+        <MudText Typo="Typo.h4" HtmlTag="h1">@order.Number</MudText>
+        <dl class="facts mt-3">
+            <div><dt>@T["Common.Vendor"]</dt><dd data-testid="order-vendor-name">@order.VendorName <span class="text-secondary">(@order.VendorNumber)</span></dd></div>
+            <div><dt>@T["Purchasing.OrderDate"]</dt><dd>@Formats.Date(order.OrderDate)</dd></div>
+            <div><dt>@T["Common.Net"]</dt><dd class="tabular strong">@Formats.Money(order.Lines.Sum(l => l.NetAmount), order.Currency)</dd></div>
+        </dl>
+    </MudPaper>
+
+    @if (_message is not null)
+    {
+        <MudAlert Severity="_messageSeverity" Class="mb-3" role="status" data-testid="purchasing-result">@_message</MudAlert>
+    }
+
+    @* ---- Lines: what the three-way match compares an invoice with ------------------------------------------------ *@
+    <MudPaper Outlined="true" Class="pa-4 mb-3">
+        <MudText Typo="Typo.h6" HtmlTag="h2" Class="mb-1">@T["Purchasing.Lines"]</MudText>
+        <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2">@T["Purchasing.LinesIntro"]</MudText>
+        <div class="table-scroll">
+            <MudSimpleTable Elevation="0" Dense="true">
+                <thead>
+                    <tr>
+                        <th scope="col">@T["Common.Line"]</th>
+                        <th scope="col">@T["Purchasing.Item"]</th>
+                        <th scope="col">@T["Common.Description"]</th>
+                        <th scope="col" class="num">@T["Common.UnitPrice"]</th>
+                        <th scope="col" class="num">@T["Common.Vat"]</th>
+                        <th scope="col" class="num">@T["Purchasing.Ordered"]</th>
+                        <th scope="col" class="num">@T["Purchasing.Received"]</th>
+                        <th scope="col" class="num">@T["Purchasing.Open"]</th>
+                        <th scope="col" class="num">@T["Purchasing.Invoiced"]</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var line in order.Lines)
+                    {
+                        <tr data-testid="order-line">
+                            <td>@line.LineNumber</td>
+                            <td class="nowrap">@line.ItemNumber</td>
+                            <td>@line.Description</td>
+                            <td class="num nowrap">@Formats.UnitPrice(line.UnitPrice, order.Currency)</td>
+                            <td class="num nowrap">@Formats.Rate(line.TaxRatePercent)</td>
+                            <td class="num" data-testid="ordered">@Formats.Quantity(line.Quantity)</td>
+                            <td class="num" data-testid="received">@Formats.Quantity(line.Received)</td>
+                            <td class="num" data-testid="open">@Formats.Quantity(line.Open)</td>
+                            <td class="num" data-testid="invoiced">@Formats.Quantity(line.Invoiced)</td>
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+        </div>
+    </MudPaper>
+
+    @* ---- Record a delivery (buyer) ------------------------------------------------------------------------------- *@
+    <AuthorizeView Policy="@Policies.ManagePurchasing" Context="auth">
+        <MudPaper Outlined="true" Class="pa-4 mb-3" data-testid="receipt-form">
+            <MudText Typo="Typo.h6" HtmlTag="h2" Class="mb-1">@T["Purchasing.RecordReceipt"]</MudText>
+            <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2">@T["Purchasing.RecordReceiptIntro"]</MudText>
+            <div class="d-flex flex-wrap gap-3 align-end mb-2">
+                <div data-testid="receipt-number" style="min-width: 14rem">
+                    <MudTextField T="string" @bind-Value="_receiptNumber" Label="@T["Purchasing.ReceiptNumber"]" Variant="Variant.Outlined"
+                                  MaxLength="@PurchasingLimits.MaxNumberLength" Margin="Margin.Dense" />
+                </div>
+                <div class="date-field">
+                    <label for="receipt-date">@T["Purchasing.ReceivedDate"]</label>
+                    <input id="receipt-date" type="date" data-testid="receipt-date" @bind="_receiptDate" />
+                </div>
+            </div>
+            @foreach (var line in order.Lines.Where(l => l.Open > 0))
+            {
+                var number = line.LineNumber;
+                <div class="d-flex flex-wrap gap-3 align-center" data-testid="@($"receipt-qty-{number}")">
+                    <MudTextField T="string" Value="@_quantities.GetValueOrDefault(number)" ValueChanged="@(v => _quantities[number] = v)"
+                                  Label="@T["Purchasing.ReceivedOnLine", number, line.Description]" HelperText="@T["Purchasing.OpenOnLine", Formats.Quantity(line.Open)]"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" Style="max-width: 22rem" />
+                </div>
+            }
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Outlined.Inventory" Class="mt-2"
+                       Disabled="_busy" OnClick="RecordReceiptAsync" data-testid="record-receipt">@T["Purchasing.RecordReceiptButton"]</MudButton>
+        </MudPaper>
+    </AuthorizeView>
+
+    @* ---- Receipts ---------------------------------------------------------------------------------------------------- *@
+    <MudPaper Outlined="true" Class="pa-4 mb-3">
+        <MudText Typo="Typo.h6" HtmlTag="h2" Class="mb-2">@T["Purchasing.Receipts"]</MudText>
+        @if (order.Receipts.Count == 0)
+        {
+            <MudText>@T["Purchasing.NoReceipts"]</MudText>
+        }
+        else
+        {
+            <MudSimpleTable Elevation="0" Dense="true">
+                <thead><tr><th scope="col">@T["Common.Number"]</th><th scope="col">@T["Purchasing.ReceivedDate"]</th><th scope="col">@T["Purchasing.ReceiptLines"]</th></tr></thead>
+                <tbody>
+                    @foreach (var receipt in order.Receipts)
+                    {
+                        <tr data-testid="receipt-row">
+                            <td class="nowrap">@receipt.Number</td>
+                            <td class="nowrap">@Formats.Date(receipt.ReceivedDate)</td>
+                            <td>@string.Join(" · ", receipt.Lines.Select(l => T["Purchasing.ReceiptLine", l.OrderLine, Formats.Quantity(l.Quantity)].Value))</td>
+                        </tr>
+                    }
+                </tbody>
+            </MudSimpleTable>
+        }
+    </MudPaper>
+
+    @* ---- Invoices against this order (invoice readers only; the buyer's page never loads them) ---------------------- *@
+    @if (order.Invoices is { } invoices)
+    {
+        <MudPaper Outlined="true" Class="pa-4 mb-3" data-testid="order-invoices">
+            <MudText Typo="Typo.h6" HtmlTag="h2" Class="mb-2">@T["Purchasing.Invoices"]</MudText>
+            @if (invoices.Count == 0)
+            {
+                <MudText>@T["Purchasing.NoInvoices"]</MudText>
+            }
+            else
+            {
+                <MudSimpleTable Elevation="0" Dense="true">
+                    <thead><tr><th scope="col">@T["Inbox.InvoiceNumber"]</th><th scope="col">@T["Common.Status"]</th><th scope="col" class="num">@T["Common.Gross"]</th></tr></thead>
+                    <tbody>
+                        @foreach (var invoice in invoices)
+                        {
+                            <tr data-testid="order-invoice">
+                                <td><MudLink Href="@($"/invoices/{invoice.Id}")" Underline="Underline.Always">@(invoice.InvoiceNumber ?? T["Common.NotReadable"])</MudLink></td>
+                                <td><StatusChip Status="invoice.Status" /></td>
+                                <td class="num nowrap">@Formats.Money(invoice.GrossTotal, invoice.Currency)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </MudSimpleTable>
+            }
+        </MudPaper>
+    }
+}
+
+@code {
+    private readonly CancellationTokenSource _disposed = new();
+    private PurchaseOrderDetail? _order;
+    private bool _loaded;
+    private bool _busy;
+    private string? _message;
+    private Severity _messageSeverity;
+    private string? _receiptNumber;
+    private DateOnly _receiptDate = Formats.TodayInBerlin();
+    private Dictionary<int, string?> _quantities = [];
+
+    [Parameter]
+    public Guid Id { get; set; }
+
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthState { get; set; } = default!;
+
+    /// <summary>The server's own check before an action, and for what is loaded: a hidden part is not the protection.</summary>
+    private async Task<bool> MayAsync(string policy) =>
+        (await Authorization.AuthorizeAsync((await AuthState).User, policy)).Succeeded;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _message = null;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        var withInvoices = await MayAsync(Policies.ReadInvoices);
+        _order = await Operations.RunAsync<IPurchasingQueries, PurchaseOrderDetail?>(q => q.GetAsync(Id, withInvoices, _disposed.Token));
+        // Prefilled with what is still open: the usual delivery is the rest of the order.
+        _quantities = _order?.Lines.Where(l => l.Open > 0).ToDictionary(l => l.LineNumber, l => (string?)Formats.Editable(l.Open)) ?? [];
+        _loaded = true;
+    }
+
+    private async Task RecordReceiptAsync()
+    {
+        if (_order is null || !await MayAsync(Policies.ManagePurchasing))
+        {
+            return;
+        }
+
+        var lines = new List<ReceiptLineDraft>();
+        foreach (var (line, text) in _quantities.OrderBy(q => q.Key))
+        {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                continue; // nothing arrived for this line
+            }
+
+            if (!Formats.TryParseNumber(text, out var quantity))
+            {
+                Show(Severity.Error, T["Purchasing.NotANumber", line]);
+                return;
+            }
+
+            lines.Add(new ReceiptLineDraft(line, quantity));
+        }
+
+        _busy = true;
+        try
+        {
+            var draft = new ReceiptDraft(_receiptNumber ?? string.Empty, _receiptDate, lines);
+            var buyer = await SignedInUser.NameAsync(AuthState);
+            var result = await Operations.RunAsync<IPurchasing, PurchasingResult>(p => p.RecordReceiptAsync(_order.Id, draft, buyer, _disposed.Token));
+            var recorded = result.Outcome == PurchasingOutcome.ReceiptRecorded;
+            if (recorded)
+            {
+                _receiptNumber = null;
+                await LoadAsync();
+            }
+
+            Show(recorded ? Severity.Success : Severity.Error, T[$"Purchasing.{result.Outcome}", result.Position ?? 0]);
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private void Show(Severity severity, string message)
+    {
+        _messageSeverity = severity;
+        _message = message;
+    }
+
+    public void Dispose()
+    {
+        _disposed.Cancel();
+        _disposed.Dispose();
+    }
+}

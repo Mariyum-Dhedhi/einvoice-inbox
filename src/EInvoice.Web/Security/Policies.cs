@@ -31,6 +31,12 @@ public static class Policies
     /// <summary>The user list (read-only in package 9).</summary>
     public const string ManageUsers = nameof(ManageUsers);
 
+    /// <summary>Purchase orders and goods receipts: what invoices are matched against. Not the admin (no invoice work).</summary>
+    public const string ReadPurchasing = nameof(ReadPurchasing);
+
+    /// <summary>Adding orders and goods receipts: the buyer only, who touches no invoices (separated duties).</summary>
+    public const string ManagePurchasing = nameof(ManagePurchasing);
+
     internal static AuthorizationBuilder AddEInvoicePolicies(this AuthorizationBuilder builder) => builder
         .AddPolicy(ReadInvoices, p => p.RequireRole(Roles.Clerk, Roles.Approver, Roles.Auditor))
         .AddPolicy(UploadInvoices, p => p.RequireRole(Roles.Clerk))
@@ -39,5 +45,7 @@ public static class Policies
         .AddPolicy(DecideInvoices, p => p.RequireRole(Roles.Approver))
         .AddPolicy(ReadAudit, p => p.RequireRole(Roles.Auditor))
         .AddPolicy(ManageUsers, p => p.RequireRole(Roles.Admin))
-        .AddPolicy(ManageVendors, p => p.RequireRole(Roles.Admin));
+        .AddPolicy(ManageVendors, p => p.RequireRole(Roles.Admin))
+        .AddPolicy(ReadPurchasing, p => p.RequireRole(Roles.Clerk, Roles.Approver, Roles.Auditor, Roles.Buyer))
+        .AddPolicy(ManagePurchasing, p => p.RequireRole(Roles.Buyer));
 }

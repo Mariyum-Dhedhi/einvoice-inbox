@@ -995,4 +995,193 @@
   <data name="BankAccount.ReasonTooLong" xml:space="preserve">
     <value>The reason is longer than 200 characters.</value>
   </data>
+  <data name="Nav.Purchasing" xml:space="preserve">
+    <value>Purchasing</value>
+  </data>
+  <data name="Role.Buyer" xml:space="preserve">
+    <value>Buyer</value>
+  </data>
+  <data name="AuditAction.PurchaseOrderCreated" xml:space="preserve">
+    <value>Purchase order created</value>
+  </data>
+  <data name="AuditAction.GoodsReceiptRecorded" xml:space="preserve">
+    <value>Goods receipt recorded</value>
+  </data>
+  <data name="Purchasing.Title" xml:space="preserve">
+    <value>Purchase orders</value>
+  </data>
+  <data name="Purchasing.Intro" xml:space="preserve">
+    <value>What was ordered and what arrived: every invoice is matched against these.</value>
+  </data>
+  <data name="Purchasing.New" xml:space="preserve">
+    <value>New purchase order</value>
+  </data>
+  <data name="Purchasing.NewIntro" xml:space="preserve">
+    <value>Record an order as it was placed with the vendor. Nothing recorded can be changed afterwards.</value>
+  </data>
+  <data name="Purchasing.SearchLabel" xml:space="preserve">
+    <value>Search orders</value>
+  </data>
+  <data name="Purchasing.SearchPlaceholder" xml:space="preserve">
+    <value>Order number or vendor</value>
+  </data>
+  <data name="Purchasing.Search" xml:space="preserve">
+    <value>Search</value>
+  </data>
+  <data name="Purchasing.Loading" xml:space="preserve">
+    <value>Loading purchase orders</value>
+  </data>
+  <data name="Purchasing.LoadingOrder" xml:space="preserve">
+    <value>Loading the purchase order</value>
+  </data>
+  <data name="Purchasing.Empty" xml:space="preserve">
+    <value>No purchase orders yet.</value>
+  </data>
+  <data name="Purchasing.NoneFound" xml:space="preserve">
+    <value>No purchase order matches the search.</value>
+  </data>
+  <data name="Purchasing.OrderDate" xml:space="preserve">
+    <value>Order date</value>
+  </data>
+  <data name="Purchasing.Delivery" xml:space="preserve">
+    <value>Delivery</value>
+  </data>
+  <data name="Purchasing.NotFound" xml:space="preserve">
+    <value>Purchase order not found</value>
+  </data>
+  <data name="Purchasing.Back" xml:space="preserve">
+    <value>Back to the purchase orders</value>
+  </data>
+  <data name="Purchasing.Lines" xml:space="preserve">
+    <value>Order lines</value>
+  </data>
+  <data name="Purchasing.LinesIntro" xml:space="preserve">
+    <value>An invoice line is compared with its order line: the price with the ordered price, the quantity with what was received and not invoiced yet.</value>
+  </data>
+  <data name="Purchasing.Item" xml:space="preserve">
+    <value>Item no.</value>
+  </data>
+  <data name="Purchasing.Ordered" xml:space="preserve">
+    <value>Ordered</value>
+  </data>
+  <data name="Purchasing.Received" xml:space="preserve">
+    <value>Received</value>
+  </data>
+  <data name="Purchasing.Open" xml:space="preserve">
+    <value>Open</value>
+  </data>
+  <data name="Purchasing.Invoiced" xml:space="preserve">
+    <value>Invoiced</value>
+  </data>
+  <data name="Purchasing.RecordReceipt" xml:space="preserve">
+    <value>Record goods receipt</value>
+  </data>
+  <data name="Purchasing.RecordReceiptIntro" xml:space="preserve">
+    <value>What arrived, per line. The open quantities are filled in; change them for a partial delivery, empty a line for nothing.</value>
+  </data>
+  <data name="Purchasing.ReceiptNumber" xml:space="preserve">
+    <value>Goods receipt no.</value>
+  </data>
+  <data name="Purchasing.ReceivedDate" xml:space="preserve">
+    <value>Received on</value>
+  </data>
+  <data name="Purchasing.ReceivedOnLine" xml:space="preserve">
+    <value>Line {0}: {1}</value>
+  </data>
+  <data name="Purchasing.OpenOnLine" xml:space="preserve">
+    <value>Open: {0}</value>
+  </data>
+  <data name="Purchasing.RecordReceiptButton" xml:space="preserve">
+    <value>Record receipt</value>
+  </data>
+  <data name="Purchasing.Receipts" xml:space="preserve">
+    <value>Goods receipts</value>
+  </data>
+  <data name="Purchasing.NoReceipts" xml:space="preserve">
+    <value>Nothing has been received yet.</value>
+  </data>
+  <data name="Purchasing.ReceiptLines" xml:space="preserve">
+    <value>Received</value>
+  </data>
+  <data name="Purchasing.ReceiptLine" xml:space="preserve">
+    <value>line {0}: {1}</value>
+  </data>
+  <data name="Purchasing.Invoices" xml:space="preserve">
+    <value>Invoices for this order</value>
+  </data>
+  <data name="Purchasing.NoInvoices" xml:space="preserve">
+    <value>No invoice has quoted this order yet.</value>
+  </data>
+  <data name="Purchasing.OrderNumber" xml:space="preserve">
+    <value>Order no.</value>
+  </data>
+  <data name="Purchasing.NumberHelp" xml:space="preserve">
+    <value>As the vendor will quote it on the invoice.</value>
+  </data>
+  <data name="Purchasing.ChooseVendor" xml:space="preserve">
+    <value>Choose a vendor.</value>
+  </data>
+  <data name="Purchasing.NumberFormatHelp" xml:space="preserve">
+    <value>Numbers as on the invoice pages: a comma for decimals, no thousands separator (7,4125).</value>
+  </data>
+  <data name="Purchasing.LineLegend" xml:space="preserve">
+    <value>Line {0}</value>
+  </data>
+  <data name="Purchasing.UnitPriceEur" xml:space="preserve">
+    <value>Unit price (EUR)</value>
+  </data>
+  <data name="Purchasing.RemoveLine" xml:space="preserve">
+    <value>Remove line {0}</value>
+  </data>
+  <data name="Purchasing.AddLine" xml:space="preserve">
+    <value>Add line</value>
+  </data>
+  <data name="Purchasing.Save" xml:space="preserve">
+    <value>Save purchase order</value>
+  </data>
+  <data name="Purchasing.NotANumber" xml:space="preserve">
+    <value>Line {0}: enter numbers with a comma for decimals and no thousands separator, for example 7,4125.</value>
+  </data>
+  <data name="Purchasing.OrderCreated" xml:space="preserve">
+    <value>Purchase order saved.</value>
+  </data>
+  <data name="Purchasing.ReceiptRecorded" xml:space="preserve">
+    <value>Goods receipt recorded. Invoices waiting for it can be matched again.</value>
+  </data>
+  <data name="Purchasing.InvalidNumber" xml:space="preserve">
+    <value>The number may have up to 20 letters, digits or . _ / - and starts with a letter or digit; no spaces.</value>
+  </data>
+  <data name="Purchasing.NumberTaken" xml:space="preserve">
+    <value>This number exists already.</value>
+  </data>
+  <data name="Purchasing.VendorNotFound" xml:space="preserve">
+    <value>The vendor no longer exists.</value>
+  </data>
+  <data name="Purchasing.VendorInactive" xml:space="preserve">
+    <value>The vendor is deactivated and gets no new orders.</value>
+  </data>
+  <data name="Purchasing.InvalidDate" xml:space="preserve">
+    <value>The date cannot be in the future, and a delivery cannot be before its order.</value>
+  </data>
+  <data name="Purchasing.InvalidLine" xml:space="preserve">
+    <value>Line {0} cannot be saved as typed: check item number, description (required), quantity (more than 0, up to 4 decimals), price (up to 6 decimals) and tax rate.</value>
+  </data>
+  <data name="Purchasing.OrderNotFound" xml:space="preserve">
+    <value>The purchase order no longer exists.</value>
+  </data>
+  <data name="Purchasing.NothingReceived" xml:space="preserve">
+    <value>Enter at least one received quantity.</value>
+  </data>
+  <data name="Purchasing.OverReceived" xml:space="preserve">
+    <value>Line {0}: more would be received than was ordered.</value>
+  </data>
+  <data name="ReceiptState.NothingReceived" xml:space="preserve">
+    <value>Nothing received</value>
+  </data>
+  <data name="ReceiptState.Partly" xml:space="preserve">
+    <value>Partly received</value>
+  </data>
+  <data name="ReceiptState.Complete" xml:space="preserve">
+    <value>Fully received</value>
+  </data>
 </root>
