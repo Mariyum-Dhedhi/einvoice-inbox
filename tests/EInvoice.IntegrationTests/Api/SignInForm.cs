@@ -73,7 +73,8 @@ internal static partial class SignInForm
             ? values.FirstOrDefault(v => v.StartsWith(name + "=", StringComparison.Ordinal))
             : null;
 
-    private static async Task<string> TokenAsync(HttpClient client, string page)
+    /// <summary>The antiforgery token of a page's forms, as a browser would post it back.</summary>
+    public static async Task<string> TokenAsync(HttpClient client, string page)
     {
         using var response = await client.GetAsync(new Uri(page, UriKind.Relative));
         var html = await response.Content.ReadAsStringAsync();

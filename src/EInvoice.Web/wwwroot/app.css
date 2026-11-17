@@ -82,6 +82,17 @@ tr.problem > td:first-child { box-shadow: inset 4px 0 0 var(--mud-palette-warnin
 }
 .sign-out button:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
 
+/* Language: two buttons side by side; the one that is on is filled and bold (and aria-pressed), not only coloured. */
+.language-switch { display: inline-flex; margin-left: 1rem; }
+.language-switch button {
+    min-height: 2.25rem; min-width: 2.75rem; padding: 0 0.625rem; border: 1px solid currentColor;
+    background: transparent; color: inherit; font: inherit; font-size: 0.8125rem; cursor: pointer;
+}
+.language-switch button:first-of-type { border-radius: 4px 0 0 4px; }
+.language-switch button:last-of-type { border-radius: 0 4px 4px 0; border-left: none; }
+.language-switch button[aria-pressed="true"] { background: rgba(255, 255, 255, 0.2); font-weight: 700; text-decoration: underline; }
+.language-switch button:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+
 .sign-in {
     max-width: 24rem; margin: 3rem auto; padding: 2rem; border: 1px solid var(--mud-palette-lines-default);
     border-radius: 8px; background: var(--mud-palette-surface);

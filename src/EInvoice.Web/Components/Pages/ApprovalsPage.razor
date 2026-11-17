@@ -6,20 +6,20 @@
 @inject Operations Operations
 @inject IOptions<ApprovalSettings> Settings
 
-<PageTitle>Approvals – E-Invoice Inbox</PageTitle>
+<PageTitle>@T["Page.Title", T["Approvals.Title"]]</PageTitle>
 
-<MudText Typo="Typo.h4" HtmlTag="h1" Class="mb-1">Approvals</MudText>
+<MudText Typo="Typo.h4" HtmlTag="h1" Class="mb-1">@T["Approvals.Title"]</MudText>
 <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
-    Invoices waiting for a decision, the one waiting longest first. Open an invoice to approve or reject it.
+    @T["Approvals.Intro"]
 </MudText>
 
 @if (_queue is null || _approver is null)
 {
-    <MudProgressLinear Indeterminate="true" aria-label="Loading the approval queue" />
+    <MudProgressLinear Indeterminate="true" aria-label="@T["Approvals.Loading"]" />
 }
 else if (_queue.TotalCount == 0)
 {
-    <MudText data-testid="queue-empty">Nothing is waiting for a decision.</MudText>
+    <MudText data-testid="queue-empty">@T["Approvals.Empty"]</MudText>
 }
 else
 {
@@ -27,12 +27,12 @@ else
         <MudSimpleTable Elevation="0" Dense="true" Hover="true">
             <thead>
                 <tr>
-                    <th scope="col">Received</th>
-                    <th scope="col">Invoice</th>
-                    <th scope="col">Vendor</th>
-                    <th scope="col" class="text-right">Gross</th>
-                    <th scope="col">Status</th>
-                    <th scope="col">You</th>
+                    <th scope="col">@T["Common.Received"]</th>
+                    <th scope="col">@T["Detail.Invoice"]</th>
+                    <th scope="col">@T["Common.Vendor"]</th>
+                    <th scope="col" class="text-right">@T["Common.Gross"]</th>
+                    <th scope="col">@T["Common.Status"]</th>
+                    <th scope="col">@T["Approvals.You"]</th>
                 </tr>
             </thead>
             <tbody>
@@ -41,8 +41,8 @@ else
                     var (state, icon, text) = Describe(item, _approver);
                     <tr data-testid="queue-row">
                         <td class="nowrap">@Formats.Timestamp(item.ReceivedAt)</td>
-                        <td><MudLink Href="@($"/invoices/{item.Id}")" Underline="Underline.Always">@(item.InvoiceNumber ?? "(no number)")</MudLink></td>
-                        <td class="break-all">@(item.VendorName ?? "Unknown vendor")</td>
+                        <td><MudLink Href="@($"/invoices/{item.Id}")" Underline="Underline.Always">@(item.InvoiceNumber ?? T["Approvals.NoNumber"])</MudLink></td>
+                        <td class="break-all">@(item.VendorName ?? T["Common.UnknownVendor"])</td>
                         <td class="text-right nowrap">@Formats.Money(item.GrossTotal, item.Currency)</td>
                         <td><StatusChip Status="item.Status" /></td>
                         <td>
@@ -58,16 +58,16 @@ else
         </MudSimpleTable>
     </MudPaper>
 
-    <nav aria-label="Pages" class="d-flex align-center justify-end gap-2 mt-2">
+    <nav aria-label="@T["Paging.Label"]" class="d-flex align-center justify-end gap-2 mt-2">
         @if (_queue.Page > 1)
         {
             <MudButton Href="@Link(_queue.Page - 1)" Size="Size.Small" Variant="Variant.Text" StartIcon="@Icons.Material.Outlined.ChevronLeft"
-                       data-testid="page-prev">Previous</MudButton>
+                       data-testid="page-prev">@T["Paging.Previous"]</MudButton>
         }
         @if (_queue.Page * _queue.PageSize < _queue.TotalCount)
         {
             <MudButton Href="@Link(_queue.Page + 1)" Size="Size.Small" Variant="Variant.Text" EndIcon="@Icons.Material.Outlined.ChevronRight"
-                       data-testid="page-next">Next</MudButton>
+                       data-testid="page-next">@T["Paging.Next"]</MudButton>
         }
     </nav>
 }
@@ -95,20 +95,19 @@ else
     private static string Link(int page) => page == 1 ? "/approvals" : $"/approvals?page={page}";
 
     /// <summary>The same rules the server applies (ApprovalRules), said in advance.</summary>
-    private static (string State, string Icon, string Text) Describe(ApprovalQueueItem item, Approver approver)
+    private (string State, string Icon, string Text) Describe(ApprovalQueueItem item, Approver approver)
     {
         if (ApprovalRules.IsOwn(item.SubmittedBy, approver))
         {
-            return ("own", Icons.Material.Outlined.PersonOff, "Submitted by you: someone else decides");
+            return ("own", Icons.Material.Outlined.PersonOff, T["Approvals.Own"]);
         }
 
         return ApprovalRules.WhyNotApprove(approver, item.GrossTotal, item.Currency, item.HasBlockingFindings)?.Outcome switch
         {
-            null => ("ready", Icons.Material.Outlined.TaskAlt, "Ready to decide"),
-            DecisionOutcome.OverLimit => ("over-limit", Icons.Material.Outlined.Block,
-                string.Create(System.Globalization.CultureInfo.InvariantCulture, $"Above your limit of {approver.LimitEur:#,##0.00} EUR: you can only reject")),
-            DecisionOutcome.CurrencyNotSupported => ("currency", Icons.Material.Outlined.CurrencyExchange, "Not in EUR: you can only reject"),
-            _ => ("blocked", Icons.Material.Outlined.GppBad, "Only rejection: a finding blocks payment"),
+            null => ("ready", Icons.Material.Outlined.TaskAlt, T["Approvals.Ready"]),
+            DecisionOutcome.OverLimit => ("over-limit", Icons.Material.Outlined.Block, T["Approvals.OverLimit", Formats.Money(approver.LimitEur, "EUR")]),
+            DecisionOutcome.CurrencyNotSupported => ("currency", Icons.Material.Outlined.CurrencyExchange, T["Approvals.Currency"]),
+            _ => ("blocked", Icons.Material.Outlined.GppBad, T["Approvals.Blocked"]),
         };
     }
 }

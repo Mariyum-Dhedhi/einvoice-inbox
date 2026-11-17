@@ -101,7 +101,7 @@ public sealed class InvoiceDetailTests : UiTest
 
         var rows = cut.FindAll("[data-testid=match-row]");
         Assert.Equal("PriceVariance", rows[0].GetAttribute("data-outcome"));
-        Assert.Contains(Labels.Outcome(MatchOutcome.PriceVariance), rows[0].TextContent, StringComparison.Ordinal);
+        Assert.Contains(Labels.Outcome(T, MatchOutcome.PriceVariance), rows[0].TextContent, StringComparison.Ordinal);
         Assert.Contains("7,70 €", rows[0].TextContent, StringComparison.Ordinal);
         Assert.Contains("7,4125 €", rows[0].TextContent, StringComparison.Ordinal);
         Assert.Contains("+3,88 %", rows[0].TextContent, StringComparison.Ordinal);
@@ -137,7 +137,7 @@ public sealed class InvoiceDetailTests : UiTest
         Assert.Equal(4, entries.Count);
         Assert.Contains("clerk@test", entries[0].TextContent, StringComparison.Ordinal);
         Assert.Contains("14.11.2026 09:15", entries[0].TextContent, StringComparison.Ordinal);
-        Assert.Contains("NoGoodsReceipt", entries[3].TextContent, StringComparison.Ordinal);
+        Assert.Contains(T["Outcome.NoGoodsReceipt"], entries[3].TextContent, StringComparison.Ordinal); // the recorded code, in words
     }
 
     [Fact]
@@ -216,18 +216,18 @@ public sealed class InvoiceDetailTests : UiTest
 
         cut.Find("[data-testid=rematch]").Click();
 
-        cut.WaitForAssertion(() => Assert.Contains(Labels.Outcome(MatchOutcome.NoGoodsReceipt), cut.Find("[data-testid=rematch-result]").TextContent, StringComparison.Ordinal));
+        cut.WaitForAssertion(() => Assert.Contains(Labels.Outcome(T, MatchOutcome.NoGoodsReceipt), cut.Find("[data-testid=rematch-result]").TextContent, StringComparison.Ordinal));
     }
 
     [Fact]
     public void Rematch_refused_shows_the_reason()
     {
         var cut = Show(Views.Detail(_id, InvoiceStatus.Exception, matches: [Views.Match(1, MatchOutcome.NoGoodsReceipt)]));
-        Rematch.Result = new RematchResult(RematchOutcome.NotAllowed, null, [], "The invoice was changed by someone else in the meantime; reload it.");
+        Rematch.Result = new RematchResult(RematchOutcome.Conflict, null, [], "The invoice was changed by someone else in the meantime; reload it.");
 
         cut.Find("[data-testid=rematch]").Click();
 
-        cut.WaitForAssertion(() => Assert.Contains("someone else", cut.Find("[data-testid=rematch-result]").TextContent, StringComparison.Ordinal));
+        cut.WaitForAssertion(() => Assert.Contains(T["Rematch.Conflict"], cut.Find("[data-testid=rematch-result]").TextContent, StringComparison.Ordinal));
     }
 }
 

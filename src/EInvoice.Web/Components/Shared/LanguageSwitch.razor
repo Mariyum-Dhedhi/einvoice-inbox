@@ -1,0 +1,17 @@
+@using EInvoice.Web.Localization
+@inject NavigationManager Navigation
+
+@* A POST form with a token, like sign-out: a full page load, so the next page (and the live connection) starts in the
+   chosen language. Each language names itself in its own language ("Deutsch", "English"), whatever the page is in. *@
+<form method="post" action="@Languages.SwitchPath" data-testid="language" class="language-switch" aria-label="@T["Language.Label"]">
+    <AntiforgeryToken />
+    <input type="hidden" name="returnUrl" value="@ReturnUrl" />
+    <button type="submit" name="culture" value="@Languages.German" lang="de" aria-pressed="@Pressed(Languages.German)">@T["Language.German"]</button>
+    <button type="submit" name="culture" value="@Languages.English" lang="en" aria-pressed="@Pressed(Languages.English)">@T["Language.English"]</button>
+</form>
+
+@code {
+    private string ReturnUrl => "/" + Navigation.ToBaseRelativePath(Navigation.Uri);
+
+    private static string Pressed(string language) => Languages.Current == language ? "true" : "false";
+}

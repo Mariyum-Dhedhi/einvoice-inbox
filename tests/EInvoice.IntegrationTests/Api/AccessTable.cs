@@ -46,6 +46,7 @@ internal static partial class AccessTable
         ["POST /api/invoices/{id:guid}/reject"] = Access.Only("Approver"),
         ["GET /api/audit/verify"] = Access.Only("Auditor"),
         ["POST /account/logout"] = Access.SignedIn,
+        ["POST /account/language"] = Access.Open, // the login page has the switch too
 
         // Pages
         ["PAGE /"] = Readers,

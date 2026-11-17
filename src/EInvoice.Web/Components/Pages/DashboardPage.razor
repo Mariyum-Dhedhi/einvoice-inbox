@@ -3,13 +3,13 @@
 @using EInvoice.Application.Kpi
 @inject Operations Operations
 
-<PageTitle>Dashboard – E-Invoice Inbox</PageTitle>
+<PageTitle>@T["Page.Title", T["Dashboard.Title"]]</PageTitle>
 
-<MudText Typo="Typo.h4" HtmlTag="h1" Class="mb-4">Dashboard</MudText>
+<MudText Typo="Typo.h4" HtmlTag="h1" Class="mb-4">@T["Dashboard.Title"]</MudText>
 
 @if (_data is not { } data)
 {
-    <MudProgressLinear Indeterminate="true" aria-label="Loading the dashboard" />
+    <MudProgressLinear Indeterminate="true" aria-label="@T["Dashboard.Loading"]" />
 }
 else
 {
@@ -18,17 +18,17 @@ else
         <MudItem xs="12">
             @{ var (state, icon, severity, text) = PostingState(data.Posting); }
             <MudAlert Severity="severity" Icon="@icon" data-testid="kpi-posting" data-state="@state" role="status">
-                <strong>ERP posting:</strong> @text
-                <span class="ml-2">@data.Posting.Posted posted · @data.Posting.WaitingToPost waiting · @data.Posting.Retrying retrying · @data.Posting.Failed failed@(data.Posting.OldestWaitingSince is { } since ? $" · oldest waiting since {Formats.Timestamp(since)}" : string.Empty)</span>
+                <strong>@T["Dashboard.Posting"]</strong> @text
+                <span class="ml-2">@PostingCounts(data.Posting)</span>
             </MudAlert>
         </MudItem>
 
         @* ---- Invoices by status ------------------------------------------------------------------------------- *@
         <MudItem xs="12" md="6">
             <MudPaper Outlined="true" Class="pa-4" data-testid="kpi-status">
-                <MudText Typo="Typo.h6" HtmlTag="h2" Class="mb-2">Invoices by status</MudText>
+                <MudText Typo="Typo.h6" HtmlTag="h2" Class="mb-2">@T["Dashboard.ByStatus"]</MudText>
                 <MudSimpleTable Elevation="0" Dense="true">
-                    <thead><tr><th scope="col">Status</th><th scope="col" class="text-right">Invoices</th><th scope="col" class="text-right">Gross (EUR)</th></tr></thead>
+                    <thead><tr><th scope="col">@T["Common.Status"]</th><th scope="col" class="text-right">@T["Dashboard.Invoices"]</th><th scope="col" class="text-right">@T["Dashboard.GrossEur"]</th></tr></thead>
                     <tbody>
                         @foreach (var s in data.ByStatus)
                         {
@@ -46,15 +46,15 @@ else
         @* ---- Open exception reasons --------------------------------------------------------------------------- *@
         <MudItem xs="12" md="6">
             <MudPaper Outlined="true" Class="pa-4" data-testid="kpi-reasons">
-                <MudText Typo="Typo.h6" HtmlTag="h2" Class="mb-2">What blocks the exception queue</MudText>
+                <MudText Typo="Typo.h6" HtmlTag="h2" Class="mb-2">@T["Dashboard.Reasons"]</MudText>
                 @if (data.OpenReasons.Count == 0)
                 {
-                    <MudText>No invoice is waiting in Exception.</MudText>
+                    <MudText>@T["Dashboard.NoReasons"]</MudText>
                 }
                 else
                 {
                     <MudSimpleTable Elevation="0" Dense="true">
-                        <thead><tr><th scope="col">Reason</th><th scope="col" class="text-right">Invoices</th></tr></thead>
+                        <thead><tr><th scope="col">@T["Dashboard.Reason"]</th><th scope="col" class="text-right">@T["Dashboard.Invoices"]</th></tr></thead>
                         <tbody>
                             @foreach (var r in data.OpenReasons)
                             {
@@ -69,15 +69,15 @@ else
         @* ---- Monthly throughput ------------------------------------------------------------------------------- *@
         <MudItem xs="12">
             <MudPaper Outlined="true" Class="pa-4">
-                <MudText Typo="Typo.h6" HtmlTag="h2" Class="mb-1">The last twelve months</MudText>
+                <MudText Typo="Typo.h6" HtmlTag="h2" Class="mb-1">@T["Dashboard.Months"]</MudText>
                 <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2">
-                    By month of receipt (Berlin time). Straight through: approved without ever being an exception.
+                    @T["Dashboard.MonthsIntro"]
                 </MudText>
                 <MudSimpleTable Elevation="0" Dense="true">
                     <thead>
                         <tr>
-                            <th scope="col">Month</th><th scope="col" class="text-right">Received</th><th scope="col" class="text-right">Straight through</th>
-                            <th scope="col" class="text-right">Rate</th><th scope="col" class="text-right">Exceptions</th><th scope="col" class="text-right">Failed</th>
+                            <th scope="col">@T["Dashboard.Month"]</th><th scope="col" class="text-right">@T["Common.Received"]</th><th scope="col" class="text-right">@T["Dashboard.StraightThrough"]</th>
+                            <th scope="col" class="text-right">@T["Dashboard.Rate"]</th><th scope="col" class="text-right">@T["Dashboard.Exceptions"]</th><th scope="col" class="text-right">@T["Status.Failed"]</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -105,14 +105,18 @@ else
     protected override async Task OnInitializedAsync() =>
         _data = await Operations.RunAsync<IKpiQueries, Dashboard>(q => q.DashboardAsync(Formats.TodayInBerlin(), CancellationToken.None));
 
-    /// <summary>A match outcome gets the same words as on the invoice page; a rule code stays as it is.</summary>
-    private static string ReasonText(ReasonKpi reason) =>
-        reason.Kind == "Match" && Enum.TryParse<MatchOutcome>(reason.Reason, out var outcome) ? Labels.Outcome(outcome) : reason.Reason;
+    /// <summary>A match outcome and a rule code get the same words as on the invoice page.</summary>
+    private string ReasonText(ReasonKpi reason) =>
+        reason.Kind == "Match" && Enum.TryParse<MatchOutcome>(reason.Reason, out var outcome) ? Labels.Outcome(T, outcome) : Labels.Rule(T, reason.Reason);
 
-    private static (string State, string Icon, Severity Severity, string Text) PostingState(PostingKpi posting) => posting switch
+    private string PostingCounts(PostingKpi p) =>
+        T["Dashboard.PostingCounts", p.Posted, p.WaitingToPost, p.Retrying, p.Failed]
+        + (p.OldestWaitingSince is { } since ? T["Dashboard.OldestWaiting", Formats.Timestamp(since)] : string.Empty);
+
+    private (string State, string Icon, Severity Severity, string Text) PostingState(PostingKpi posting) => posting switch
     {
-        { Failed: > 0 } => ("failed", Icons.Material.Outlined.Error, Severity.Error, "some postings failed for good; an admin has to look at them."),
-        { Retrying: > 0 } => ("retrying", Icons.Material.Outlined.Sync, Severity.Warning, "the ERP did not answer every time; postings are being retried."),
-        _ => ("healthy", Icons.Material.Outlined.CheckCircle, Severity.Success, "healthy."),
+        { Failed: > 0 } => ("failed", Icons.Material.Outlined.Error, Severity.Error, T["Dashboard.PostingFailed"]),
+        { Retrying: > 0 } => ("retrying", Icons.Material.Outlined.Sync, Severity.Warning, T["Dashboard.PostingRetrying"]),
+        _ => ("healthy", Icons.Material.Outlined.CheckCircle, Severity.Success, T["Dashboard.PostingHealthy"]),
     };
 }

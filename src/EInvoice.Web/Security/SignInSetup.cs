@@ -24,9 +24,6 @@ public static class SignInSetup
     public const string LogoutPath = "/account/logout";
     public const string AccessDeniedPath = "/account/access-denied";
 
-    /// <summary>The same answer for an unknown user, a wrong password and a locked account: it reveals nothing.</summary>
-    public const string FailureMessage = "Sign-in failed. Check your user name and password, or try again later.";
-
     internal static IServiceCollection AddEInvoiceSignIn(this IServiceCollection services)
     {
         services.AddAuthentication(o =>

@@ -93,6 +93,8 @@ internal sealed class ApiFactory(
         }
 
         var client = CreateClient(new WebApplicationFactoryClientOptions { BaseAddress = BaseAddress, AllowAutoRedirect = false });
+        // The tests read the English pages; without a language the app answers in German (LanguageTests).
+        client.DefaultRequestHeaders.AcceptLanguage.ParseAdd("en");
         if (user is not null)
         {
             client.DefaultRequestHeaders.Add(TestUserHandler.UserHeader, user);

@@ -58,10 +58,11 @@ public abstract class BrowserJourney(SqlServerFixture fixture) : IAsyncLifetime
     }
 
     /// <summary>A fresh browser (own cookies), as a different person at a different desk would have.</summary>
-    protected async Task<IPage> NewBrowserAsync()
+    /// <param name="locale">The browser's language; English unless a journey is about the language.</param>
+    protected async Task<IPage> NewBrowserAsync(string locale = "en-US")
     {
         // The development certificate is not trusted on a CI machine; it only protects a loopback connection here.
-        var context = await _browser.NewContextAsync(new() { IgnoreHTTPSErrors = true });
+        var context = await _browser.NewContextAsync(new() { IgnoreHTTPSErrors = true, Locale = locale });
         _contexts.Add(context);
         var page = await context.NewPageAsync();
         page.Console += (_, message) =>

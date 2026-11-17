@@ -31,7 +31,7 @@ public sealed class DashboardTests : UiTest
     {
         var panel = Render<DashboardPage>().Find("[data-testid=kpi-reasons]");
 
-        Assert.Contains("IBAN_NOT_APPROVED", panel.TextContent, StringComparison.Ordinal);
+        Assert.Contains(T["Rule.IBAN_NOT_APPROVED.Title"], panel.TextContent, StringComparison.Ordinal); // a rule code gets its name
         Assert.Contains("Nothing received", panel.TextContent, StringComparison.Ordinal); // the same label as on the invoice page
     }
 

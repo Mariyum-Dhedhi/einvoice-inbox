@@ -32,7 +32,9 @@ public abstract class UiTest : BunitContext, IAsyncLifetime
     protected UiTest()
     {
         JSInterop.Mode = JSRuntimeMode.Loose;
+        UseLanguage("en");
         Services.AddMudServices();
+        Services.AddLocalization(o => o.ResourcesPath = "Resources");
         Services.AddSingleton<IInvoiceQueries>(Queries);
         Services.AddSingleton<IInvoiceIntake>(Intake);
         Services.AddSingleton<IInvoiceRematch>(Rematch);
@@ -75,6 +77,10 @@ public abstract class UiTest : BunitContext, IAsyncLifetime
 
     protected BunitAuthorizationContext Auth { get; }
 
+    /// <summary>The texts as the pages read them, in the language the test set.</summary>
+    protected Microsoft.Extensions.Localization.IStringLocalizer<EInvoice.Web.Texts> T =>
+        Services.GetRequiredService<Microsoft.Extensions.Localization.IStringLocalizer<EInvoice.Web.Texts>>();
+
     protected FakeUserDirectory Users { get; } = new();
 
     protected FakeApproval Approval { get; } = new();
@@ -101,10 +107,21 @@ public abstract class UiTest : BunitContext, IAsyncLifetime
 
     public Task InitializeAsync() => Task.CompletedTask;
 
+    /// <summary>
+    /// The language the page is rendered in, as the app's request localization would set it ("de" or "en"). English unless
+    /// a test says otherwise, whatever the language of the machine running the tests.
+    /// </summary>
+    public static void UseLanguage(string language)
+    {
+        var culture = System.Globalization.CultureInfo.GetCultureInfo(language);
+        System.Globalization.CultureInfo.CurrentCulture = culture;
+        System.Globalization.CultureInfo.CurrentUICulture = culture;
+    }
+
     /// <summary>MudBlazor services can only be disposed asynchronously; xUnit v2 calls this before the synchronous Dispose.</summary>
     async Task IAsyncLifetime.DisposeAsync() => await DisposeAsync();
 
-    private sealed class FixedAntiforgery : Microsoft.AspNetCore.Components.Forms.AntiforgeryStateProvider
+    internal sealed class FixedAntiforgery : Microsoft.AspNetCore.Components.Forms.AntiforgeryStateProvider
     {
         public override Microsoft.AspNetCore.Components.Forms.AntiforgeryRequestToken GetAntiforgeryToken() =>
             new(AntiforgeryToken, "__RequestVerificationToken");

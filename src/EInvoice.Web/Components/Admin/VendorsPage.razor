@@ -3,16 +3,16 @@
 @using EInvoice.Application.Vendors
 @inject Operations Operations
 
-<PageTitle>Vendors – E-Invoice Inbox</PageTitle>
+<PageTitle>@T["Page.Title", T["Vendors.Title"]]</PageTitle>
 
-<MudText Typo="Typo.h4" HtmlTag="h1" Class="mb-1">Vendors</MudText>
+<MudText Typo="Typo.h4" HtmlTag="h1" Class="mb-1">@T["Vendors.Title"]</MudText>
 <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-4">
-    Bank accounts count for payments only after a second admin has confirmed them.
+    @T["Vendors.Intro"]
 </MudText>
 
 @if (_vendors is null)
 {
-    <MudProgressLinear Indeterminate="true" aria-label="Loading vendors" />
+    <MudProgressLinear Indeterminate="true" aria-label="@T["Vendors.Loading"]" />
 }
 else
 {
@@ -20,9 +20,9 @@ else
         <MudSimpleTable Elevation="0" Dense="true" Hover="true">
             <thead>
                 <tr>
-                    <th scope="col">Number</th>
-                    <th scope="col">Name</th>
-                    <th scope="col">Bank accounts</th>
+                    <th scope="col">@T["Common.Number"]</th>
+                    <th scope="col">@T["Common.Name"]</th>
+                    <th scope="col">@T["Vendors.BankAccounts"]</th>
                 </tr>
             </thead>
             <tbody>
@@ -32,12 +32,12 @@ else
                         <td class="nowrap"><MudLink Href="@($"/admin/vendors/{vendor.Id}")" Underline="Underline.Always">@vendor.Number</MudLink></td>
                         <td class="break-all">@vendor.Name</td>
                         <td>
-                            @vendor.ActiveAccounts confirmed
+                            @T["Vendors.Confirmed", vendor.ActiveAccounts]
                             @if (vendor.PendingAccounts > 0)
                             {
                                 <span data-testid="pending" class="d-inline-flex align-center gap-1 ml-2">
                                     <MudIcon Icon="@Icons.Material.Outlined.HourglassTop" Size="Size.Small" Color="Color.Warning" aria-hidden="true" />
-                                    @vendor.PendingAccounts waiting for a second admin
+                                    @T["Vendors.Pending", vendor.PendingAccounts]
                                 </span>
                             }
                         </td>
