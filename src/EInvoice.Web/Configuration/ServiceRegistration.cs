@@ -1,3 +1,5 @@
+using EInvoice.Application.Purchasing;
+using EInvoice.Infrastructure.Purchasing;
 using EInvoice.Application.Approval;
 using EInvoice.Application.Audit;
 using EInvoice.Application.Explanation;
@@ -127,6 +129,9 @@ internal static class ServiceRegistration
         services.AddScoped<IBankAccountStore, EfBankAccountStore>();
         services.AddScoped<IBankAccountAdministration, BankAccountAdministration>();
         services.AddScoped<IBankAccountQueries, EfBankAccountQueries>();
+        services.AddScoped<IPurchasingStore, EfPurchasingStore>();
+        services.AddScoped<IPurchasing, PurchasingAdministration>();
+        services.AddScoped<IPurchasingQueries, EfPurchasingQueries>();
         services.AddSingleton<IEmbeddedInvoiceReader>(sp =>
             new PdfEmbeddedInvoiceReader(PdfLimits.Default, sp.GetRequiredService<IOptions<IntakeSettings>>().Value.MaxDocumentBytes));
         services.AddScoped<IInvoiceIntake, InvoiceIntake>();
