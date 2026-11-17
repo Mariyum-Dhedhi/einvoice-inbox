@@ -6,14 +6,15 @@ using EInvoice.Domain.Matching;
 namespace EInvoice.IntegrationTests.TestData;
 
 /// <summary>A plain PDF invoice for the AI demo: no embedded XML, so the language model reads it.</summary>
-internal sealed record DemoAiInvoice(string FileName, string Story, DemoExpectation Expect, EvalCase Case)
+/// <param name="Render">How the page is drawn; the AI evaluation's renderer (same layouts as the measured cases) unless given.</param>
+internal sealed record DemoAiInvoice(string FileName, string Story, DemoExpectation Expect, EvalCase Case, Func<EvalCase, byte[]>? Render = null)
 {
-    /// <summary>Drawn by the AI evaluation's renderer (same layouts as the measured cases), deterministic bytes.</summary>
-    public byte[] Content => EvalPdfRenderer.Render(Case);
+    /// <summary>Deterministic bytes: the same case always gives the same file.</summary>
+    public byte[] Content => (Render ?? EvalPdfRenderer.Render)(Case);
 }
 
 /// <summary>
-/// The AI samples in demo/invoices (09 to 12): plain PDFs for seeded orders the XML samples do not use, built like the
+/// The AI samples in demo/invoices (09 to 13): plain PDFs for seeded orders the XML samples do not use, built like the
 /// evaluation cases so the demo shows what was measured. Synthetic: seeded vendors (db/seed/seed.sql), their seeded
 /// bank accounts, fixed numbers and dates.
 /// DemoAiInvoiceTests checks the outcomes with a perfect reader (CI); DemoAiOllamaTests with the real model (local).
@@ -48,6 +49,19 @@ internal static class DemoAiInvoices
             new DemoExpectation(InvoiceStatus.Matched, MatchOutcome.FullMatch),
             Case("D12", "C", vendor: 16, "DEMO-2026-0012", "PO-0111",
                 [Line("Office chair", 3m, 189.00m, "1")])),
+
+        new("13-ai-letterhead-with-logo.pdf",
+            "Laid out like a real supplier invoice for order PO-0119 (Test Technik Handel GmbH): logo, letterhead, address window, ruled table, VAT per rate (19 % and 7 %), footer with registry and bank. The logo is an image and never reaches the model; the text is read and it matches.",
+            new DemoExpectation(InvoiceStatus.Matched, MatchOutcome.FullMatch),
+            Case("D13", "B", vendor: 5, "DEMO-2026-0013", "PO-0119",
+            [
+                Line("Office chair", 19m, 189.00m, "1"),
+                new EvalLine("Handbook German commercial code", 4m, 39.90m, 7m, "2"),
+                Line("Copy paper A4, 500 sheets", 9m, 4.89m, "3"),
+            ]),
+            c => LetterheadPdf.Render(c, new LetterheadPdf.Company(
+                "Elektrotechnik | Handel | Service", "Industriestrasse 12", "70565 Stuttgart", "0711 000000-0", "www.test-technik.example",
+                "Amtsgericht Stuttgart HRB 000000", "MUSTDEXXXXX", (0, 94, 130)))),
     ];
 
     private static EvalLine Line(string description, decimal quantity, decimal unitPrice, string orderLine) =>

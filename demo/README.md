@@ -81,6 +81,7 @@ With AI on (plain PDFs, no XML inside; the model reads them):
 | `10-ai-price-variance.pdf` | 14 desks billed at 379,00 instead of 349,00: **Exception**, price variance |
 | `11-ai-hidden-instruction.pdf` | Correct values, plus white-on-white text telling the AI to approve it and report a total of 1.00. The model never sees hidden text; the app reports it: **Exception**, HIDDEN_TEXT, values unchanged |
 | `12-ai-english-numbers.pdf` | International layout with English numbers (1,234.56): read correctly, **Matched** |
+| `13-ai-letterhead-with-logo.pdf` | Laid out like a real supplier invoice: logo, letterhead, address window, ruled table, VAT per rate (19 % and 7 %), footer with registry and bank details. The logo is an image and never reaches the model: **Matched** |
 
 With AI off, the PDFs are refused ("PDF invoices are read by AI, which is switched off"); nothing is stored.
 `DemoAiInvoiceTests` checks these outcomes in CI with a perfect reader; `DemoAiOllamaTests` with the real model (local
