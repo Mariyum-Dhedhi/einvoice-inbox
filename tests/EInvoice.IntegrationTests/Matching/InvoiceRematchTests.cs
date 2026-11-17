@@ -215,7 +215,7 @@ public sealed class InvoiceRematchRaceTests(SqlServerFixture fixture)
         var second = await clerkB.RematchAsync(invoiceId, "clerkB@test", CancellationToken.None);
 
         Assert.Equal(RematchOutcome.Matched, first?.Outcome);
-        Assert.Equal(RematchOutcome.NotAllowed, second.Outcome);
+        Assert.Equal(RematchOutcome.Conflict, second.Outcome);
         await using var check = fixture.CreateContext();
         var stored = await check.Invoices.SingleAsync(i => i.Id == invoiceId);
         Assert.Equal(InvoiceStatus.Matched, stored.Status);

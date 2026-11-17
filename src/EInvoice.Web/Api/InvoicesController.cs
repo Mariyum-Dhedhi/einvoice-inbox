@@ -178,7 +178,7 @@ public sealed class InvoicesController : ControllerBase
         {
             RematchOutcome.Matched or RematchOutcome.StillException => Ok(new RematchResponse(id, result.Outcome, result.Status!.Value, result.Reasons)),
             RematchOutcome.NotFound => NotFoundProblem(),
-            RematchOutcome.NotAllowed => Problem(statusCode: StatusCodes.Status409Conflict, detail: result.Detail),
+            RematchOutcome.NotAllowed or RematchOutcome.Conflict => Problem(statusCode: StatusCodes.Status409Conflict, detail: result.Detail),
             _ => throw new InvalidOperationException($"Unhandled re-match outcome {result.Outcome}."),
         };
     }
