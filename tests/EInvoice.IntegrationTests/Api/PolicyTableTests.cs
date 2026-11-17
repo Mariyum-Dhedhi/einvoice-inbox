@@ -23,9 +23,11 @@ public sealed class PolicyTableTests
         ["ReadAudit"] = ["Auditor"], // the audit trail and its verification
         ["ManageUsers"] = ["Admin"],
         ["ManageVendors"] = ["Admin"], // vendor master data and bank accounts
+        ["ReadPurchasing"] = ["Clerk", "Approver", "Auditor", "Buyer"], // orders and receipts: what invoices are matched against
+        ["ManagePurchasing"] = ["Buyer"], // adds orders and receipts; never touches invoices
     };
 
-    private static readonly string[] AllRoles = ["Clerk", "Approver", "Auditor", "Admin"];
+    private static readonly string[] AllRoles = ["Clerk", "Approver", "Auditor", "Admin", "Buyer"];
 
     public static TheoryData<string, string> Cases()
     {

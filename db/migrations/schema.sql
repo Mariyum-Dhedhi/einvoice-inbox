@@ -1044,3 +1044,29 @@ END;
 COMMIT;
 GO
 
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261117190539_AddBuyerRole'
+)
+BEGIN
+    IF EXISTS (SELECT * FROM [sys].[identity_columns] WHERE [name] IN (N'Id', N'ConcurrencyStamp', N'Name', N'NormalizedName') AND [object_id] = OBJECT_ID(N'[dbo].[AppRole]'))
+        SET IDENTITY_INSERT [dbo].[AppRole] ON;
+    EXEC(N'INSERT INTO [dbo].[AppRole] ([Id], [ConcurrencyStamp], [Name], [NormalizedName])
+    VALUES (''6f1c2a35-2f61-4d4e-9a0b-1b7a3f0c1005'', ''6f1c2a352f614d4e9a0b1b7a3f0c1005'', N''Buyer'', N''BUYER'')');
+    IF EXISTS (SELECT * FROM [sys].[identity_columns] WHERE [name] IN (N'Id', N'ConcurrencyStamp', N'Name', N'NormalizedName') AND [object_id] = OBJECT_ID(N'[dbo].[AppRole]'))
+        SET IDENTITY_INSERT [dbo].[AppRole] OFF;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261117190539_AddBuyerRole'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20261117190539_AddBuyerRole', N'10.0.14');
+END;
+
+COMMIT;
+GO
+

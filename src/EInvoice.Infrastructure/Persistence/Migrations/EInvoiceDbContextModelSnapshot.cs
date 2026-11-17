@@ -679,6 +679,13 @@ namespace EInvoice.Infrastructure.Persistence.Migrations
                             ConcurrencyStamp = "6f1c2a352f614d4e9a0b1b7a3f0c1004",
                             Name = "Admin",
                             NormalizedName = "ADMIN"
+                        },
+                        new
+                        {
+                            Id = new Guid("6f1c2a35-2f61-4d4e-9a0b-1b7a3f0c1005"),
+                            ConcurrencyStamp = "6f1c2a352f614d4e9a0b1b7a3f0c1005",
+                            Name = "Buyer",
+                            NormalizedName = "BUYER"
                         });
                 });
 

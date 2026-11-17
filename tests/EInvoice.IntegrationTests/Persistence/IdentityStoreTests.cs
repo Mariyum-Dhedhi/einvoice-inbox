@@ -18,14 +18,14 @@ namespace EInvoice.IntegrationTests.Persistence;
 public sealed class IdentityStoreTests(SqlServerFixture fixture)
 {
     [Fact]
-    public async Task The_four_roles_come_with_the_schema()
+    public async Task The_five_roles_come_with_the_schema()
     {
         await using var db = fixture.CreateContext();
 
         var roles = await db.Roles.Select(r => r.Name!).OrderBy(n => n).ToListAsync();
 
         Assert.Equal(Roles.All.Order(StringComparer.Ordinal), roles);
-        Assert.Equal(new[] { "Admin", "Approver", "Auditor", "Clerk" }, Roles.All.Order(StringComparer.Ordinal));
+        Assert.Equal(new[] { "Admin", "Approver", "Auditor", "Buyer", "Clerk" }, Roles.All.Order(StringComparer.Ordinal));
     }
 
     [Fact]
