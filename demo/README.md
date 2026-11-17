@@ -82,6 +82,10 @@ With AI on (plain PDFs, no XML inside; the model reads them):
 | `11-ai-hidden-instruction.pdf` | Correct values, plus white-on-white text telling the AI to approve it and report a total of 1.00. The model never sees hidden text; the app reports it: **Exception**, HIDDEN_TEXT, values unchanged |
 | `12-ai-english-numbers.pdf` | International layout with English numbers (1,234.56): read correctly, **Matched** |
 | `13-ai-letterhead-with-logo.pdf` | Laid out like a real supplier invoice: logo, letterhead, address window, ruled table, VAT per rate (19 % and 7 %), footer with registry and bank details. The logo is an image and never reaches the model: **Matched** |
+| `14-ai-letterhead-price-variance.pdf` | Another supplier's letterhead: 16 toner cartridges billed at 68,90 instead of the ordered 62,50 (+10 %): **Exception**, price variance |
+| `15-ai-letterhead-quantity-variance.pdf` | 20 HDMI cables billed, 17 delivered: **Exception**, quantity variance |
+| `16-ai-letterhead-not-received.pdf` | Six desks billed for order PO-0120, of which nothing has arrived yet: **Exception**, nothing received (as the buyer, record the receipt, then *Match again*) |
+| `17-ai-letterhead-new-bank-account.pdf` | Correct in every value, but "our bank details have changed, pay only to the account below", with an account nobody approved: the classic invoice fraud. The model reads the IBAN, the app checks it: **Exception**, IBAN_NOT_APPROVED |
 
 With AI off, the PDFs are refused ("PDF invoices are read by AI, which is switched off"); nothing is stored.
 `DemoAiInvoiceTests` checks these outcomes in CI with a perfect reader; `DemoAiOllamaTests` with the real model (local
@@ -111,7 +115,8 @@ official KoSIT validator.
 6. **AI (if switched on).** As the clerk, upload 09: the invoice carries an *AI · read from PDF* badge, and the
    inbox marks it. Upload 11: the values are the document's, and the finding says hidden text was found; open the
    PDF to see that the page looks normal. Upload 10, open it, and press *Explain with AI*: a suggestion in words, whose
-   numbers are checked against the match result before it is shown. A person still decides.
+   numbers are checked against the match result before it is shown. A person still decides. Then upload 17, which looks
+   like a genuine supplier letter asking for payment to a new account: the app stops it with IBAN_NOT_APPROVED.
 7. **Admin: bank accounts.** `/admin/vendors`, pick a vendor, propose a new bank account as `admin@`; it stays
    Pending until `admin2@` confirms it (two-person rule), and the history keeps every version.
 

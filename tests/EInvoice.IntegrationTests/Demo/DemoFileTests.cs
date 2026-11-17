@@ -33,6 +33,30 @@ public sealed class DemoFileTests
     }
 
     [Fact]
+    public void Every_letterhead_supplier_has_a_logo_of_its_own()
+    {
+        var logos = DemoAiInvoices.All.Where(d => d.Render is not null).Select(d =>
+        {
+            using var pdf = UglyToad.PdfPig.PdfDocument.Open(d.Content);
+            return Convert.ToHexString(Assert.Single(pdf.GetPage(1).GetImages()).RawBytes);
+        }).ToList();
+
+        Assert.True(logos.Count >= 5, "13 to 17 are letterhead samples");
+        Assert.Equal(logos.Count, logos.Distinct().Count());
+    }
+
+    [Fact]
+    public void The_new_bank_account_sample_announces_the_change_and_prints_the_unapproved_iban()
+    {
+        var demo = DemoAiInvoices.All.Single(d => d.FileName == "17-ai-letterhead-new-bank-account.pdf");
+        using var pdf = UglyToad.PdfPig.PdfDocument.Open(demo.Content);
+        var text = string.Join(" ", pdf.GetPage(1).GetWords().Select(w => w.Text));
+
+        Assert.Contains("Unsere Bankverbindung hat sich geaendert.", text, StringComparison.Ordinal);
+        Assert.Contains(string.Join(' ', DemoAiInvoices.NewBankAccount.Chunk(4).Select(c => new string(c))), text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void The_ai_samples_are_plain_pdfs_without_an_embedded_invoice()
     {
         // With an embedded XML the app would read that instead (ZUGFeRD) and the model would never run.
