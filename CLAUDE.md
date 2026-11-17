@@ -60,7 +60,7 @@ db/                          stored procedures, views, seed data
 - Every response sends X-Content-Type-Options: nosniff; API responses are no-store. Stored files are only served as attachments.
 - OpenAPI (/openapi/v1.json) is mapped in Development only.
 - Sign-in is ASP.NET Core Identity with the cookie __Host-einvoice (HttpOnly, Secure, SameSite=Lax, 8 h, not sliding). Every endpoint requires sign-in (fallback policy); only the login page, static files and error pages are [AllowAnonymous]. The API answers 401/403 as problem details, never a redirect.
-- Roles (Application/Security/Roles): Clerk, Approver, Auditor, Admin. Separated duties: the uploader cannot approve, the auditor only reads, the admin never touches invoices.
+- Roles (Application/Security/Roles): Clerk, Approver, Auditor, Admin, Buyer. Separated duties: the uploader cannot approve, the auditor only reads, the admin and the buyer never touch invoices. A new role needs its Ids entry in IdentityConfigurations (seeded by migration), a Role.* text, and a column in PolicyTableTests and AccessTable.Callers.
 - Endpoints and pages name a policy (Web/Security/Policies), never a role list; every one declares its access ([Authorize(Policy = ...)] or [AllowAnonymous]). A new endpoint must be added to tests/.../Api/AccessTable.cs (hand-written, independent of Policies) or EndpointInventoryTests fails; RoleMatrixTests calls each one as every role, no role and nobody.
 - Wrong role: API 403 problem details; pages go to /account/access-denied. Buttons appear only for roles that may use them, and every action checks its policy again on the server (MayAsync).
 - Approval (Application/Approval): only the Approver role decides (DecideInvoices); Matched and Exception both wait for a person. Nobody decides their own upload (user names compared ignoring case). Blocking findings allow only rejection. Approving needs the gross amount in EUR within the approver's limit: the account claim approval_limit_eur, else Approval:DefaultLimitEur; an unreadable or doubled claim is 0 (ApproverOf). Reasons: required to reject and to approve an Exception; max 200 characters, refused not cut.
@@ -121,6 +121,8 @@ db/                          stored procedures, views, seed data
 - External checks fail closed: an unreachable or misbehaving service gives Unavailable / a human review, never "accepted".
 - Tests against the KoSIT validator container carry [Trait("Category", "Kosit")] and need EINVOICE_KOSIT_URL (docker compose up -d kosit-validator).
 - Downloads baked into images are pinned by URL and SHA-256 (ADD --checksum); see docker/kosit-validator/README.md.
+- Purchasing (Application/Purchasing, Infrastructure/Purchasing, /purchasing pages): orders and goods receipts are ADD ONLY (nothing recorded is edited), by the Buyer (ManagePurchasing); invoice readers see them (ReadPurchasing). Each addition is saved with its audit event (PurchaseOrderCreated, GoodsReceiptRecorded); a refusal stores nothing and names the line (PurchasingResult.Position). Receipts never exceed what was ordered. The buyer's order page does not load invoices (GetAsync withInvoices: false).
+- Numbers typed into forms are German (Formats.TryParseNumber: digits and one decimal comma); a point or thousands separator is refused, never guessed.
 
 ## Commands
 dotnet build --warnaserror
