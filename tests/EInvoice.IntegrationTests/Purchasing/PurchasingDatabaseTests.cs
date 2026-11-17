@@ -138,6 +138,31 @@ public sealed class PurchasingDatabaseTests(SqlServerFixture fixture) : IAsyncLi
     }
 
     [Fact]
+    public async Task A_rejected_invoice_no_longer_counts_as_invoiced_but_is_still_listed()
+    {
+        // Found by a planted bug: "invoiced" counted every invoice quoting the order, rejected ones included.
+        var number = Number("PO");
+        var id = await OrderAsync(number);
+        await Purchasing().RecordReceiptAsync(id, new ReceiptDraft(Number("GR"), new DateOnly(2026, 11, 5), [new ReceiptLineDraft(1, 40m), new ReceiptLineDraft(2, 3m)]), Buyer, CancellationToken.None);
+        var xml = new XRechnungBuilder
+        {
+            InvoiceNumber = Number("RJ"), IssueDate = new DateOnly(2026, 11, 10), PurchaseOrderNumber = number,
+            SellerName = "Demo Kabel & Co. KG", SellerVatId = "DE000000012", Iban = "DE66000000000000001012",
+        }
+        .Line("HDMI cable 2 m", 40m, 7.4125m, orderLine: "1")
+        .BuildXml();
+        var result = await Intake().SubmitAsync(new UploadedFile("invoice.xml", System.Text.Encoding.UTF8.GetBytes(xml)), "clerk@test", CancellationToken.None);
+        var invoice = await _db.Invoices.SingleAsync(i => i.Id == result.InvoiceId);
+        invoice.TransitionTo(InvoiceStatus.Rejected, "approver@test", DateTimeOffset.UtcNow, "Not ours");
+        await _db.SaveChangesAsync();
+
+        var detail = await Queries().GetAsync(id, withInvoices: true, CancellationToken.None);
+
+        Assert.Equal([0m, 0m], detail!.Lines.Select(l => l.Invoiced));
+        Assert.Equal(InvoiceStatus.Rejected, Assert.Single(detail.Invoices!).Status);
+    }
+
+    [Fact]
     public async Task Without_invoice_access_the_detail_holds_no_invoices()
     {
         var id = await OrderAsync(Number("PO"));
