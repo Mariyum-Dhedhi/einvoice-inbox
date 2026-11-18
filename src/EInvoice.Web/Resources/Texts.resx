@@ -1184,4 +1184,31 @@
   <data name="ReceiptState.Complete" xml:space="preserve">
     <value>Fully received</value>
   </data>
+  <data name="Demo.Banner" xml:space="preserve">
+    <value>Public demo with synthetic data. Other visitors see what you do here, and everything is reset every night. Do not upload real invoices.</value>
+  </data>
+  <data name="Demo.Try" xml:space="preserve">
+    <value>Try it without an account</value>
+  </data>
+  <data name="Demo.TryHint" xml:space="preserve">
+    <value>Each button signs you in to a new demo account with one role. Try the clerk first, then the approver.</value>
+  </data>
+  <data name="Demo.Does.Clerk" xml:space="preserve">
+    <value>uploads invoices and sees how they match</value>
+  </data>
+  <data name="Demo.Does.Approver" xml:space="preserve">
+    <value>approves or rejects what waits</value>
+  </data>
+  <data name="Demo.Does.Auditor" xml:space="preserve">
+    <value>reads everything and verifies the audit trail</value>
+  </data>
+  <data name="Demo.Does.Admin" xml:space="preserve">
+    <value>manages vendors and bank accounts</value>
+  </data>
+  <data name="Demo.Does.Buyer" xml:space="preserve">
+    <value>records purchase orders and deliveries</value>
+  </data>
+  <data name="Intake.TooManyUploads" xml:space="preserve">
+    <value>You have reached the demo's upload limit. Try again in an hour.</value>
+  </data>
 </root>

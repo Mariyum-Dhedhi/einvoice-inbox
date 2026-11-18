@@ -1184,4 +1184,31 @@
   <data name="ReceiptState.Complete" xml:space="preserve">
     <value>Vollständig geliefert</value>
   </data>
+  <data name="Demo.Banner" xml:space="preserve">
+    <value>Öffentliche Demo mit erfundenen Daten. Andere Besucher sehen, was Sie hier tun, und jede Nacht wird alles zurückgesetzt. Bitte keine echten Rechnungen hochladen.</value>
+  </data>
+  <data name="Demo.Try" xml:space="preserve">
+    <value>Ohne Konto ausprobieren</value>
+  </data>
+  <data name="Demo.TryHint" xml:space="preserve">
+    <value>Jede Schaltfläche meldet Sie mit einem neuen Demo-Konto in einer Rolle an. Am besten zuerst als Sachbearbeitung, dann als Freigabe.</value>
+  </data>
+  <data name="Demo.Does.Clerk" xml:space="preserve">
+    <value>lädt Rechnungen hoch und sieht den Abgleich</value>
+  </data>
+  <data name="Demo.Does.Approver" xml:space="preserve">
+    <value>gibt frei oder lehnt ab</value>
+  </data>
+  <data name="Demo.Does.Auditor" xml:space="preserve">
+    <value>liest alles und prüft das Prüfprotokoll</value>
+  </data>
+  <data name="Demo.Does.Admin" xml:space="preserve">
+    <value>verwaltet Lieferanten und Bankverbindungen</value>
+  </data>
+  <data name="Demo.Does.Buyer" xml:space="preserve">
+    <value>erfasst Bestellungen und Wareneingänge</value>
+  </data>
+  <data name="Intake.TooManyUploads" xml:space="preserve">
+    <value>Das Upload-Limit der Demo ist erreicht. Bitte versuchen Sie es in einer Stunde erneut.</value>
+  </data>
 </root>

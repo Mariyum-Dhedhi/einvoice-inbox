@@ -83,6 +83,9 @@ app.UseHttpsRedirection();
 // The language of the page: the person's choice (cookie), else the browser's, else German.
 app.UseRequestLocalization();
 
+// The public demo's limit on sign-in attempts per address (DemoSignIn); no limit unless Demo:Enabled.
+app.UseRateLimiter();
+
 // Who is calling, then whether they may: every endpoint requires sign-in unless it allows anonymous callers.
 app.UseAuthentication();
 app.UseAuthorization();
@@ -98,6 +101,7 @@ app.MapControllers();
 app.MapStaticAssets().AllowAnonymous(); // stylesheets and scripts of the login page
 app.MapSignOut();
 app.MapLanguageSwitch();
+app.MapDemoSignIn();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 

@@ -169,6 +169,18 @@ public sealed class InboxTests : UiTest
     }
 
     [Fact]
+    public void Over_the_demo_upload_limit_the_inbox_says_to_wait_and_opens_nothing()
+    {
+        Intake.Result = new IntakeResult(IntakeOutcome.TooManyUploads, Detail: "Too many uploads.");
+        var cut = RenderAt("/");
+
+        cut.FindComponent<InputFile>().UploadFiles(InputFileContent.CreateFromBinary(Xml, "invoice.xml"));
+
+        cut.WaitForAssertion(() => Assert.Contains("hour", cut.Find("[data-testid=upload-error]").TextContent, StringComparison.Ordinal));
+        Assert.Equal("http://localhost/", CurrentUri);
+    }
+
+    [Fact]
     public void File_over_the_limit_is_refused_in_the_browser_without_calling_the_pipeline()
     {
         var cut = RenderAt("/");

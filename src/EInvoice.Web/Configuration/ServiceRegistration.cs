@@ -141,6 +141,7 @@ internal static class ServiceRegistration
         services.AddSingleton<Operations>();
 
         services.AddEInvoiceSignIn();
+        services.AddEInvoiceDemo(); // after the intake: the public demo's upload limit wraps it
         return services;
     }
 

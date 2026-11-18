@@ -1,4 +1,5 @@
 @inherits LayoutComponentBase
+@inject Microsoft.Extensions.Options.IOptions<DemoSettings> Demo
 
 <MudThemeProvider @ref="_themeProvider" Theme="AppTheme.Theme" @bind-IsDarkMode="_darkMode" ObserveSystemDarkModeChange="true" />
 <MudPopoverProvider />
@@ -46,6 +47,11 @@
         </AuthorizeView>
     </MudAppBar>
     <MudMainContent>
+        @if (Demo.Value.Enabled)
+        {
+            @* Text, not colour alone; a note, not an alert: it says the same on every page and is not news. *@
+            <div class="demo-banner" role="note" data-testid="demo-banner">@T["Demo.Banner"]</div>
+        }
         <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="py-4">
             @Body
         </MudContainer>
