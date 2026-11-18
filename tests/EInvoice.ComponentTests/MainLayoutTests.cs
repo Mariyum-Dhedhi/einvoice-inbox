@@ -21,12 +21,15 @@ public sealed class MainLayoutTests : BunitContext, IAsyncLifetime
         Services.AddMudServices();
         Services.AddLocalization(o => o.ResourcesPath = "Resources");
         Services.AddSingleton<AntiforgeryStateProvider>(new FixedAntiforgery());
+        Services.AddSingleton(Microsoft.Extensions.Options.Options.Create(Demo));
         Auth = AddAuthorization();
         Auth.SetAuthorized(UiTest.SignedInUser);
         SetRendererInfo(new RendererInfo("Server", isInteractive: true));
     }
 
     private Bunit.TestDoubles.BunitAuthorizationContext Auth { get; }
+
+    private EInvoice.Web.Security.DemoSettings Demo { get; } = new();
 
     public Task InitializeAsync() => Task.CompletedTask;
 
@@ -145,6 +148,31 @@ public sealed class MainLayoutTests : BunitContext, IAsyncLifetime
         SetRendererInfo(new RendererInfo("Static", isInteractive: false));
 
         Assert.Empty(RenderLayout().FindAll("[data-testid=app-ready]"));
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void The_public_demo_says_so_on_every_page_signed_in_or_not(bool signedIn)
+    {
+        Demo.Enabled = true;
+        if (!signedIn)
+        {
+            Auth.SetNotAuthorized();
+        }
+
+        var banner = RenderLayout().Find("[data-testid=demo-banner]");
+
+        Assert.Equal("note", banner.GetAttribute("role"));
+        Assert.Contains("synthetic", banner.TextContent, StringComparison.Ordinal);
+        Assert.Contains("every night", banner.TextContent, StringComparison.Ordinal);
+        Assert.Contains("real invoices", banner.TextContent, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Without_demo_mode_there_is_no_banner()
+    {
+        Assert.Empty(RenderLayout().FindAll("[data-testid=demo-banner]"));
     }
 
     private sealed class FixedAntiforgery : AntiforgeryStateProvider

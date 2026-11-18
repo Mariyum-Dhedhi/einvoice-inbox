@@ -70,6 +70,7 @@ internal static class TextResources
         keys.UnionWith(Enum.GetNames<EInvoice.Application.Purchasing.ReceiptState>().Select(n => $"ReceiptState.{n}"));
         keys.UnionWith(Constants(typeof(AuditActions)).Select(a => $"AuditAction.{a}"));
         keys.UnionWith(Constants(typeof(Roles)).Select(r => $"Role.{r}"));
+        keys.UnionWith(EInvoice.Web.Security.DemoSignIn.Roles.Select(r => $"Demo.Does.{r}")); // what each demo button lets you do
         return keys;
     }
 

@@ -47,6 +47,7 @@ internal static partial class AccessTable
         ["GET /api/audit/verify"] = Access.Only("Auditor"),
         ["POST /account/logout"] = Access.SignedIn,
         ["POST /account/language"] = Access.Open, // the login page has the switch too
+        ["POST /account/demo"] = Access.Open, // the public demo's one-click sign-in (404 unless Demo:Enabled)
 
         // Pages
         ["PAGE /"] = Readers,

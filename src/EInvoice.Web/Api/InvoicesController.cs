@@ -92,6 +92,7 @@ public sealed class InvoicesController : ControllerBase
             IntakeOutcome.UnsupportedType => Refusal(StatusCodes.Status415UnsupportedMediaType, result),
             IntakeOutcome.DuplicateFile or IntakeOutcome.DuplicateInvoiceNumber => Refusal(StatusCodes.Status409Conflict, result),
             IntakeOutcome.ExtractionUnavailable => Unavailable(result),
+            IntakeOutcome.TooManyUploads => Refusal(StatusCodes.Status429TooManyRequests, result),
             _ => throw new InvalidOperationException($"Unhandled intake outcome {result.Outcome}."),
         };
     }

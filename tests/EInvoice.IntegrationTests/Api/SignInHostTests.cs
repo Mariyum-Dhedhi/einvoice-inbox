@@ -163,6 +163,39 @@ public sealed class SignInHostTests
     }
 
     [Theory]
+    [InlineData("Demo:SignInsPerHourPerAddress", "0")]
+    [InlineData("Demo:SignInsPerHourPerAddress", "-5")]
+    [InlineData("Demo:SignInsPerHourPerAddress", "100001")]
+    [InlineData("Demo:UploadsPerHourPerUser", "0")]
+    [InlineData("Demo:UploadsPerHourPerUser", "100001")]
+    public async Task A_demo_limit_out_of_range_stops_the_application_at_startup(string key, string value)
+    {
+        var settings = ApiFactory.Settings(UnusedConnection);
+        settings["Demo:Enabled"] = "true";
+        settings[key] = value;
+        await using var factory = new ApiFactory(settings);
+
+        var error = Record.Exception(() => factory.CreateApiClient());
+
+        var failure = Assert.IsType<OptionsValidationException>(error);
+        Assert.Contains(key.Split(':')[1], failure.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task The_public_demo_is_meant_for_production_and_starts_there_without_any_password()
+    {
+        // Demo mode is not the Development demo users: no password setting, no seeding at startup (accounts are made per click).
+        var settings = ApiFactory.Settings(UnusedConnection);
+        settings["Demo:Enabled"] = "true";
+        await using var factory = new ApiFactory(settings, "Production");
+
+        var error = Record.Exception(() => factory.CreateApiClient());
+
+        Assert.Null(error);
+        Assert.True(factory.Services.GetRequiredService<IOptions<EInvoice.Web.Security.DemoSettings>>().Value.Enabled);
+    }
+
+    [Theory]
     [InlineData("Development")]
     [InlineData("Production")]
     public async Task Without_a_demo_password_startup_does_not_touch_demo_users(string environment)

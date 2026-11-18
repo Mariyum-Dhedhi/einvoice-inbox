@@ -20,6 +20,8 @@
 
 @inject TimeProvider Time
 
+@inject Microsoft.Extensions.Options.IOptions<DemoSettings> Demo
+
 
 
 @*
@@ -79,6 +81,24 @@
     </EditForm>
 
 </section>
+
+@if (Demo.Value.Enabled)
+{
+    @* The public demo: one POST form per role, each makes a new account of that role with no password (DemoSignIn). *@
+    <section class="sign-in demo-sign-in" aria-labelledby="demo-title">
+        <h2 id="demo-title">@T["Demo.Try"]</h2>
+        <p>@T["Demo.TryHint"]</p>
+        @foreach (var role in DemoSignIn.Roles)
+        {
+            <form method="post" action="@DemoSignIn.Path" data-testid="demo-sign-in">
+                <AntiforgeryToken />
+                <input type="hidden" name="role" value="@role" />
+                <button type="submit">@T[$"Role.{role}"]</button>
+                <span class="demo-role-hint">@T[$"Demo.Does.{role}"]</span>
+            </form>
+        }
+    </section>
+}
 
 
 
@@ -196,7 +216,7 @@
 
 
 
-    /// <summary>The approval queue for an approver, the orders for a buyer and the user list for an admin (neither has invoice pages), else the inbox.</summary>
+    /// <summary>Each role's own start page (StartPages), the same as for the demo sign-in.</summary>
 
     private async Task<string> StartPageAsync(string userName)
 
@@ -204,24 +224,7 @@
 
         var user = await SignIn.UserManager.FindByNameAsync(userName);
 
-        var roles = user is null ? [] : await SignIn.UserManager.GetRolesAsync(user);
-
-        var readsInvoices = roles.Any(r => r is Roles.Clerk or Roles.Approver or Roles.Auditor);
-
-        if (roles.Contains(Roles.Approver))
-
-        {
-
-            return "/approvals"; // the queue of invoices waiting for them
-
-        }
-
-
-
-        return readsInvoices ? "/"
-            : roles.Contains(Roles.Buyer) ? "/purchasing"
-            : roles.Contains(Roles.Admin) ? "/admin/users"
-            : "/";
+        return StartPages.For(user is null ? [] : await SignIn.UserManager.GetRolesAsync(user));
 
     }
 
