@@ -78,5 +78,78 @@ services:
       - no-new-privileges:true
     mem_limit: 256m
 
+  # ---- The public demo: docker compose --profile public up -d (docs/self-hosting.md) --------------------------------
+  # Tailscale Funnel gives the demo a public HTTPS address without opening a port on the router. The app shares this
+  # container's network, so the tunnel is its only way in from outside; this PC itself never joins a tailnet.
+  tailscale:
+    profiles: [public]
+    image: tailscale/tailscale:v1.104.4@sha256:ed6480b33c6eb67c9cbd203ed42b9fb57e361986725b6856def71b7a3d9e276c
+    container_name: einvoice-tailscale
+    hostname: ${TS_HOSTNAME:-einvoice}
+    environment:
+      # From .env, never committed. Empty: the tunnel waits for a login and there is no public address.
+      TS_AUTHKEY: ${TS_AUTHKEY:-}
+      TS_HOSTNAME: ${TS_HOSTNAME:-einvoice}
+      TS_STATE_DIR: /var/lib/tailscale
+      TS_USERSPACE: "true"               # no tun device, no capabilities needed
+      TS_SERVE_CONFIG: /config/serve.json  # HTTPS on 443 -> the app on 127.0.0.1:8080, open to the internet (Funnel)
+    volumes:
+      - tailscale-state:/var/lib/tailscale
+      - ./docker/tailscale/serve.json:/config/serve.json:ro
+    # No ports: the tunnel is the only way in. (The app refuses plain HTTP from anywhere but the tunnel, so a local port
+    # would not work anyway; use the public address, or the development app on https://localhost:7169.)
+    extra_hosts:
+      - "host.docker.internal:host-gateway"  # Ollama on this PC (Docker Desktop has it anyway)
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 256m
+    restart: unless-stopped
+
+  web:
+    profiles: [public]
+    build:
+      context: .
+      dockerfile: docker/web/Dockerfile
+    image: einvoice-web:local
+    container_name: einvoice-web
+    network_mode: service:tailscale
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+      kosit-validator:
+        condition: service_healthy
+      mock-erp:
+        condition: service_started
+      tailscale:
+        condition: service_started
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__EInvoice: "Server=sqlserver,1433;Database=EInvoice;User Id=einvoice_app;Password=${EINVOICE_APP_PASSWORD:?Set EINVOICE_APP_PASSWORD in .env - see .env.example};Encrypt=True;TrustServerCertificate=True"
+      Kosit__BaseUrl: http://kosit-validator:8080/
+      Erp__Enabled: "true"
+      Erp__BaseUrl: http://mock-erp:8080/
+      # The local model on this PC's GPU (Ollama on 127.0.0.1:11434). AI_ENABLED=false in .env switches PDFs off.
+      Ai__Enabled: ${AI_ENABLED:-true}
+      Ai__OllamaUrl: http://host.docker.internal:11434/
+      Ai__Model: ${AI_MODEL:-qwen2.5:7b}
+      Demo__Enabled: "true"
+      Tunnel__Enabled: "true"
+    volumes:
+      - web-keys:/keys
+    user: "1654:1654"
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 1g
+    restart: unless-stopped
+
 volumes:
   sqldata:
+  tailscale-state:
+  web-keys:
