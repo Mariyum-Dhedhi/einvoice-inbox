@@ -36,6 +36,9 @@ builder.Services.AddHsts(options =>
 
 var app = builder.Build();
 
+// Behind the tunnel (Tunnel:Enabled): the visitor's address and HTTPS, as the tunnel forwards them from loopback.
+app.UseTunnel();
+
 // Every response: the browser protections (SecurityHeaders: content security policy, no sniffing, isolation).
 // API responses hold invoice data: never cache them.
 app.Use((context, next) =>

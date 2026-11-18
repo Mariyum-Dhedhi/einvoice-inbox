@@ -142,6 +142,7 @@ internal static class ServiceRegistration
 
         services.AddEInvoiceSignIn();
         services.AddEInvoiceDemo(); // after the intake: the public demo's upload limit wraps it
+        services.AddEInvoiceHosting(); // behind the tunnel; where the sign-in keys are kept
         return services;
     }
 
