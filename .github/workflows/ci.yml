@@ -285,3 +285,46 @@ jobs:
       - name: Tear down
         if: always()
         run: docker compose down -v
+
+  # The public demo's stack (docker compose --profile public, docs/self-hosting.md): the app image builds from locked
+  # packages, runs hardened inside the tunnel's network, speaks German (ICU is in the image), is published on loopback
+  # only, and signs a demo visitor in through the database. The tunnel starts without a key here: no public link from CI.
+  public-stack:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Throwaway .env
+        run: printf 'MSSQL_SA_PASSWORD=Unused%s#1\nEINVOICE_APP_PASSWORD=Unused%s#2\nAI_ENABLED=false\n' "$(openssl rand -hex 8)" "$(openssl rand -hex 8)" > .env
+
+      - name: Build and start the public stack
+        run: docker compose --profile public up -d --build --wait web
+
+      - name: The app is hardened and lives in the tunnel's network
+        run: |
+          docker inspect einvoice-web --format '{{.Config.User}} {{.HostConfig.ReadonlyRootfs}} {{.HostConfig.CapDrop}} {{.HostConfig.NetworkMode}}' | tee web.txt
+          grep -Eq '^1654:1654 true \[ALL\] container:' web.txt
+          docker inspect einvoice-tailscale --format '{{.HostConfig.CapDrop}} {{.HostConfig.SecurityOpt}}' | tee tunnel.txt
+          grep -q '^\[ALL\] \[no-new-privileges:true\]$' tunnel.txt
+
+      - name: Nothing of the public stack is published on the machine
+        run: |
+          docker compose --profile public ps --format '{{.Name}} {{.Ports}}' | tee ports.txt
+          ! grep -E '^einvoice-(web|tailscale) .*->' ports.txt
+          ! grep -E '0\.0\.0\.0|:::' ports.txt
+
+      - name: German, HTTPS as the tunnel says, and a demo visitor signs in (checked from inside the tunnel's network)
+        run: >
+          docker run --rm --network container:einvoice-tailscale -v "$PWD/tests/public-stack:/check:ro"
+          --entrypoint sh einvoice-kosit-validator:1.6.3-xr-2026-08-31 /check/check.sh
+
+      - name: Logs
+        if: failure()
+        run: docker compose --profile public logs --no-color web tailscale | tail -200
+
+      - name: Tear down
+        if: always()
+        run: docker compose --profile public down -v
