@@ -149,6 +149,32 @@ services:
     mem_limit: 1g
     restart: unless-stopped
 
+  # Every night at 03:00 Berlin time the public demo's database is dropped and built again by db-init's script
+  # (db/demo). Everything visitors did is gone, the seed is back. At once: docker compose --profile public run --rm demo-reset now
+  demo-reset:
+    profiles: [public]
+    image: *sqlserver-image
+    container_name: einvoice-demo-reset
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+    environment:
+      MSSQL_SA_PASSWORD: ${MSSQL_SA_PASSWORD:?Set MSSQL_SA_PASSWORD in .env - see .env.example}
+      EINVOICE_APP_PASSWORD: ${EINVOICE_APP_PASSWORD:?Set EINVOICE_APP_PASSWORD in .env - see .env.example}
+      RESET_AT: ${RESET_AT:-03:00}
+    volumes:
+      - ./db:/db:ro
+    entrypoint: ["/bin/sh", "/db/demo/nightly.sh"]
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 256m
+    restart: unless-stopped
+
 volumes:
   sqldata:
   tailscale-state:

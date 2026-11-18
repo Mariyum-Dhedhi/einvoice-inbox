@@ -63,8 +63,23 @@ docker compose --profile public down               # stop everything (data and k
 git pull && docker compose --profile public up -d --build   # update to the latest main
 ```
 
-The public demo uses the same local `EInvoice` database as development, which holds synthetic data only. Uploads
-need the database in the state `db-init` leaves it in. The nightly reset puts it back every night.
+## Every night: back to the start
+
+At 03:00 Berlin time (`RESET_AT` in `.env`), the `demo-reset` service drops the database and builds it again with
+`db-init`'s own script (`db/demo/reset.sh`). Everything visitors did is gone: invoices, demo accounts, audit events,
+bank account changes. The seeded vendors, orders and receipts are back, so the demo files in `demo/invoices` work
+again. Open sessions end, because their accounts no longer exist.
+
+The wait is checked against the clock every minute. If the PC was asleep at 03:00, the reset runs when it wakes.
+
+```bash
+docker logs einvoice-demo-reset                          # "Next reset: 2026-11-19 03:00 CET"
+docker compose --profile public run --rm demo-reset now  # reset now, for example before showing the demo
+```
+
+**This is the same local `EInvoice` database that development uses.** While the public stack runs, your local
+development data is reset every night too. It is synthetic data only. To keep it, stop the reset service:
+`docker compose --profile public stop demo-reset`.
 
 Without AI: set `AI_ENABLED=false` in `.env`. PDF invoices are then refused with a message, and XML and ZUGFeRD
 invoices work as before.
@@ -98,4 +113,5 @@ docker run --rm --network container:einvoice-tailscale -v "$PWD/tests/public-sta
 | `docker logs einvoice-tailscale` shows a `login.tailscale.com` link | No auth key, or an old one. Set `TS_AUTHKEY` in `.env`, then `docker compose --profile public up -d` |
 | `funnel status` says Funnel is not available | The `funnel` attribute is missing from the access policy (step 3), or HTTPS certificates are off (step 2) |
 | The address answers, but PDF invoices are refused | Ollama is not running on the PC, or `AI_ENABLED=false` |
+| `docker logs einvoice-demo-reset` shows "Reset failed" | The database could not be rebuilt (it may be missing until the next try). Run `docker compose --profile public run --rm demo-reset now` and read its output |
 | Every request gets an error page | `docker logs einvoice-web`. An "antiforgery ... not an SSL request" error means the request did not come through the tunnel |
