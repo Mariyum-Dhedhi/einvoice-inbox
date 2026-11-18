@@ -36,7 +36,10 @@ public sealed class DemoResetTests : IAsyncLifetime
 
     private Task<DotNet.Testcontainers.Containers.ExecResult> ShellAsync(string script, string arguments = "", string database = "EInvoice") =>
         _sql.ExecAsync(["/bin/sh", "-c",
-            $"MSSQL_SA_PASSWORD='{_saPassword}' EINVOICE_APP_PASSWORD='{_appPassword}' DB_HOST=localhost EINVOICE_DB='{database}' /bin/sh {script} {arguments}"]);
+            $"MSSQL_SA_PASSWORD='{_saPassword}' EINVOICE_APP_PASSWORD='{_appPassword}' DB_HOST=localhost EINVOICE_DB={Quoted(database)} /bin/sh {script} {arguments}"]);
+
+    /// <summary>For the shell: in single quotes, each single quote written as quote, backslash, quote, quote.</summary>
+    private static string Quoted(string value) => "'" + value.Replace("'", @"'\''", StringComparison.Ordinal) + "'";
 
     private string Admin(string database = "EInvoice") =>
         new SqlConnectionStringBuilder(_sql.GetConnectionString()) { InitialCatalog = database }.ConnectionString;
@@ -139,8 +142,20 @@ public sealed class DemoResetTests : IAsyncLifetime
         Assert.Equal(once, await RowCountsAsync());
     }
 
+    [Fact]
+    public async Task The_database_name_reaches_the_script_exactly_as_given()
+    {
+        // Guards the quoting above: a name with a quote must arrive with its quote, or the injection case proves nothing.
+        const string name = "x') IS NULL BEGIN DROP DATABASE [EInvoice]; END; --";
+
+        var echoed = await _sql.ExecAsync(["/bin/sh", "-c", $"EINVOICE_DB={Quoted(name)} /bin/sh -c 'printf %s \"$EINVOICE_DB\"'"]);
+
+        Assert.Equal(name, echoed.Stdout);
+    }
+
     [Theory]
     [InlineData("EInvoice];DROP DATABASE [master")]
+    [InlineData("x') IS NULL BEGIN DROP DATABASE [EInvoice]; END; --")] // would drop the real one if checked too late
     [InlineData("")]
     [InlineData("E Invoice")]
     public async Task A_database_name_that_is_not_letters_and_digits_is_refused_before_anything_is_dropped(string name)
@@ -167,6 +182,7 @@ public sealed class DemoResetTests : IAsyncLifetime
     [InlineData("2026-11-18T03:00:00+01:00", 86_400)]  // just done: the next one is tomorrow
     [InlineData("2026-03-28T12:00:00+01:00", 50_400)]  // the night the clocks go forward: 14 hours, not 15
     [InlineData("2026-10-24T12:00:00+02:00", 57_600)]  // the night the clocks go back: 16 hours, not 15
+    [InlineData("2026-03-28T23:30:00+01:00", 9_000)]   // late the evening before they go forward: tonight, not a day later
     public async Task The_schedule_waits_until_the_next_three_oclock_in_Berlin(string now, int seconds)
     {
         var result = await _sql.ExecAsync(["/bin/sh", "/db/demo/nightly.sh", "--seconds-until-next", now]);
