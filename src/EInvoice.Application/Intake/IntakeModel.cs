@@ -22,6 +22,9 @@ public enum IntakeOutcome
 
     /// <summary>A PDF needs the extraction model, which cannot be reached right now; nothing is stored, the same file can be sent again.</summary>
     ExtractionUnavailable = 7,
+
+    /// <summary>The public demo's limit of uploads per person and hour is reached (UploadLimit); nothing is stored.</summary>
+    TooManyUploads = 8,
 }
 
 /// <param name="InvoiceId">The new invoice, or for <see cref="IntakeOutcome.DuplicateFile"/> the existing one.</param>
