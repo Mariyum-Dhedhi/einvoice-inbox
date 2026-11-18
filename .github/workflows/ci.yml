@@ -301,7 +301,7 @@ jobs:
         run: printf 'MSSQL_SA_PASSWORD=Unused%s#1\nEINVOICE_APP_PASSWORD=Unused%s#2\nAI_ENABLED=false\n' "$(openssl rand -hex 8)" "$(openssl rand -hex 8)" > .env
 
       - name: Build and start the public stack
-        run: docker compose --profile public up -d --build --wait web
+        run: docker compose --profile public up -d --build --wait
 
       - name: The app is hardened and lives in the tunnel's network
         run: |
@@ -309,6 +309,13 @@ jobs:
           grep -Eq '^1654:1654 true \[ALL\] container:' web.txt
           docker inspect einvoice-tailscale --format '{{.HostConfig.CapDrop}} {{.HostConfig.SecurityOpt}}' | tee tunnel.txt
           grep -q '^\[ALL\] \[no-new-privileges:true\]$' tunnel.txt
+
+      - name: The nightly reset is waiting for 03:00 Berlin time, hardened
+        run: |
+          for i in $(seq 1 30); do docker logs einvoice-demo-reset 2>&1 | grep -q '^Next reset: .* 03:00 CE' && break; sleep 2; done
+          docker logs einvoice-demo-reset 2>&1 | tee reset.txt
+          grep -Eq '^Next reset: [0-9-]+ 03:00 CES?T$' reset.txt
+          docker inspect einvoice-demo-reset --format '{{.HostConfig.ReadonlyRootfs}} {{.HostConfig.CapDrop}}' | grep -q '^true \[ALL\]$'
 
       - name: Nothing of the public stack is published on the machine
         run: |
@@ -323,7 +330,7 @@ jobs:
 
       - name: Logs
         if: failure()
-        run: docker compose --profile public logs --no-color web tailscale | tail -200
+        run: docker compose --profile public logs --no-color web tailscale demo-reset | tail -200
 
       - name: Tear down
         if: always()
