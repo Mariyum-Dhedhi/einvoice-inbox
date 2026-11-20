@@ -94,14 +94,17 @@ internal static partial class SignInForm
 internal static class TestUsers
 {
     /// <summary>A new account with the given roles; without any given, a clerk (like the default test client).</summary>
-    public static async Task<(string UserName, string Password)> CreateAsync(ApiFactory factory, params string[] roles)
+    public static Task<(string UserName, string Password)> CreateAsync(ApiFactory factory, params string[] roles) =>
+        CreateNamedAsync(factory, $"user-{Guid.NewGuid():N}@example.com", roles);
+
+    /// <summary>A new account under a chosen (unique) name, for when the name is seen, as in the README's screenshot.</summary>
+    public static async Task<(string UserName, string Password)> CreateNamedAsync(ApiFactory factory, string userName, params string[] roles)
     {
         if (roles.Length == 0)
         {
             roles = ["Clerk"];
         }
 
-        var userName = $"user-{Guid.NewGuid():N}@example.com";
         var password = $"Pw-{Guid.NewGuid():N}";
         await using var scope = factory.Services.CreateAsyncScope();
         var users = scope.ServiceProvider.GetRequiredService<UserManager<AppUser>>();
