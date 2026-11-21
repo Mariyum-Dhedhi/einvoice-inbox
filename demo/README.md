@@ -21,8 +21,15 @@ docker compose up -d                                   # SQL Server, KoSIT valid
 dotnet run --project src/EInvoice.Web --launch-profile https
 ```
 
-Open https://localhost:7169. To show posting to the (mock) ERP as well, start the app with
-`Erp__Enabled=true` and `Erp__BaseUrl=http://127.0.0.1:8090/` set as environment variables.
+Open https://localhost:7169. To show posting to the (mock) ERP as well, give the app the same client as the mock
+ERP once (`ERP_CLIENT_ID` and `ERP_CLIENT_SECRET` from `.env`; the mock does not start without a secret):
+
+```bash
+dotnet user-secrets set "Erp:ClientId" "einvoice" --project src/EInvoice.Web
+dotnet user-secrets set "Erp:ClientSecret" "<ERP_CLIENT_SECRET from .env>" --project src/EInvoice.Web
+```
+
+Then start the app with `Erp__Enabled=true` and `Erp__BaseUrl=http://127.0.0.1:8090/` set as environment variables.
 
 ### With AI (plain PDF invoices)
 
