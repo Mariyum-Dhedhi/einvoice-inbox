@@ -154,7 +154,7 @@ public sealed class MockErpChaosTests : IDisposable
     [InlineData(0.5, "earthquake")]
     public async Task Chaos_settings_that_make_no_sense_are_refused(double share, string? kind)
     {
-        using var client = _erp.Client();
+        using var client = _erp.AnonymousClient();
 
         using var response = await client.PostAsJsonAsync("_mock/chaos", new { share, kinds = kind is null ? null : new[] { kind }, seed = 1, retryAfterSeconds = 2, slowMs = 0 });
 

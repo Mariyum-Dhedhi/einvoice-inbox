@@ -83,7 +83,7 @@ public sealed class PostingTests(SqlServerFixture fixture, Xunit.Abstractions.IT
 
     private async Task FailAsync(string invoiceNumber, int status, int count, bool afterBooking = false)
     {
-        using var client = _erp.Client();
+        using var client = _erp.AnonymousClient();
         using var response = await client.PostAsJsonAsync("_mock/failures", new { invoiceNumber, status, count, afterBooking, delayMs = 0 });
         response.EnsureSuccessStatusCode();
     }
@@ -316,5 +316,57 @@ public sealed class PostingTests(SqlServerFixture fixture, Xunit.Abstractions.IT
         var chaos = (await _erp.StatsAsync()).GetProperty("chaos");
         Assert.True(chaos.GetProperty("throttle").GetInt32() > 0, "the run saw no throttling");
         output.WriteLine($"Chaos run: {invoices.Count} invoices, {passes} passes, chaos answers {chaos}, tries {states.Sum(s => s.Job.Attempts)}.");
+    }
+
+    // ---- Package 16b: a token for the ERP -----------------------------------------------------------------------------
+
+    [Fact]
+    public async Task A_401_renews_the_token_and_the_invoice_is_posted_once()
+    {
+        var (id, number) = await ApprovedInvoiceAsync();
+        await _erp.Tokens.GetAsync(CancellationToken.None); // a token the app holds ...
+        await _erp.AuthAsync(expireAll: true);              // ... that the ERP no longer accepts
+
+        await RunWorkerAsync();
+
+        var (invoice, job) = await StateAsync(id);
+        Assert.Equal((InvoiceStatus.Posted, 1), (invoice.Status, job.Attempts)); // the repeat inside the call is not a try
+        Assert.Single(await BookingsAsync(number));
+        Assert.Equal(2, (await _erp.StatsAsync()).GetProperty("tokenRequests").GetInt32());
+    }
+
+    [Fact]
+    public async Task Credentials_refused_twice_fail_the_invoice_with_the_fixed_reason()
+    {
+        var (id, number) = await ApprovedInvoiceAsync();
+        await _erp.AuthAsync(rejectAll: true);
+
+        await RunWorkerAsync();
+
+        var (invoice, job) = await StateAsync(id);
+        Assert.Equal((InvoiceStatus.Failed, PostingJobStatus.Dead, 1), (invoice.Status, job.Status, job.Attempts));
+        Assert.Equal("Rejected by the ERP: ERP refused the credentials.", invoice.StatusHistory[^1].Reason);
+        Assert.Empty(await BookingsAsync(number));
+    }
+
+    [Fact]
+    public async Task A_token_endpoint_that_is_down_is_retried_by_the_normal_policy()
+    {
+        var (id, number) = await ApprovedInvoiceAsync();
+        await _erp.AuthAsync(tokenEndpointDown: true);
+
+        await RunWorkerAsync();
+
+        var (waiting, job) = await StateAsync(id);
+        Assert.Equal(InvoiceStatus.Approved, waiting.Status);
+        Assert.Equal((PostingJobStatus.Pending, 1, _time.GetUtcNow() + TimeSpan.FromSeconds(30)), (job.Status, job.Attempts, job.NextAttemptAt));
+        Assert.Equal("Could not get a token from the ERP.", job.LastError);
+
+        await _erp.AuthAsync();
+        _time.Advance(TimeSpan.FromSeconds(30));
+        await RunWorkerAsync();
+
+        Assert.Equal(InvoiceStatus.Posted, (await StateAsync(id)).Invoice.Status);
+        Assert.Single(await BookingsAsync(number));
     }
 }

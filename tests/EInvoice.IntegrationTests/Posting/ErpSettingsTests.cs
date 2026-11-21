@@ -1,4 +1,5 @@
 using EInvoice.Application.Posting;
+using EInvoice.Infrastructure.Posting;
 using EInvoice.IntegrationTests.Api;
 using EInvoice.Web.Posting;
 using Microsoft.Extensions.DependencyInjection;
@@ -19,7 +20,11 @@ public sealed class ErpSettingsTests
     {
         ["Erp:Enabled"] = "true",
         ["Erp:BaseUrl"] = "http://127.0.0.1:8090/",
+        ["Erp:ClientId"] = "einvoice",
+        ["Erp:ClientSecret"] = Secret,
     };
+
+    private const string Secret = "settings-test-secret-7f3a";
 
     [Fact]
     public async Task Without_an_erp_nothing_is_posted_and_the_worker_does_not_run()
@@ -107,6 +112,10 @@ public sealed class ErpSettingsTests
     [InlineData("Erp:BreakerFailures", "101")]
     [InlineData("Erp:BreakerOpenSeconds", "0")]
     [InlineData("Erp:BreakerOpenSeconds", "3601")]
+    [InlineData("Erp:ClientId", null)]
+    [InlineData("Erp:ClientId", " ")]
+    [InlineData("Erp:TokenUrl", "not a url")]
+    [InlineData("Erp:TokenUrl", "ftp://erp.test/token")]
     public async Task A_wrong_setting_stops_the_application_at_startup(string key, string? value)
     {
         var settings = Enabled();
@@ -117,5 +126,50 @@ public sealed class ErpSettingsTests
 
         Assert.IsType<OptionsValidationException>(error);
         Assert.Contains(key.Split(':')[1], error.Message, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task Posting_on_without_a_client_secret_stops_the_application_with_a_clear_message(string? secret)
+    {
+        var settings = Enabled();
+        settings["Erp:ClientSecret"] = secret;
+        await using var factory = new ApiFactory(settings);
+
+        var error = Assert.IsType<OptionsValidationException>(Record.Exception(() => factory.CreateApiClient()));
+
+        Assert.Contains("Erp:ClientSecret is required when Erp:Enabled is true", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Posting_off_needs_no_client_secret()
+    {
+        await using var factory = new ApiFactory(ApiFactory.Settings(UnusedConnection));
+
+        using var client = factory.CreateApiClient(); // starts
+    }
+
+    [Fact]
+    public async Task A_startup_error_never_repeats_the_secret()
+    {
+        var settings = Enabled();
+        settings["Erp:TokenUrl"] = Secret; // a secret pasted into the wrong setting
+        await using var factory = new ApiFactory(settings);
+
+        var error = Record.Exception(() => factory.CreateApiClient());
+
+        Assert.NotNull(error);
+        Assert.DoesNotContain(Secret, error.ToString(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task The_token_url_is_the_erps_oauth_token_unless_configured()
+    {
+        await using var factory = new ApiFactory(Enabled());
+        using var client = factory.CreateApiClient();
+
+        Assert.Equal(new Uri("http://127.0.0.1:8090/oauth/token"), factory.Services.GetRequiredService<ErpCredentials>().TokenUrl);
     }
 }

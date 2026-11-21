@@ -14,6 +14,12 @@ namespace EInvoice.Infrastructure.Posting;
 /// </summary>
 public sealed class HttpErpConnector(HttpClient http, TimeProvider? time = null) : IErpConnector
 {
+    /// <summary>The named HttpClient for data calls (it carries the token handler).</summary>
+    public const string ClientName = "erp";
+
+    /// <summary>The one reason stored when the ERP refuses who we are: never the token, the secret or the ERP's words.</summary>
+    public const string CredentialsRefused = "ERP refused the credentials.";
+
     private readonly TimeProvider _time = time ?? TimeProvider.System;
 
     private const int MaxReason = 200;
@@ -63,6 +69,11 @@ public sealed class HttpErpConnector(HttpClient http, TimeProvider? time = null)
                     : new ErpResult(ErpOutcome.Posted, answer.DocumentNumber);
             }
 
+            if (response.StatusCode == HttpStatusCode.Unauthorized)
+            {
+                return new ErpResult(ErpOutcome.Rejected, Reason: CredentialsRefused); // after one renewal (ErpAuthHandler)
+            }
+
             if (response.StatusCode == HttpStatusCode.TooManyRequests)
             {
                 return new ErpResult(ErpOutcome.Throttled, Reason: "HTTP 429 from the ERP.", RetryAfter: RetryAfter(response));
@@ -83,6 +94,14 @@ public sealed class HttpErpConnector(HttpClient http, TimeProvider? time = null)
         catch (HttpRequestException)
         {
             return new ErpResult(ErpOutcome.Transient, Reason: "The ERP could not be reached.");
+        }
+        catch (ErpTokenUnavailableException error)
+        {
+            return new ErpResult(ErpOutcome.Transient, Reason: error.Message);
+        }
+        catch (ErpCredentialsRefusedException)
+        {
+            return new ErpResult(ErpOutcome.Rejected, Reason: CredentialsRefused);
         }
     }
 
