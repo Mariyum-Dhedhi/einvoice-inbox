@@ -17,9 +17,36 @@ internal sealed class MockErpFactory : WebApplicationFactory<MockErpProgram>
     /// Starts the mock now. The factory starts lazily and not thread-safely: two workers asking for a client at the same
     /// moment would each start their own mock, with separate books.
     /// </summary>
-    public MockErpFactory()
+    public MockErpFactory(IReadOnlyDictionary<string, string?>? settings = null)
     {
+        _settings = settings ?? new Dictionary<string, string?>();
         _ = Server;
+    }
+
+    private readonly IReadOnlyDictionary<string, string?> _settings;
+
+    /// <summary>The mock's own settings (for example Chaos:*), as its configuration would give them.</summary>
+    protected override void ConfigureWebHost(Microsoft.AspNetCore.Hosting.IWebHostBuilder builder)
+    {
+        foreach (var (key, value) in _settings)
+        {
+            builder.UseSetting(key, value);
+        }
+    }
+
+    /// <summary>Chaos mode at run time: a share of all requests gets one of the given kinds of trouble.</summary>
+    public async Task ChaosAsync(double share, string[]? kinds = null, int? seed = 1, int retryAfterSeconds = 2, int slowMs = 200)
+    {
+        using var client = Client();
+        using var response = await client.PostAsJsonAsync("_mock/chaos", new { share, kinds, seed, retryAfterSeconds, slowMs });
+        response.EnsureSuccessStatusCode();
+    }
+
+    /// <summary>What the mock saw: requests, the most at once, and how many of each kind of chaos it answered.</summary>
+    public async Task<JsonElement> StatsAsync()
+    {
+        using var client = Client();
+        return await client.GetFromJsonAsync<JsonElement>("_mock/stats");
     }
 
     public HttpClient Client(TimeSpan? timeout = null)
@@ -55,7 +82,7 @@ public sealed class ErpContractTests : IDisposable
 
     public void Dispose() => _erp.Dispose();
 
-    private static ErpVendorInvoice Sample(string number = "RE-2026-0001") => new(
+    internal static ErpVendorInvoice Sample(string number = "RE-2026-0001") => new(
         number, "V-1001", new DateOnly(2026, 11, 2), "EUR", 100.00m, 19.00m, 119.00m, "PO-1001",
         [new ErpVendorInvoiceLine(1, "Office chair", 2m, 50.00m, 100.00m, 19m, 1)]);
 
@@ -167,7 +194,6 @@ public sealed class ErpContractTests : IDisposable
     [InlineData(503)]
     [InlineData(500)]
     [InlineData(502)]
-    [InlineData(429)]
     [InlineData(408)]
     public async Task Temporary_failures_are_worth_another_try(int status)
     {
@@ -178,6 +204,19 @@ public sealed class ErpContractTests : IDisposable
 
         Assert.Equal(ErpOutcome.Transient, result.Outcome);
         Assert.Contains(status.ToString(System.Globalization.CultureInfo.InvariantCulture), result.Reason, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_429_is_throttling_not_a_failure()
+    {
+        // The mock's planned failure sends no Retry-After: the posting run then waits as its policy says.
+        await _erp.FailNextAsync(429);
+        using var http = _erp.Client();
+
+        var result = await new HttpErpConnector(http).PostAsync(Guid.NewGuid(), Sample(), CancellationToken.None);
+
+        Assert.Equal((ErpOutcome.Throttled, (TimeSpan?)null), (result.Outcome, result.RetryAfter));
+        Assert.Contains("429", result.Reason, StringComparison.Ordinal);
     }
 
     [Fact]

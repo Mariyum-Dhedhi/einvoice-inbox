@@ -69,6 +69,8 @@ public sealed class EfPostingStore(EInvoiceDbContext db) : IPostingStore
             job.ProcessedAt = at;
         }, cancellationToken);
 
+    public Task ReleaseAsync(Guid jobId, CancellationToken cancellationToken) => SaveAsync(jobId, _ => { }, cancellationToken);
+
     /// <summary>The job and its invoice's status change (tracked in this context) in one save; the lease ends.</summary>
     private async Task SaveAsync(Guid jobId, Action<PostingJobRecord> change, CancellationToken cancellationToken)
     {

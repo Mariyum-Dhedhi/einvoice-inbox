@@ -8,11 +8,14 @@ namespace EInvoice.Infrastructure.Posting;
 
 /// <summary>
 /// Posts approved invoices to the ERP's vendor-invoice endpoint (POST data/VendorInvoices) with the invoice id as
-/// Idempotency-Key. Sorts every answer into posted, temporary (try again) or rejected (final); reasons are short and
-/// never repeat a whole ERP answer.
+/// Idempotency-Key. Sorts every answer into posted, throttled (429: later, no try used), temporary (try again) or
+/// rejected (final), and passes on how long the ERP asked us to wait (Retry-After on 429 and 503, as seconds or an
+/// HTTP date). Reasons are short and never repeat a whole ERP answer.
 /// </summary>
-public sealed class HttpErpConnector(HttpClient http) : IErpConnector
+public sealed class HttpErpConnector(HttpClient http, TimeProvider? time = null) : IErpConnector
 {
+    private readonly TimeProvider _time = time ?? TimeProvider.System;
+
     private const int MaxReason = 200;
 
     /// <summary>
@@ -44,15 +47,31 @@ public sealed class HttpErpConnector(HttpClient http) : IErpConnector
             if (response.IsSuccessStatusCode)
             {
                 // Lenient on purpose: a real ERP answers with many more fields; only the document number is needed.
-                var answer = await response.Content.ReadFromJsonAsync<PostedAnswer>(Reply, cancellationToken).ConfigureAwait(false);
+                // An answer that cannot be read may still mean it was booked: the next try (same key) tells.
+                PostedAnswer? answer;
+                try
+                {
+                    answer = await response.Content.ReadFromJsonAsync<PostedAnswer>(Reply, cancellationToken).ConfigureAwait(false);
+                }
+                catch (JsonException)
+                {
+                    return new ErpResult(ErpOutcome.Transient, Reason: $"HTTP {status} with an answer that could not be read.");
+                }
+
                 return string.IsNullOrWhiteSpace(answer?.DocumentNumber)
                     ? new ErpResult(ErpOutcome.Transient, Reason: $"HTTP {status} without a document number.")
                     : new ErpResult(ErpOutcome.Posted, answer.DocumentNumber);
             }
 
-            if (response.StatusCode is HttpStatusCode.RequestTimeout or HttpStatusCode.TooManyRequests || status >= 500)
+            if (response.StatusCode == HttpStatusCode.TooManyRequests)
             {
-                return new ErpResult(ErpOutcome.Transient, Reason: $"HTTP {status} from the ERP.");
+                return new ErpResult(ErpOutcome.Throttled, Reason: "HTTP 429 from the ERP.", RetryAfter: RetryAfter(response));
+            }
+
+            if (response.StatusCode == HttpStatusCode.RequestTimeout || status >= 500)
+            {
+                var wait = response.StatusCode == HttpStatusCode.ServiceUnavailable ? RetryAfter(response) : null;
+                return new ErpResult(ErpOutcome.Transient, Reason: $"HTTP {status} from the ERP.", RetryAfter: wait);
             }
 
             return new ErpResult(ErpOutcome.Rejected, Reason: Cut($"HTTP {status}: {await TitleAsync(response, cancellationToken).ConfigureAwait(false)}"));
@@ -65,6 +84,18 @@ public sealed class HttpErpConnector(HttpClient http) : IErpConnector
         {
             return new ErpResult(ErpOutcome.Transient, Reason: "The ERP could not be reached.");
         }
+    }
+
+    /// <summary>Retry-After as a wait from now; null when missing, unreadable or already past (the policy decides).</summary>
+    private TimeSpan? RetryAfter(HttpResponseMessage response)
+    {
+        var header = response.Headers.RetryAfter; // null when missing or not a valid value
+        if (header?.Delta is { } delta)
+        {
+            return delta;
+        }
+
+        return header?.Date is { } date && date - _time.GetUtcNow() is { } untilThen && untilThen > TimeSpan.Zero ? untilThen : null;
     }
 
     /// <summary>The problem's title (what the ERP says went wrong), or a plain description when there is none.</summary>

@@ -78,6 +78,14 @@ internal static class ServiceRegistration
             }
         });
         services.AddScoped<IPostingStore, EfPostingStore>();
+        services.AddSingleton(sp => new PostingLimits(sp.GetRequiredService<IOptions<ErpSettings>>().Value.MaxConcurrentCalls));
+        services.AddSingleton(sp =>
+        {
+            var erp = sp.GetRequiredService<IOptions<ErpSettings>>().Value;
+            return new BreakerSettings(erp.BreakerFailures, TimeSpan.FromSeconds(erp.BreakerOpenSeconds));
+        });
+        services.AddSingleton<ErpCircuitBreaker>(); // one for every pass: a breaker per scope would never open
+        services.AddSingleton<IPostingLog, LoggingPostingLog>();
         services.AddScoped<IInvoicePosting, InvoicePosting>();
         services.AddSingleton<IHostedService>(sp => sp.GetRequiredService<IOptions<ErpSettings>>().Value.Enabled
             ? ActivatorUtilities.CreateInstance<PostingWorker>(sp)
