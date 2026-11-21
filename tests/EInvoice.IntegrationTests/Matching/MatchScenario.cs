@@ -11,7 +11,7 @@ namespace EInvoice.IntegrationTests.Matching;
 /// Builds a fresh purchase order with receipts and invoices in the database (unique numbers, so tests never
 /// see each other's or the seed's quantities) and runs the same data through the SQL procedure and the C# matcher.
 /// </summary>
-internal sealed class MatchScenario(EInvoiceDbContext db)
+internal sealed class MatchScenario(EInvoiceDbContext db, string? orderNumber = null)
 {
     private static readonly Guid SeededVendor = Guid.Parse("00000000-0000-0000-0001-000000000001");
     private static readonly DateTimeOffset Now = new(2026, 11, 13, 9, 0, 0, TimeSpan.Zero);
@@ -20,7 +20,7 @@ internal sealed class MatchScenario(EInvoiceDbContext db)
     private readonly List<(int PoLine, decimal Quantity)> _receipts = [];
     private bool _hasOrder = true;
 
-    public string PurchaseOrderNumber { get; } = $"T{Guid.NewGuid():N}"[..16];
+    public string PurchaseOrderNumber { get; } = orderNumber ?? $"T{Guid.NewGuid():N}"[..16];
 
     public PurchaseOrder? Order { get; private set; }
 

@@ -199,7 +199,10 @@ jobs:
       - name: Development certificate
         run: dotnet dev-certs https
 
+      # The README's screenshot journey writes its picture with the test results (artifact e2e-test-results).
       - name: Browser test
+        env:
+          EINVOICE_SCREENSHOT_DIR: ${{ github.workspace }}/TestResults/screenshots
         run: >
           dotnet test tests/EInvoice.IntegrationTests --no-build --configuration Release
           --filter "Category=E2E"

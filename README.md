@@ -6,9 +6,31 @@ Accounts-payable automation for German e-invoices: receives XRechnung XML, ZUGFe
 **reads PDFs with a local language model**, validates and three-way matches every invoice against
 purchase orders and goods receipts, and sends anything doubtful to a person with a stated reason.
 
-> **Status:** in development, built in public, one
-> [work package](https://github.com/Mariyum-Dhedhi/einvoice-inbox/issues) per pull request.
-> Done: upload pipeline, validation (incl. the official KoSIT validator), matching, API, UI, AI extraction, sign-in and roles, approval workflow, audit trail, bank-account control, ZUGFeRD, ERP posting (against a mock ERP), KPI dashboard, load test, security scan and mutation testing, English and German UI, purchase orders and goods receipts in the app.
+![An approver's view of an exception: the reason in plain words, the three-way match with the price 5.56 % above the order, and a decision that needs a reason](docs/images/review-match.png)
+
+*An approver reviews an exception. The page is made by a browser test (`Readme_screenshot_an_approver_reviews_a_price_variance`).*
+
+## Progress
+
+Built in public, one [work package](https://github.com/Mariyum-Dhedhi/einvoice-inbox/issues) per pull request.
+
+- [x] Upload pipeline: file type from the bytes, duplicates refused, every accepted file becomes an invoice
+- [x] Validation, including the official KoSIT validator for XRechnung
+- [x] Three-way matching against purchase orders and goods receipts (in C# and in SQL, compared field by field)
+- [x] API and Blazor UI, in English and German
+- [x] AI extraction of PDF invoices with a local model, [measured](#ai-extraction-measured)
+- [x] Sign-in, roles and separated duties
+- [x] Approval workflow with approval limits
+- [x] Tamper-evident audit trail (hash chain)
+- [x] Bank-account control (two-person rule)
+- [x] ZUGFeRD / Factur-X
+- [x] ERP posting with retries (against a mock ERP)
+- [x] KPI dashboard
+- [x] Purchase orders and goods receipts in the app
+- [x] Load test, security scan and mutation testing, [measured](#under-load-measured)
+- [x] Public demo stack: one-click demo accounts, Tailscale Funnel, nightly reset ([self-hosting](docs/self-hosting.md))
+- [ ] Live link
+- [ ] 2-minute demo video ([script](docs/demo-video.md))
 
 ## AI extraction, measured
 
