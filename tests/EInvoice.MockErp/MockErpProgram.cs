@@ -11,6 +11,9 @@ namespace EInvoice.MockErp;
 /// Control endpoints under _mock let tests plan failures (by invoice number), list bookings and reset.
 /// Chaos mode (off by default; Chaos:* settings or POST _mock/chaos) answers a share of all postings with trouble
 /// (see <see cref="Chaos"/>); GET _mock/stats tells what the mock saw.
+/// It is its own token issuer (OAuth 2.0 client credentials, like Entra ID in front of D365): POST oauth/token for the
+/// configured client (Auth:ClientId, Auth:ClientSecret, required; Auth:TokenLifetimeSeconds), and every data call needs
+/// one of its unexpired tokens as "Authorization: Bearer", else 401. See <see cref="TokenIssuer"/>.
 /// </summary>
 public sealed class MockErpProgram
 {
@@ -20,13 +23,49 @@ public sealed class MockErpProgram
     {
         var builder = WebApplication.CreateBuilder(args);
         builder.Services.AddSingleton<Ledger>();
+        builder.Services.AddSingleton(sp => TokenIssuer.FromConfiguration(sp.GetRequiredService<IConfiguration>().GetSection("Auth")));
         builder.Services.AddSingleton(sp => new Chaos(ChaosPlan.FromConfiguration(sp.GetRequiredService<IConfiguration>().GetSection("Chaos"))));
         builder.Services.AddProblemDetails();
         var app = builder.Build();
+        _ = app.Services.GetRequiredService<TokenIssuer>(); // no secret configured: refuse to start, not at the first call
 
-        app.MapPost("/data/VendorInvoices", async (HttpRequest request, Ledger ledger, Chaos chaos) =>
+        app.MapPost("/oauth/token", async (HttpRequest request, TokenIssuer issuer) =>
+        {
+            issuer.CountRequest();
+            if (issuer.EndpointDown)
+            {
+                return Results.Problem(statusCode: 503, title: "The token endpoint is down (planned).");
+            }
+
+            if (!request.HasFormContentType)
+            {
+                return Results.Json(new { error = "invalid_request" }, statusCode: 400);
+            }
+
+            var form = await request.ReadFormAsync(request.HttpContext.RequestAborted);
+            if (form["grant_type"] != "client_credentials")
+            {
+                return Results.Json(new { error = "unsupported_grant_type" }, statusCode: 400);
+            }
+
+            if (!issuer.IsClient(form["client_id"], form["client_secret"]))
+            {
+                return Results.Json(new { error = "invalid_client" }, statusCode: 401);
+            }
+
+            request.HttpContext.Response.Headers.CacheControl = "no-store";
+            return Results.Json(new { access_token = issuer.Issue(), token_type = "Bearer", expires_in = issuer.LifetimeSeconds });
+        });
+
+        app.MapPost("/data/VendorInvoices", async (HttpRequest request, Ledger ledger, Chaos chaos, TokenIssuer issuer) =>
         {
             using var visit = chaos.Enter();
+            if (!issuer.Accepts(request.Headers.Authorization))
+            {
+                request.HttpContext.Response.Headers.WWWAuthenticate = "Bearer error=\"invalid_token\"";
+                return Results.Problem(statusCode: 401, title: "A valid bearer token is required.");
+            }
+
             var trouble = chaos.Pick();
             switch (trouble)
             {
@@ -115,11 +154,18 @@ public sealed class MockErpProgram
             chaos.Set(plan);
             return Results.NoContent();
         });
-        app.MapGet("/_mock/stats", (Chaos chaos) => Results.Json(chaos.Stats()));
-        app.MapPost("/_mock/reset", (Ledger ledger, Chaos chaos) =>
+        app.MapGet("/_mock/stats", (Chaos chaos, TokenIssuer issuer) => Results.Json(chaos.Stats(issuer.Requests)));
+        app.MapPost("/_mock/auth", (AuthPlan plan, TokenIssuer issuer) =>
+        {
+            issuer.Set(plan);
+            return Results.NoContent();
+        });
+        app.MapGet("/_mock/tokens", (TokenIssuer issuer) => Results.Json(issuer.Issued()));
+        app.MapPost("/_mock/reset", (Ledger ledger, Chaos chaos, TokenIssuer issuer) =>
         {
             ledger.Reset();
             chaos.ResetStats();
+            issuer.Reset();
             return Results.NoContent();
         });
         return app;
@@ -329,13 +375,14 @@ public sealed class Chaos
         return new Visit(this);
     }
 
-    public object Stats()
+    public object Stats(int tokenRequests)
     {
         lock (_gate)
         {
             return new
             {
                 requests = _requests,
+                tokenRequests,
                 maxInFlight = _maxInFlight,
                 chaos = new[] { ChaosKind.Throttle, ChaosKind.Error, ChaosKind.Unavailable, ChaosKind.Slow, ChaosKind.Malformed }
                     .ToDictionary(k => k.ToString().ToLowerInvariant(), k => _counts.GetValueOrDefault(k)),
@@ -366,5 +413,133 @@ public sealed class Chaos
     private sealed class Visit(Chaos chaos) : IDisposable
     {
         public void Dispose() => chaos.Leave();
+    }
+}
+
+/// <param name="ExpireAll">Every token issued so far stops working now (new ones work).</param>
+/// <param name="RejectAll">Every token is refused, new ones too, until this is set back.</param>
+/// <param name="TokenEndpointDown">The token endpoint answers 503.</param>
+public sealed record AuthPlan(bool ExpireAll, bool RejectAll, bool TokenEndpointDown);
+
+/// <summary>Issues random bearer tokens to the one configured client and checks them on data calls. Thread-safe.</summary>
+public sealed class TokenIssuer
+{
+    private readonly Lock _gate = new();
+    private readonly Dictionary<string, DateTimeOffset> _tokens = new(StringComparer.Ordinal);
+    private readonly List<string> _issued = [];
+    private readonly byte[] _clientId;
+    private readonly byte[] _clientSecret;
+    private bool _rejectAll;
+    private int _requests;
+
+    private TokenIssuer(string clientId, string clientSecret, int lifetimeSeconds)
+    {
+        _clientId = System.Text.Encoding.UTF8.GetBytes(clientId);
+        _clientSecret = System.Text.Encoding.UTF8.GetBytes(clientSecret);
+        LifetimeSeconds = lifetimeSeconds;
+    }
+
+    public int LifetimeSeconds { get; }
+
+    public bool EndpointDown { get; private set; }
+
+    public int Requests
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return _requests;
+            }
+        }
+    }
+
+    public static TokenIssuer FromConfiguration(IConfigurationSection section)
+    {
+        var secret = section["ClientSecret"];
+        if (string.IsNullOrWhiteSpace(secret))
+        {
+            throw new InvalidOperationException("Auth:ClientSecret is required: the mock ERP issues tokens only to a configured client.");
+        }
+
+        var lifetime = section.GetValue("TokenLifetimeSeconds", 3600);
+        if (lifetime is < 1 or > 86_400)
+        {
+            throw new InvalidOperationException("Auth:TokenLifetimeSeconds must be between 1 and 86400.");
+        }
+
+        return new TokenIssuer(section["ClientId"] is { Length: > 0 } id ? id : "einvoice", secret, lifetime);
+    }
+
+    public void CountRequest()
+    {
+        lock (_gate)
+        {
+            _requests++;
+        }
+    }
+
+    /// <summary>Compared in constant time, as a real issuer would.</summary>
+    public bool IsClient(string? clientId, string? clientSecret) =>
+        System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(System.Text.Encoding.UTF8.GetBytes(clientId ?? string.Empty), _clientId)
+        & System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(System.Text.Encoding.UTF8.GetBytes(clientSecret ?? string.Empty), _clientSecret);
+
+    public string Issue()
+    {
+        var token = Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(32)).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+        lock (_gate)
+        {
+            _tokens[token] = DateTimeOffset.UtcNow.AddSeconds(LifetimeSeconds);
+            _issued.Add(token);
+        }
+
+        return token;
+    }
+
+    public bool Accepts(string? authorization)
+    {
+        if (authorization is null || !authorization.StartsWith("Bearer ", StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        lock (_gate)
+        {
+            return !_rejectAll && _tokens.TryGetValue(authorization["Bearer ".Length..], out var expires) && DateTimeOffset.UtcNow < expires;
+        }
+    }
+
+    public void Set(AuthPlan plan)
+    {
+        lock (_gate)
+        {
+            if (plan.ExpireAll)
+            {
+                _tokens.Clear();
+            }
+
+            _rejectAll = plan.RejectAll;
+            EndpointDown = plan.TokenEndpointDown;
+        }
+    }
+
+    public IReadOnlyList<string> Issued()
+    {
+        lock (_gate)
+        {
+            return [.. _issued];
+        }
+    }
+
+    public void Reset()
+    {
+        lock (_gate)
+        {
+            _tokens.Clear();
+            _issued.Clear();
+            _rejectAll = false;
+            EndpointDown = false;
+            _requests = 0;
+        }
     }
 }
