@@ -105,6 +105,31 @@ behind failing tests (an execution-plan test and a locking test).
 | Pages read by one match, ordinary order | 2,794 | **93** |
 
 Method, machine, the intermediate state and the known limit: [`docs/performance.md`](docs/performance.md).
+
+## Rate limits: a busy ERP
+
+Cloud ERPs throttle their callers (D365 answers `429` with `Retry-After`). Posting copes in four ways:
+- **Retry-After.** When the ERP says how long to wait, the next try comes then (at least 1 second, at most 1 hour)
+  instead of after the fixed schedule.
+- **Throttling is not failing.** A `429` uses up none of an invoice's six tries; only real failures do.
+- **At most four calls at once** per worker (`Erp:MaxConcurrentCalls`).
+- **A circuit breaker.** After 5 temporary failures in a row, the ERP is left alone for 2 minutes. Then one trial
+  call decides whether to start again. Jobs held back meanwhile keep their tries: the ERP being down is not the
+  invoice's fault, and counting it would fail every waiting invoice during an outage.
+
+Chaos run (`Chaos_run_200_invoices_with_30_percent_trouble_are_each_posted_exactly_once`, CI). 200 approved invoices
+went against the mock ERP, which answered 30 % of requests with trouble: throttling, errors, unavailable, slow
+answers, and answers lost after booking. On 2026-11-21 (commit `7c98e25`, laptop, the clock advanced by the test),
+the mock answered 91 times with trouble (18 throttled, 22 errors, 16 unavailable, 23 slow, 12 malformed). The
+results:
+- **Every invoice was booked exactly once**, by the ERP's own count per invoice.
+- **None was Failed.**
+- 4 passes and 250 tries in all: 200 first tries plus one for each of the 50 errors, unavailable and malformed
+  answers. The 18 throttled answers used no try.
+
+The run allows ten tries a minute apart. With the default six, an invoice that drew six 500s in a row would rightly
+end as Failed; this run is about the outcome under trouble, not the schedule.
+
 ## Security scan and mutation testing
 
 Every pull request runs a ZAP baseline scan against the running app: the public pages, then signed in as a clerk.
