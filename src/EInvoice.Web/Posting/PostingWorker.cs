@@ -1,4 +1,5 @@
 using EInvoice.Application.Posting;
+using EInvoice.Infrastructure.Posting;
 using Microsoft.Extensions.Options;
 
 namespace EInvoice.Web.Posting;
@@ -8,6 +9,8 @@ namespace EInvoice.Web.Posting;
 /// RetryDelaysSeconds are the waits after the 1st, 2nd, ... failed try (one try more than waits), default
 /// 30, 120, 600, 1800, 3600 seconds. A busy ERP: at most MaxConcurrentCalls at once (default 4); after BreakerFailures
 /// temporary failures in a row (default 5) no calls for BreakerOpenSeconds (default 120), then one trial call.
+/// Who we are (OAuth 2.0 client credentials): ClientId and ClientSecret, required when posting is on, from user secrets
+/// or environment variables only; Scope (optional); TokenUrl (default: BaseUrl + oauth/token).
 /// </summary>
 public sealed class ErpSettings
 {
@@ -30,6 +33,27 @@ public sealed class ErpSettings
     public int BreakerFailures { get; set; } = 5;
 
     public int BreakerOpenSeconds { get; set; } = 120;
+
+    public string? ClientId { get; set; }
+
+    /// <summary>Never in appsettings or the repository: user secrets in Development, an environment variable in Docker.</summary>
+    public string? ClientSecret { get; set; }
+
+    public string? Scope { get; set; }
+
+    public string? TokenUrl { get; set; }
+
+    /// <summary>The credentials for the token handler; only while posting is on (validated at startup).</summary>
+    public ErpCredentials Credentials()
+    {
+        if (!Enabled)
+        {
+            throw new InvalidOperationException("ERP posting is off: there are no ERP credentials.");
+        }
+
+        var tokenUrl = TokenUrl is { Length: > 0 } configured ? new Uri(configured, UriKind.Absolute) : new Uri(new Uri(BaseUrl!, UriKind.Absolute), "oauth/token");
+        return new ErpCredentials(tokenUrl, ClientId!, ClientSecret!, string.IsNullOrWhiteSpace(Scope) ? null : Scope);
+    }
 
     /// <summary>The configured waits, or the default policy when none are configured.</summary>
     public RetryPolicy Policy() =>
@@ -79,6 +103,23 @@ internal sealed class ErpSettingsValidator : IValidateOptions<ErpSettings>
         if (options.BreakerOpenSeconds is < 1 or > 3600)
         {
             failures.Add("Erp:BreakerOpenSeconds must be between 1 and 3600 (one hour).");
+        }
+
+        // The messages never repeat a value: a secret pasted into the wrong setting must not reach a log.
+        if (string.IsNullOrWhiteSpace(options.ClientId))
+        {
+            failures.Add("Erp:ClientId is required when Erp:Enabled is true.");
+        }
+
+        if (string.IsNullOrWhiteSpace(options.ClientSecret))
+        {
+            failures.Add("Erp:ClientSecret is required when Erp:Enabled is true (user secrets or an environment variable, never a file in the repository).");
+        }
+
+        if (options.TokenUrl is { Length: > 0 } tokenUrl
+            && (!Uri.TryCreate(tokenUrl, UriKind.Absolute, out var token) || (token.Scheme != Uri.UriSchemeHttp && token.Scheme != Uri.UriSchemeHttps)))
+        {
+            failures.Add("Erp:TokenUrl must be an absolute http or https URL.");
         }
 
         return failures.Count == 0 ? ValidateOptionsResult.Success : ValidateOptionsResult.Fail(failures);

@@ -61,8 +61,9 @@ services:
       retries: 12
       start_period: 20s
 
-  # Mock ERP: the vendor-invoice endpoint the posting worker sends approved invoices to (contracts/d365).
-  # Run the app with Erp__Enabled=true and Erp__BaseUrl=http://127.0.0.1:8090/ to post to it.
+  # Mock ERP: the vendor-invoice endpoint the posting worker sends approved invoices to (contracts/d365), and its token
+  # endpoint (OAuth 2.0 client credentials). It needs ERP_CLIENT_SECRET in .env and refuses to start without it. Run the
+  # app with Erp__Enabled=true, Erp__BaseUrl=http://127.0.0.1:8090/ and the same client id and secret to post to it.
   mock-erp:
     build:
       context: .
@@ -71,6 +72,9 @@ services:
     container_name: einvoice-mock-erp
     ports:
       - "127.0.0.1:${MOCK_ERP_PORT:-8090}:8080"
+    environment:
+      Auth__ClientId: ${ERP_CLIENT_ID:-einvoice}
+      Auth__ClientSecret: ${ERP_CLIENT_SECRET:-}
     read_only: true
     cap_drop:
       - ALL
@@ -130,6 +134,8 @@ services:
       Kosit__BaseUrl: http://kosit-validator:8080/
       Erp__Enabled: "true"
       Erp__BaseUrl: http://mock-erp:8080/
+      Erp__ClientId: ${ERP_CLIENT_ID:-einvoice}
+      Erp__ClientSecret: ${ERP_CLIENT_SECRET:-}   # from .env; empty: the app refuses to start
       # The local model on this PC's GPU (Ollama on 127.0.0.1:11434). AI_ENABLED=false in .env switches PDFs off.
       Ai__Enabled: ${AI_ENABLED:-true}
       Ai__OllamaUrl: http://host.docker.internal:11434/

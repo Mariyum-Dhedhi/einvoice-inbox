@@ -301,7 +301,7 @@ jobs:
           persist-credentials: false
 
       - name: Throwaway .env
-        run: printf 'MSSQL_SA_PASSWORD=Unused%s#1\nEINVOICE_APP_PASSWORD=Unused%s#2\nAI_ENABLED=false\n' "$(openssl rand -hex 8)" "$(openssl rand -hex 8)" > .env
+        run: printf 'MSSQL_SA_PASSWORD=Unused%s#1\nEINVOICE_APP_PASSWORD=Unused%s#2\nERP_CLIENT_SECRET=Unused%s\nAI_ENABLED=false\n' "$(openssl rand -hex 8)" "$(openssl rand -hex 8)" "$(openssl rand -hex 16)" > .env
 
       - name: Build and start the public stack
         run: docker compose --profile public up -d --build --wait

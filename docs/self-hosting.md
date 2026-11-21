@@ -44,6 +44,9 @@ The public demo mode (`Demo__Enabled=true`) adds:
    TS_HOSTNAME=einvoice
    ```
    The key is used once. The machine's identity is then kept in the `tailscale-state` volume.
+
+   In the same file, set `ERP_CLIENT_SECRET` to a long random value (`openssl rand -hex 32`). The mock ERP issues
+   tokens only to this client, and the app signs in with it. Without it, neither starts.
 5. **Keep the address working.** After the first start, open **Machines** in the admin console, find `einvoice` and
    choose **Disable key expiry**. Otherwise the machine signs out after 180 days and the link stops working.
 

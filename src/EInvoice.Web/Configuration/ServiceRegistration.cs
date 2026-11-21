@@ -68,7 +68,16 @@ internal static class ServiceRegistration
 
         // ERP posting: approvals always queue a job (outbox); the worker sends them only when posting is on.
         services.AddSingleton(sp => sp.GetRequiredService<IOptions<ErpSettings>>().Value.Policy());
-        services.AddHttpClient<IErpConnector, HttpErpConnector>((sp, http) =>
+        // OAuth 2.0 client credentials: one token source for the app; every data call carries its token (ErpAuthHandler).
+        services.AddSingleton(sp => sp.GetRequiredService<IOptions<ErpSettings>>().Value.Credentials());
+        services.AddHttpClient(ErpTokenSource.ClientName, (sp, http) =>
+            http.Timeout = TimeSpan.FromSeconds(sp.GetRequiredService<IOptions<ErpSettings>>().Value.TimeoutSeconds));
+        services.AddSingleton(sp => new ErpTokenSource(
+            () => sp.GetRequiredService<IHttpClientFactory>().CreateClient(ErpTokenSource.ClientName),
+            sp.GetRequiredService<ErpCredentials>(),
+            sp.GetRequiredService<TimeProvider>()));
+        services.AddTransient(sp => new ErpAuthHandler(sp.GetRequiredService<ErpTokenSource>()));
+        services.AddHttpClient<IErpConnector, HttpErpConnector>(HttpErpConnector.ClientName, (sp, http) =>
         {
             var erp = sp.GetRequiredService<IOptions<ErpSettings>>().Value;
             if (erp.Enabled)
@@ -76,7 +85,7 @@ internal static class ServiceRegistration
                 http.BaseAddress = new Uri(erp.BaseUrl!, UriKind.Absolute);
                 http.Timeout = TimeSpan.FromSeconds(erp.TimeoutSeconds);
             }
-        });
+        }).AddHttpMessageHandler<ErpAuthHandler>();
         services.AddScoped<IPostingStore, EfPostingStore>();
         services.AddSingleton(sp => new PostingLimits(sp.GetRequiredService<IOptions<ErpSettings>>().Value.MaxConcurrentCalls));
         services.AddSingleton(sp =>

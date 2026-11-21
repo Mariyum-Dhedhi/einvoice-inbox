@@ -13,19 +13,41 @@ namespace EInvoice.IntegrationTests.Posting;
 /// <summary>Starts the mock ERP in memory; its own project, which knows nothing of ours but the JSON on the wire.</summary>
 internal sealed class MockErpFactory : WebApplicationFactory<MockErpProgram>
 {
+    /// <summary>The client id every test mock knows; the secret is new for each mock.</summary>
+    public const string ClientId = "einvoice-tests";
+
+    private readonly Dictionary<string, string?> _settings;
+    private readonly Lazy<ErpTokenSource> _tokens;
+
     /// <summary>
     /// Starts the mock now. The factory starts lazily and not thread-safely: two workers asking for a client at the same
     /// moment would each start their own mock, with separate books.
     /// </summary>
     public MockErpFactory(IReadOnlyDictionary<string, string?>? settings = null)
     {
-        _settings = settings ?? new Dictionary<string, string?>();
+        _settings = new Dictionary<string, string?>
+        {
+            ["Auth:ClientId"] = ClientId,
+            ["Auth:ClientSecret"] = ClientSecret,
+        };
+        foreach (var (key, value) in settings ?? new Dictionary<string, string?>())
+        {
+            _settings[key] = value;
+        }
+
+        _tokens = new Lazy<ErpTokenSource>(() => new ErpTokenSource(
+            () => new HttpClient(Server.CreateHandler()) { BaseAddress = new Uri("http://localhost/") },
+            new ErpCredentials(new Uri("http://localhost/oauth/token"), ClientId, ClientSecret, "api://mock-erp/.default"),
+            TimeProvider.System));
         _ = Server;
     }
 
-    private readonly IReadOnlyDictionary<string, string?> _settings;
+    public string ClientSecret { get; } = $"test-{Guid.NewGuid():N}";
 
-    /// <summary>The mock's own settings (for example Chaos:*), as its configuration would give them.</summary>
+    /// <summary>One token source for this mock, as the app has one: tokens are reused across clients.</summary>
+    public ErpTokenSource Tokens => _tokens.Value;
+
+    /// <summary>The mock's own settings (Auth:*, Chaos:*), as its configuration would give them.</summary>
     protected override void ConfigureWebHost(Microsoft.AspNetCore.Hosting.IWebHostBuilder builder)
     {
         foreach (var (key, value) in _settings)
@@ -34,40 +56,62 @@ internal sealed class MockErpFactory : WebApplicationFactory<MockErpProgram>
         }
     }
 
-    /// <summary>Chaos mode at run time: a share of all requests gets one of the given kinds of trouble.</summary>
-    public async Task ChaosAsync(double share, string[]? kinds = null, int? seed = 1, int retryAfterSeconds = 2, int slowMs = 200)
-    {
-        using var client = Client();
-        using var response = await client.PostAsJsonAsync("_mock/chaos", new { share, kinds, seed, retryAfterSeconds, slowMs });
-        response.EnsureSuccessStatusCode();
-    }
+    /// <summary>A client as the app's: every call carries a token (the real <see cref="ErpAuthHandler"/>).</summary>
+    public HttpClient Client(TimeSpan? timeout = null) =>
+        new(new ErpAuthHandler(Tokens) { InnerHandler = Server.CreateHandler() })
+        {
+            BaseAddress = new Uri("http://localhost/"),
+            Timeout = timeout ?? TimeSpan.FromSeconds(10),
+        };
 
-    /// <summary>What the mock saw: requests, the most at once, and how many of each kind of chaos it answered.</summary>
-    public async Task<JsonElement> StatsAsync()
-    {
-        using var client = Client();
-        return await client.GetFromJsonAsync<JsonElement>("_mock/stats");
-    }
-
-    public HttpClient Client(TimeSpan? timeout = null)
+    /// <summary>A client without a token: for the mock's control endpoints and to test that data needs one.</summary>
+    public HttpClient AnonymousClient()
     {
         var client = CreateClient(new WebApplicationFactoryClientOptions { BaseAddress = new Uri("http://localhost/") });
-        client.Timeout = timeout ?? TimeSpan.FromSeconds(10);
+        client.Timeout = TimeSpan.FromSeconds(10);
         return client;
     }
 
-    /// <summary>The next <paramref name="count"/> postings fail with <paramref name="status"/>; after booking if asked (a lost reply).</summary>
-    public async Task FailNextAsync(int status, int count = 1, bool afterBooking = false, int delayMs = 0)
+    /// <summary>Chaos mode at run time: a share of all requests gets one of the given kinds of trouble.</summary>
+    public Task ChaosAsync(double share, string[]? kinds = null, int? seed = 1, int retryAfterSeconds = 2, int slowMs = 200) =>
+        ControlAsync("_mock/chaos", new { share, kinds, seed, retryAfterSeconds, slowMs });
+
+    /// <summary>
+    /// The mock's token checks at run time: expire every token issued so far (the next call gets a 401 once), reject every
+    /// token (401 for good), or take the token endpoint down (503).
+    /// </summary>
+    public Task AuthAsync(bool expireAll = false, bool rejectAll = false, bool tokenEndpointDown = false) =>
+        ControlAsync("_mock/auth", new { expireAll, rejectAll, tokenEndpointDown });
+
+    /// <summary>What the mock saw: data requests, token requests, the most at once, and chaos by kind.</summary>
+    public async Task<JsonElement> StatsAsync()
     {
-        using var client = Client();
-        using var response = await client.PostAsJsonAsync("_mock/failures", new { status, count, afterBooking, delayMs });
-        response.EnsureSuccessStatusCode();
+        using var client = AnonymousClient();
+        return await client.GetFromJsonAsync<JsonElement>("_mock/stats");
     }
+
+    /// <summary>Every token the mock has issued, to check that none of them reaches a log.</summary>
+    public async Task<IReadOnlyList<string>> IssuedTokensAsync()
+    {
+        using var client = AnonymousClient();
+        return await client.GetFromJsonAsync<List<string>>("_mock/tokens") ?? [];
+    }
+
+    /// <summary>The next <paramref name="count"/> postings fail with <paramref name="status"/>; after booking if asked (a lost reply).</summary>
+    public Task FailNextAsync(int status, int count = 1, bool afterBooking = false, int delayMs = 0) =>
+        ControlAsync("_mock/failures", new { status, count, afterBooking, delayMs });
 
     public async Task<IReadOnlyList<JsonElement>> PostingsAsync()
     {
-        using var client = Client();
+        using var client = AnonymousClient();
         return await client.GetFromJsonAsync<List<JsonElement>>("_mock/postings") ?? [];
+    }
+
+    private async Task ControlAsync(string path, object body)
+    {
+        using var client = AnonymousClient();
+        using var response = await client.PostAsJsonAsync(path, body);
+        response.EnsureSuccessStatusCode();
     }
 }
 
