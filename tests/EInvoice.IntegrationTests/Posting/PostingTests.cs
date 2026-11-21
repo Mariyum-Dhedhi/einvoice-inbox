@@ -19,11 +19,15 @@ namespace EInvoice.IntegrationTests.Posting;
 /// </summary>
 [Trait("Category", "Database")]
 [Collection(SqlServerCollection.Name)]
-public sealed class PostingTests(SqlServerFixture fixture) : IDisposable
+public sealed class PostingTests(SqlServerFixture fixture, Xunit.Abstractions.ITestOutputHelper output) : IDisposable
 {
     private static readonly DateTimeOffset Approved = new(2026, 11, 1, 9, 0, 0, TimeSpan.Zero); // in the past: due at once
     private readonly MockErpFactory _erp = new();
     private readonly MovableTime _time = new(DateTimeOffset.UtcNow);
+    private ErpCircuitBreaker? _breakerInstance;
+
+    /// <summary>One breaker for the test, shared by its passes as the singleton is in the app.</summary>
+    private ErpCircuitBreaker Breaker => _breakerInstance ??= new ErpCircuitBreaker(BreakerSettings.Default, _time);
 
     public void Dispose() => _erp.Dispose();
 
@@ -56,13 +60,14 @@ public sealed class PostingTests(SqlServerFixture fixture) : IDisposable
 
     private static readonly Guid SeededVendor = Guid.Parse("00000000-0000-0000-0001-000000000001");
 
-    /// <summary>One worker pass, as the background service runs it: its own scope (context), the shared ERP.</summary>
-    private async Task RunWorkerAsync()
+    /// <summary>One worker pass, as the background service runs it: its own scope (context), the shared ERP and breaker.</summary>
+    private async Task<PostingRun> RunWorkerAsync(RetryPolicy? policy = null, int maxConcurrentCalls = 4)
     {
         await using var db = fixture.CreateContext();
         using var http = _erp.Client(TimeSpan.FromSeconds(5));
-        var posting = new InvoicePosting(new EfPostingStore(db), new HttpErpConnector(http), RetryPolicy.Default, _time);
-        await posting.ProcessDueAsync(maxJobs: 500, CancellationToken.None);
+        var posting = new InvoicePosting(
+            new EfPostingStore(db), new HttpErpConnector(http, _time), policy ?? RetryPolicy.Default, _time, Breaker, new PostingLimits(maxConcurrentCalls));
+        return await posting.ProcessDueAsync(maxJobs: 500, CancellationToken.None);
     }
 
     private async Task<(Invoice Invoice, PostingJobRecord Job)> StateAsync(Guid invoiceId)
@@ -229,7 +234,7 @@ public sealed class PostingTests(SqlServerFixture fixture) : IDisposable
             invoices.Add(await ApprovedInvoiceAsync());
         }
 
-        await Task.WhenAll(Task.Run(RunWorkerAsync), Task.Run(RunWorkerAsync));
+        await Task.WhenAll(Task.Run(() => RunWorkerAsync()), Task.Run(() => RunWorkerAsync()));
 
         foreach (var (id, number) in invoices)
         {
@@ -237,5 +242,79 @@ public sealed class PostingTests(SqlServerFixture fixture) : IDisposable
             var (invoice, job) = await StateAsync(id);
             Assert.Equal((InvoiceStatus.Posted, 1), (invoice.Status, job.Attempts)); // claimed by one worker only
         }
+    }
+
+    // ---- Package 16a: a busy ERP --------------------------------------------------------------------------------------
+
+    [Fact]
+    public async Task A_released_job_is_due_again_at_once_with_its_tries_unchanged()
+    {
+        var (id, _) = await ApprovedInvoiceAsync();
+        await using var db = fixture.CreateContext();
+        var store = new EfPostingStore(db);
+        var claimed = (await store.ClaimDueAsync(_time.GetUtcNow(), TimeSpan.FromMinutes(5), 500, CancellationToken.None)).Single(j => j.InvoiceId == id);
+
+        await store.ReleaseAsync(claimed.JobId, CancellationToken.None);
+
+        var (invoice, job) = await StateAsync(id);
+        Assert.Equal((PostingJobStatus.Pending, 0, (DateTimeOffset?)null), (job.Status, job.Attempts, job.LeaseUntil));
+        Assert.True(job.NextAttemptAt <= _time.GetUtcNow());
+        Assert.Equal(InvoiceStatus.Approved, invoice.Status);
+    }
+
+    [Fact]
+    public async Task No_more_than_the_allowed_calls_reach_the_erp_at_once()
+    {
+        var invoices = new List<(Guid Id, string Number)>();
+        for (var i = 0; i < 12; i++)
+        {
+            invoices.Add(await ApprovedInvoiceAsync());
+        }
+
+        await _erp.ChaosAsync(1.0, ["slow"], slowMs: 300); // every answer right, but late: calls overlap
+
+        await RunWorkerAsync(maxConcurrentCalls: 4);
+
+        Assert.Equal(4, (await _erp.StatsAsync()).GetProperty("maxInFlight").GetInt32());
+        foreach (var (id, number) in invoices)
+        {
+            Assert.Equal(InvoiceStatus.Posted, (await StateAsync(id)).Invoice.Status);
+            Assert.Single(await BookingsAsync(number));
+        }
+    }
+
+    [Fact]
+    public async Task Chaos_run_200_invoices_with_30_percent_trouble_are_each_posted_exactly_once()
+    {
+        // Every kind of trouble: throttling (Retry-After), errors, unavailable (Retry-After), slow, malformed after
+        // booking. More tries than the default (ten, a minute apart): this run is about the outcome under trouble, not
+        // about how long to wait, and with six tries a few invoices would rightly fail on 500s alone.
+        var policy = new RetryPolicy([.. Enumerable.Repeat(TimeSpan.FromMinutes(1), 10)]);
+        var invoices = new List<(Guid Id, string Number)>();
+        for (var i = 0; i < 200; i++)
+        {
+            invoices.Add(await ApprovedInvoiceAsync());
+        }
+
+        await _erp.ChaosAsync(0.3, ["throttle", "error", "unavailable", "slow", "malformed"], seed: 2026, retryAfterSeconds: 2, slowMs: 100);
+        var passes = 0;
+        var states = new List<(Invoice Invoice, PostingJobRecord Job)>();
+        while (passes++ < 100)
+        {
+            await RunWorkerAsync(policy);
+            _time.Advance(TimeSpan.FromMinutes(1));
+            states = [.. await Task.WhenAll(invoices.Select(i => StateAsync(i.Id)))];
+            if (states.All(s => s.Job.Status != PostingJobStatus.Pending))
+            {
+                break;
+            }
+        }
+
+        var bookings = (await _erp.PostingsAsync()).GroupBy(p => p.GetProperty("invoice").GetProperty("invoiceNumber").GetString()).ToDictionary(g => g.Key!, g => g.Count());
+        Assert.All(invoices, i => Assert.Equal(1, bookings.GetValueOrDefault(i.Number))); // once each: the ERP's own count
+        Assert.All(states, s => Assert.Equal(InvoiceStatus.Posted, s.Invoice.Status)); // none Failed
+        var chaos = (await _erp.StatsAsync()).GetProperty("chaos");
+        Assert.True(chaos.GetProperty("throttle").GetInt32() > 0, "the run saw no throttling");
+        output.WriteLine($"Chaos run: {invoices.Count} invoices, {passes} passes, chaos answers {chaos}, tries {states.Sum(s => s.Job.Attempts)}.");
     }
 }

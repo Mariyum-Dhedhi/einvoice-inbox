@@ -9,6 +9,8 @@ namespace EInvoice.MockErp;
 /// answers its document number (201 the first time, 200 for the same key again). It is strict like a real system:
 /// an unknown or missing field is 400, a currency other than EUR is 422 (the company books in EUR).
 /// Control endpoints under _mock let tests plan failures (by invoice number), list bookings and reset.
+/// Chaos mode (off by default; Chaos:* settings or POST _mock/chaos) answers a share of all postings with trouble
+/// (see <see cref="Chaos"/>); GET _mock/stats tells what the mock saw.
 /// </summary>
 public sealed class MockErpProgram
 {
@@ -18,11 +20,29 @@ public sealed class MockErpProgram
     {
         var builder = WebApplication.CreateBuilder(args);
         builder.Services.AddSingleton<Ledger>();
+        builder.Services.AddSingleton(sp => new Chaos(ChaosPlan.FromConfiguration(sp.GetRequiredService<IConfiguration>().GetSection("Chaos"))));
         builder.Services.AddProblemDetails();
         var app = builder.Build();
 
-        app.MapPost("/data/VendorInvoices", async (HttpRequest request, Ledger ledger) =>
+        app.MapPost("/data/VendorInvoices", async (HttpRequest request, Ledger ledger, Chaos chaos) =>
         {
+            using var visit = chaos.Enter();
+            var trouble = chaos.Pick();
+            switch (trouble)
+            {
+                case ChaosKind.Throttle:
+                    request.HttpContext.Response.Headers.RetryAfter = chaos.Plan.RetryAfterSeconds.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    return Results.Problem(statusCode: 429, title: "Too many requests (chaos).");
+                case ChaosKind.Error:
+                    return Results.Problem(statusCode: 500, title: "Internal error (chaos).");
+                case ChaosKind.Unavailable:
+                    request.HttpContext.Response.Headers.RetryAfter = chaos.Plan.RetryAfterSeconds.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    return Results.Problem(statusCode: 503, title: "Service unavailable (chaos).");
+                case ChaosKind.Slow:
+                    await Task.Delay(chaos.Plan.SlowMs, request.HttpContext.RequestAborted);
+                    break;
+            }
+
             if (!Guid.TryParse(request.Headers["Idempotency-Key"], out var key))
             {
                 return Results.Problem(statusCode: 400, title: "The Idempotency-Key header (a GUID) is required.");
@@ -70,6 +90,11 @@ public sealed class MockErpProgram
                 return Results.Problem(statusCode: failure.Status, title: "A planned failure after booking (the reply is lost).");
             }
 
+            if (trouble == ChaosKind.Malformed)
+            {
+                return Results.Text("{\"documentNumber\":", "application/json", statusCode: 201); // booked, the answer broken
+            }
+
             var answer = new { documentNumber = booking.DocumentNumber };
             return isNew ? Results.Json(answer, statusCode: 201) : Results.Json(answer, statusCode: 200);
         });
@@ -80,9 +105,21 @@ public sealed class MockErpProgram
             return Results.NoContent();
         });
         app.MapGet("/_mock/postings", (Ledger ledger) => Results.Json(ledger.Bookings()));
-        app.MapPost("/_mock/reset", (Ledger ledger) =>
+        app.MapPost("/_mock/chaos", (ChaosPlan plan, Chaos chaos) =>
+        {
+            if (plan.Problem() is { } problem)
+            {
+                return Results.Problem(statusCode: 400, title: problem);
+            }
+
+            chaos.Set(plan);
+            return Results.NoContent();
+        });
+        app.MapGet("/_mock/stats", (Chaos chaos) => Results.Json(chaos.Stats()));
+        app.MapPost("/_mock/reset", (Ledger ledger, Chaos chaos) =>
         {
             ledger.Reset();
+            chaos.ResetStats();
             return Results.NoContent();
         });
         return app;
@@ -169,5 +206,165 @@ public sealed class Ledger
             _bookings.Clear();
             _failures.Clear();
         }
+    }
+}
+
+public enum ChaosKind
+{
+    None,
+
+    /// <summary>429 with Retry-After; nothing booked.</summary>
+    Throttle,
+
+    /// <summary>500; nothing booked.</summary>
+    Error,
+
+    /// <summary>503 with Retry-After; nothing booked.</summary>
+    Unavailable,
+
+    /// <summary>The right answer, SlowMs late.</summary>
+    Slow,
+
+    /// <summary>Booked, then an answer that is not JSON (as if the reply broke on the way).</summary>
+    Malformed,
+}
+
+/// <param name="Share">Share of postings that get trouble, 0 (off) to 1.</param>
+/// <param name="Kinds">Which kinds of trouble, chosen evenly (lower case names); none given: all five.</param>
+/// <param name="Seed">For a repeatable sequence; null: random.</param>
+public sealed record ChaosPlan(double Share, IReadOnlyList<string>? Kinds, int? Seed, int RetryAfterSeconds = 2, int SlowMs = 2000)
+{
+    private static readonly ChaosKind[] All = [ChaosKind.Throttle, ChaosKind.Error, ChaosKind.Unavailable, ChaosKind.Slow, ChaosKind.Malformed];
+
+    public IReadOnlyList<ChaosKind> ChosenKinds() => Kinds is { Count: > 0 } ? [.. Kinds.Select(Parse)] : All;
+
+    /// <summary>Why this plan makes no sense, or null.</summary>
+    public string? Problem()
+    {
+        if (double.IsNaN(Share) || Share is < 0 or > 1)
+        {
+            return "Share must be between 0 and 1.";
+        }
+
+        if (Kinds?.Any(k => Array.IndexOf(All, Parse(k)) < 0) == true)
+        {
+            return "Kinds are throttle, error, unavailable, slow and malformed.";
+        }
+
+        if (RetryAfterSeconds is < 0 or > 3600 || SlowMs is < 0 or > 60_000)
+        {
+            return "RetryAfterSeconds must be 0 to 3600 and SlowMs 0 to 60000.";
+        }
+
+        return null;
+    }
+
+    public static ChaosPlan FromConfiguration(IConfigurationSection section)
+    {
+        var plan = new ChaosPlan(
+            section.GetValue("Share", 0d),
+            section.GetSection("Kinds").Get<string[]>(),
+            section.GetValue<int?>("Seed"),
+            section.GetValue("RetryAfterSeconds", 2),
+            section.GetValue("SlowMs", 2000));
+        return plan.Problem() is { } problem ? throw new InvalidOperationException($"Chaos settings: {problem}") : plan;
+    }
+
+    /// <summary>A kind by its lower case name; None for anything else (numbers included).</summary>
+    private static ChaosKind Parse(string name) => Array.Find(All, k => k.ToString().Equals(name, StringComparison.OrdinalIgnoreCase));
+}
+
+/// <summary>Decides which posting gets trouble, and counts what the mock saw (requests, most at once, trouble by kind).</summary>
+public sealed class Chaos
+{
+    private readonly Lock _gate = new();
+    private readonly Dictionary<ChaosKind, int> _counts = [];
+    private Random _random;
+    private int _requests;
+    private int _inFlight;
+    private int _maxInFlight;
+
+    public Chaos(ChaosPlan plan)
+    {
+        Plan = plan;
+        _random = NewRandom(plan);
+    }
+
+    public ChaosPlan Plan { get; private set; }
+
+    public void Set(ChaosPlan plan)
+    {
+        lock (_gate)
+        {
+            Plan = plan;
+            _random = NewRandom(plan);
+        }
+    }
+
+    public ChaosKind Pick()
+    {
+        lock (_gate)
+        {
+            if (Plan.Share <= 0 || _random.NextDouble() >= Plan.Share)
+            {
+                return ChaosKind.None;
+            }
+
+            var kinds = Plan.ChosenKinds();
+            var kind = kinds[_random.Next(kinds.Count)];
+            _counts[kind] = _counts.GetValueOrDefault(kind) + 1;
+            return kind;
+        }
+    }
+
+    /// <summary>One request in flight until disposed.</summary>
+    public IDisposable Enter()
+    {
+        lock (_gate)
+        {
+            _requests++;
+            _maxInFlight = Math.Max(_maxInFlight, ++_inFlight);
+        }
+
+        return new Visit(this);
+    }
+
+    public object Stats()
+    {
+        lock (_gate)
+        {
+            return new
+            {
+                requests = _requests,
+                maxInFlight = _maxInFlight,
+                chaos = new[] { ChaosKind.Throttle, ChaosKind.Error, ChaosKind.Unavailable, ChaosKind.Slow, ChaosKind.Malformed }
+                    .ToDictionary(k => k.ToString().ToLowerInvariant(), k => _counts.GetValueOrDefault(k)),
+            };
+        }
+    }
+
+    public void ResetStats()
+    {
+        lock (_gate)
+        {
+            _counts.Clear();
+            _requests = 0;
+            _maxInFlight = 0;
+        }
+    }
+
+    private static Random NewRandom(ChaosPlan plan) => plan.Seed is { } seed ? new Random(seed) : new Random();
+
+    private void Leave()
+    {
+        lock (_gate)
+        {
+            _inFlight--;
+        }
+    }
+
+    private sealed class Visit(Chaos chaos) : IDisposable
+    {
+        public void Dispose() => chaos.Leave();
     }
 }

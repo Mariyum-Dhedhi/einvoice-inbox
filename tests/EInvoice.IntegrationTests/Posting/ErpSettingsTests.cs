@@ -54,6 +54,44 @@ public sealed class ErpSettingsTests
         Assert.Equal((3, TimeSpan.FromSeconds(60)), (policy.MaxAttempts, policy.WaitAfter(2)!.Value));
     }
 
+    [Fact]
+    public async Task By_default_four_calls_at_once_and_a_breaker_of_five_failures_and_two_minutes()
+    {
+        await using var factory = new ApiFactory(Enabled());
+        using var client = factory.CreateApiClient();
+
+        Assert.Equal(4, factory.Services.GetRequiredService<PostingLimits>().MaxConcurrentCalls);
+        Assert.Equal(BreakerSettings.Default, factory.Services.GetRequiredService<BreakerSettings>());
+    }
+
+    [Fact]
+    public async Task Concurrency_and_breaker_can_be_configured()
+    {
+        var settings = Enabled();
+        settings["Erp:MaxConcurrentCalls"] = "2";
+        settings["Erp:BreakerFailures"] = "3";
+        settings["Erp:BreakerOpenSeconds"] = "30";
+        await using var factory = new ApiFactory(settings);
+        using var client = factory.CreateApiClient();
+
+        Assert.Equal(2, factory.Services.GetRequiredService<PostingLimits>().MaxConcurrentCalls);
+        Assert.Equal(new BreakerSettings(3, TimeSpan.FromSeconds(30)), factory.Services.GetRequiredService<BreakerSettings>());
+    }
+
+    [Fact]
+    public async Task Every_posting_pass_shares_one_breaker()
+    {
+        // Each pass has its own scope; a breaker per scope would forget every failure after one pass and never open.
+        await using var factory = new ApiFactory(Enabled());
+        using var client = factory.CreateApiClient();
+
+        await using var first = factory.Services.CreateAsyncScope();
+        await using var second = factory.Services.CreateAsyncScope();
+
+        Assert.Same(first.ServiceProvider.GetRequiredService<ErpCircuitBreaker>(), second.ServiceProvider.GetRequiredService<ErpCircuitBreaker>());
+        Assert.IsType<InvoicePosting>(first.ServiceProvider.GetRequiredService<IInvoicePosting>());
+    }
+
     [Theory]
     [InlineData("Erp:BaseUrl", null)]
     [InlineData("Erp:BaseUrl", "not a url")]
@@ -63,6 +101,12 @@ public sealed class ErpSettingsTests
     [InlineData("Erp:PollSeconds", "0")]
     [InlineData("Erp:RetryDelaysSeconds:0", "0")]
     [InlineData("Erp:RetryDelaysSeconds:0", "86401")]
+    [InlineData("Erp:MaxConcurrentCalls", "0")]
+    [InlineData("Erp:MaxConcurrentCalls", "65")]
+    [InlineData("Erp:BreakerFailures", "0")]
+    [InlineData("Erp:BreakerFailures", "101")]
+    [InlineData("Erp:BreakerOpenSeconds", "0")]
+    [InlineData("Erp:BreakerOpenSeconds", "3601")]
     public async Task A_wrong_setting_stops_the_application_at_startup(string key, string? value)
     {
         var settings = Enabled();
