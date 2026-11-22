@@ -1,0 +1,32 @@
+{
+  "value": [
+    {
+      "id": "PO-00001",
+      "purchaseOrderNumber": "PO-26-000001",
+      "vendorId": "V-00001",
+      "orderDate": "2026-10-28",
+      "currencyCode": "EUR",
+      "status": "Open",
+      "modifiedDateTime": "2026-11-02T08:15:00+00:00",
+      "lines": [
+        {
+          "lineNumber": 1,
+          "itemNumber": "PAPER-A4",
+          "description": "Kopierpapier A4, 500 Blatt",
+          "quantity": 120,
+          "unitPrice": 4.50,
+          "taxRatePercent": 19
+        },
+        {
+          "lineNumber": 2,
+          "itemNumber": "COFFEE-1",
+          "description": "Kaffeebohnen 1 kg",
+          "quantity": 12.5,
+          "unitPrice": 18.75,
+          "taxRatePercent": 7
+        }
+      ]
+    }
+  ],
+  "@odata.nextLink": "http://mock-erp:8080/data/PurchaseOrders?$filter=modifiedDateTime%20ge%202026-11-01T00%3A00%3A00Z&$orderby=modifiedDateTime%2Cid&$top=1&$skiptoken=NjM5MDAwNzI5MDAwMDAwMDAwfFBPLTAwMDAx"
+}

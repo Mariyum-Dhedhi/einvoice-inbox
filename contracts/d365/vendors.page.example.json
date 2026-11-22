@@ -1,0 +1,20 @@
+{
+  "value": [
+    {
+      "id": "V-00001",
+      "vendorAccountNumber": "K-00001",
+      "name": "Nordlicht Papier 0001 GmbH",
+      "vatNumber": "DE123456789",
+      "status": "Active",
+      "modifiedDateTime": "2026-08-20T07:12:45+00:00"
+    },
+    {
+      "id": "V-00002",
+      "vendorAccountNumber": "K-00002",
+      "name": "Elbtal Logistik 0002 KG",
+      "vatNumber": null,
+      "status": "Blocked",
+      "modifiedDateTime": "2026-08-21T15:03:09+00:00"
+    }
+  ]
+}

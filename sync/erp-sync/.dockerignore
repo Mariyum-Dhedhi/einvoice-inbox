@@ -1,0 +1,5 @@
+# Only the sources reach the image.
+*_test.go
+test.sh
+Dockerfile
+README.md
