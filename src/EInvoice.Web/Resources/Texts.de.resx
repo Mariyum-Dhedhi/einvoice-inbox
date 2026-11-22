@@ -1211,4 +1211,37 @@
   <data name="Intake.TooManyUploads" xml:space="preserve">
     <value>Das Upload-Limit der Demo ist erreicht. Bitte versuchen Sie es in einer Stunde erneut.</value>
   </data>
+  <data name="Purchasing.FromErp" xml:space="preserve">
+    <value>Aus dem ERP</value>
+  </data>
+  <data name="Purchasing.FromErpHelp" xml:space="preserve">
+    <value>Vom ERP-Abgleich gelesen; nur der Abgleich ändert sie.</value>
+  </data>
+  <data name="Purchasing.OrderStatus" xml:space="preserve">
+    <value>Status</value>
+  </data>
+  <data name="OrderStatus.Open" xml:space="preserve">
+    <value>Offen</value>
+  </data>
+  <data name="OrderStatus.Closed" xml:space="preserve">
+    <value>Geschlossen</value>
+  </data>
+  <data name="Purchasing.ErpReceiptsHint" xml:space="preserve">
+    <value>Diese Bestellung kommt aus dem ERP: Ihre Wareneingänge kommen ebenfalls aus dem ERP.</value>
+  </data>
+  <data name="Purchasing.ErpManaged" xml:space="preserve">
+    <value>Diese Bestellung kommt aus dem ERP; erfassen Sie ihre Wareneingänge dort.</value>
+  </data>
+  <data name="AuditAction.VendorSyncedFromErp" xml:space="preserve">
+    <value>Lieferant aus dem ERP</value>
+  </data>
+  <data name="AuditAction.PurchaseOrderSyncedFromErp" xml:space="preserve">
+    <value>Bestellung aus dem ERP</value>
+  </data>
+  <data name="AuditAction.GoodsReceiptSyncedFromErp" xml:space="preserve">
+    <value>Wareneingang aus dem ERP</value>
+  </data>
+  <data name="Role.Integration" xml:space="preserve">
+    <value>ERP-Abgleich</value>
+  </data>
 </root>

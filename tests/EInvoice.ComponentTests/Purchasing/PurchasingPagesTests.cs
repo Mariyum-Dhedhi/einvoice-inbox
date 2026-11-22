@@ -1,6 +1,8 @@
 using EInvoice.Application.Purchasing;
 using EInvoice.Application.Security;
 using EInvoice.Domain.Invoices;
+using EInvoice.Domain.Purchasing;
+using EInvoice.Domain.Shared;
 using EInvoice.Web.Components.Purchasing;
 using EInvoice.Web.Components.Shared;
 using EInvoice.Web.Security;
@@ -360,5 +362,46 @@ public sealed class PurchasingPagesTests : UiTest
         Assert.Equal(T["Purchasing.Title"], cut.Find("h1").TextContent.Trim());
         Assert.NotEqual(Localization.TextResources.English["Purchasing.Title"], T["Purchasing.Title"].Value);
         Assert.Equal(T["ReceiptState.Complete"], cut.Find("[data-testid=receipt-state]").TextContent.Trim());
+    }
+
+    // ---- Orders from the ERP (package 16c) ---------------------------------------------------------------------------
+
+    private IRenderedComponent<PurchaseOrderPage> ShowErpOrder(PurchaseOrderStatus status = PurchaseOrderStatus.Open)
+    {
+        PurchasingQueries.Details[OrderId] = Detail(withInvoices: false) with { Source = RecordSource.Erp, Status = status };
+        return Render<PurchaseOrderPage>(p => p.Add(x => x.Id, OrderId));
+    }
+
+    [Fact]
+    public void An_order_from_the_erp_says_so()
+    {
+        var cut = ShowErpOrder();
+
+        Assert.Equal(T["Purchasing.FromErp"], cut.Find("[data-testid=order-source]").TextContent.Trim());
+    }
+
+    [Fact]
+    public void An_order_made_in_the_app_shows_no_erp_marker()
+    {
+        Assert.Empty(ShowOrder().FindAll("[data-testid=order-source]"));
+    }
+
+    [Fact]
+    public void The_buyer_records_no_receipt_on_an_order_from_the_erp_and_is_told_why()
+    {
+        AsBuyer();
+
+        var cut = ShowErpOrder();
+
+        Assert.Empty(cut.FindAll("[data-testid=receipt-form]"));
+        Assert.Equal(T["Purchasing.ErpReceiptsHint"], cut.Find("[data-testid=erp-receipts-hint]").TextContent.Trim());
+    }
+
+    [Fact]
+    public void A_closed_order_says_so_in_words()
+    {
+        var cut = ShowErpOrder(PurchaseOrderStatus.Closed);
+
+        Assert.Equal(T["OrderStatus.Closed"], cut.Find("[data-testid=order-status]").TextContent.Trim());
     }
 }

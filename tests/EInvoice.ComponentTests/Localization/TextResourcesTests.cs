@@ -17,6 +17,7 @@ public sealed partial class TextResourcesTests
         "App.Name",              // the product name
         "Page.Title",            // "{0} – E-Invoice Inbox"
         "Common.Name",           // "Name"
+        "Purchasing.OrderStatus", // "Status"
         "Nav.Dashboard",         // "Dashboard" is used in German
         "Dashboard.Title",
         "Common.Status",         // "Status"
