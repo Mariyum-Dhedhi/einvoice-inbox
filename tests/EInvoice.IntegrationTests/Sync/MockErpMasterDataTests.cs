@@ -376,6 +376,108 @@ public sealed class MockErpMasterDataTests : IDisposable
         _ => element.ValueKind.ToString(),
     };
 
+    // ---- Control: changes and the export the E2E compares (tests/erp-sync) ------------------------------------------
+
+    private async Task<List<string>> ChangeAsync(MockErpFactory mock, int purchaseOrders, int? seed = 1)
+    {
+        using var control = mock.AnonymousClient();
+        using var response = await control.PostAsJsonAsync("_mock/master-data/changes", new { purchaseOrders, seed });
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        return [.. (await response.Content.ReadFromJsonAsync<JsonElement>()).GetProperty("changed").EnumerateArray().Select(e => e.GetString()!)];
+    }
+
+    [Fact]
+    public async Task Changed_orders_get_one_more_on_their_first_line_and_a_new_change_time()
+    {
+        using var http = _erp.Client();
+        var (before, _) = await AllAsync(http, "data/PurchaseOrders");
+        var newestBefore = before.Max(Modified);
+
+        var changed = await ChangeAsync(_erp, 10);
+
+        Assert.Equal(10, changed.Distinct().Count());
+        var (after, _) = await AllAsync(http, $"data/PurchaseOrders?{Filter(newestBefore.AddTicks(1))}");
+        Assert.Equal(changed.Order(StringComparer.Ordinal), after.Select(Id).Order(StringComparer.Ordinal));
+        foreach (var order in after)
+        {
+            var old = before.Single(o => Id(o) == Id(order));
+            var oldLines = old.GetProperty("lines").EnumerateArray().ToList();
+            var newLines = order.GetProperty("lines").EnumerateArray().ToList();
+            Assert.Equal(oldLines[0].GetProperty("quantity").GetDecimal() + 1, newLines[0].GetProperty("quantity").GetDecimal());
+            Assert.Equal(oldLines.Skip(1).Select(l => l.GetRawText()), newLines.Skip(1).Select(l => l.GetRawText()));
+            Assert.Equal(old.GetProperty("purchaseOrderNumber").GetString(), order.GetProperty("purchaseOrderNumber").GetString());
+            Assert.True(Modified(order) > newestBefore);
+        }
+
+        // Still in change order, the changed ones last.
+        var (all, _) = await AllAsync(http, "data/PurchaseOrders");
+        Assert.Equal(all.OrderBy(Modified).ThenBy(Id, StringComparer.Ordinal).Select(Id), all.Select(Id));
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    [InlineData(10_001)]
+    public async Task A_change_count_outside_the_orders_is_400(int purchaseOrders)
+    {
+        using var control = _erp.AnonymousClient();
+
+        using var response = await control.PostAsJsonAsync("_mock/master-data/changes", new { purchaseOrders, seed = 1 });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task The_export_has_one_line_per_record_and_line_with_amounts_at_the_databases_scale()
+    {
+        using var mock = Small(vendors: 3, orders: 14);
+        using var http = mock.Client();
+        using var control = mock.AnonymousClient();
+        var (vendors, _) = await AllAsync(http, "data/Vendors");
+        var (orders, _) = await AllAsync(http, "data/PurchaseOrders");
+        var (receipts, _) = await AllAsync(http, "data/ProductReceipts");
+
+        var export = (await control.GetStringAsync("_mock/master-data/export")).Split('\n', StringSplitOptions.RemoveEmptyEntries);
+
+        var expected = new List<string>();
+        foreach (var v in vendors)
+        {
+            expected.Add($"V|{Id(v)}|{v.GetProperty("vendorAccountNumber").GetString()}|{v.GetProperty("name").GetString()}|{v.GetProperty("vatNumber").GetString()}|{v.GetProperty("status").GetString()}");
+        }
+
+        foreach (var o in orders)
+        {
+            expected.Add($"O|{Id(o)}|{o.GetProperty("purchaseOrderNumber").GetString()}|{o.GetProperty("vendorId").GetString()}|{o.GetProperty("orderDate").GetString()}|EUR|{o.GetProperty("status").GetString()}");
+            expected.AddRange(o.GetProperty("lines").EnumerateArray().Select(l => string.Create(CultureInfo.InvariantCulture,
+                $"L|{Id(o)}|{l.GetProperty("lineNumber").GetInt32()}|{l.GetProperty("itemNumber").GetString()}|{l.GetProperty("description").GetString()}|{l.GetProperty("quantity").GetDecimal():F4}|{l.GetProperty("unitPrice").GetDecimal():F6}|{l.GetProperty("taxRatePercent").GetDecimal():F2}")));
+        }
+
+        foreach (var r in receipts)
+        {
+            expected.Add($"R|{Id(r)}|{r.GetProperty("productReceiptNumber").GetString()}|{r.GetProperty("purchaseOrderId").GetString()}|{r.GetProperty("receivedDate").GetString()}");
+            expected.AddRange(r.GetProperty("lines").EnumerateArray().Select(l => string.Create(CultureInfo.InvariantCulture,
+                $"RL|{Id(r)}|{l.GetProperty("purchaseOrderLineNumber").GetInt32()}|{l.GetProperty("quantity").GetDecimal():F4}")));
+        }
+
+        Assert.Equal(expected.Order(StringComparer.Ordinal), export.Order(StringComparer.Ordinal));
+        Assert.Contains(export, line => line.StartsWith("L|", StringComparison.Ordinal) && line.EndsWith("|19.00", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task The_export_shows_the_changes()
+    {
+        using var mock = Small(orders: 5);
+        using var control = mock.AnonymousClient();
+        var before = await control.GetStringAsync("_mock/master-data/export");
+
+        var changed = await ChangeAsync(mock, 1);
+        var after = await control.GetStringAsync("_mock/master-data/export");
+
+        var differs = after.Split('\n').Except(before.Split('\n')).ToList();
+        var line = Assert.Single(differs);
+        Assert.StartsWith($"L|{changed[0]}|1|", line, StringComparison.Ordinal);
+    }
+
     // ---- Chaos ------------------------------------------------------------------------------------------------------
 
     [Fact]

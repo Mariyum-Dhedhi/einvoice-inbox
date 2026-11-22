@@ -63,13 +63,17 @@ public sealed class MasterData
     private MasterData(List<ErpVendor> vendors, List<ErpPurchaseOrder> orders, List<ErpProductReceipt> receipts)
     {
         Vendors = Sorted(vendors, v => v.ModifiedDateTime, v => v.Id);
-        Orders = Sorted(orders, o => o.ModifiedDateTime, o => o.Id);
+        _orders = Sorted(orders, o => o.ModifiedDateTime, o => o.Id);
         Receipts = Sorted(receipts, r => r.ModifiedDateTime, r => r.Id);
     }
 
+    private readonly Lock _changes = new();
+    private IReadOnlyList<ErpPurchaseOrder> _orders;
+
     public IReadOnlyList<ErpVendor> Vendors { get; }
 
-    public IReadOnlyList<ErpPurchaseOrder> Orders { get; }
+    /// <summary>Replaced as a whole by <see cref="Change"/>, so a reader always sees one consistent, sorted list.</summary>
+    public IReadOnlyList<ErpPurchaseOrder> Orders => Volatile.Read(ref _orders);
 
     public IReadOnlyList<ErpProductReceipt> Receipts { get; }
 
@@ -160,6 +164,76 @@ public sealed class MasterData
         }
 
         return new MasterData(vendors, orders, receipts);
+    }
+
+    /// <summary>
+    /// The ERP changes <paramref name="count"/> distinct orders now (for the E2E, tests/erp-sync): one more on the
+    /// first line (never below what was received), a new change time. Returns their ids.
+    /// </summary>
+    public IReadOnlyList<string> Change(int count, int? seed, DateTimeOffset now)
+    {
+        lock (_changes)
+        {
+            var orders = _orders;
+            if (count < 1 || count > orders.Count)
+            {
+                throw new ArgumentOutOfRangeException(nameof(count), $"Between 1 and {orders.Count} orders can change.");
+            }
+
+            var random = seed is { } s ? new Random(s) : new Random();
+            var picked = Enumerable.Range(0, orders.Count).OrderBy(_ => random.Next()).Take(count).ToHashSet();
+            var changed = new List<ErpPurchaseOrder>(orders.Count);
+            var ids = new List<string>(count);
+            for (var i = 0; i < orders.Count; i++)
+            {
+                var order = orders[i];
+                if (picked.Contains(i))
+                {
+                    var lines = order.Lines.Select((l, n) => n == 0 ? l with { Quantity = l.Quantity + 1 } : l).ToList();
+                    // One tick apart, so the new times are distinct and later than every other record.
+                    order = order with { Lines = lines, ModifiedDateTime = now.AddTicks(ids.Count) };
+                    ids.Add(order.Id);
+                }
+
+                changed.Add(order);
+            }
+
+            Volatile.Write(ref _orders, Sorted(changed, o => o.ModifiedDateTime, o => o.Id));
+            return ids;
+        }
+    }
+
+    /// <summary>
+    /// Every record and line as one text line, amounts at the app's database scale (quantity 4, price 6, tax 2 decimals),
+    /// unsorted: the E2E compares it with tests/erp-sync/export.sql after sorting both.
+    /// </summary>
+    public string Export()
+    {
+        var text = new StringBuilder();
+        foreach (var v in Vendors)
+        {
+            text.Append(CultureInfo.InvariantCulture, $"V|{v.Id}|{v.VendorAccountNumber}|{v.Name}|{v.VatNumber}|{v.Status}\n");
+        }
+
+        foreach (var o in Orders)
+        {
+            text.Append(CultureInfo.InvariantCulture, $"O|{o.Id}|{o.PurchaseOrderNumber}|{o.VendorId}|{o.OrderDate:yyyy-MM-dd}|{o.CurrencyCode}|{o.Status}\n");
+            foreach (var l in o.Lines)
+            {
+                text.Append(CultureInfo.InvariantCulture, $"L|{o.Id}|{l.LineNumber}|{l.ItemNumber}|{l.Description}|{l.Quantity:F4}|{l.UnitPrice:F6}|{l.TaxRatePercent:F2}\n");
+            }
+        }
+
+        foreach (var r in Receipts)
+        {
+            text.Append(CultureInfo.InvariantCulture, $"R|{r.Id}|{r.ProductReceiptNumber}|{r.PurchaseOrderId}|{r.ReceivedDate:yyyy-MM-dd}\n");
+            foreach (var l in r.Lines)
+            {
+                text.Append(CultureInfo.InvariantCulture, $"RL|{r.Id}|{l.PurchaseOrderLineNumber}|{l.Quantity:F4}\n");
+            }
+        }
+
+        return text.ToString();
     }
 
     private static void AddReceipt(List<ErpProductReceipt> receipts, string orderId, DateTimeOffset when, List<ErpReceiptLine> lines)

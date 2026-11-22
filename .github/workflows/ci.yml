@@ -364,3 +364,17 @@ jobs:
           cat start.txt
           test "$code" -eq 2
           grep -q 'ERP_CLIENT_SECRET is required' start.txt
+
+  # The ERP sync end to end on the real stack (tests/erp-sync/e2e.sh): mock ERP -> erp-sync -> app -> SQL Server. Full
+  # load of 10,000 orders, a rerun that changes nothing, 10 changes, a run killed halfway and one with 30 % chaos; after
+  # each completed run the app's data equals the ERP's line for line. Its own Compose project, throwaway secrets.
+  erp-sync-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: E2E
+        run: bash tests/erp-sync/e2e.sh

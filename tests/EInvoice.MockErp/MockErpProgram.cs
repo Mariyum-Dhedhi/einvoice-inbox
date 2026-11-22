@@ -204,6 +204,16 @@ public sealed class MockErpProgram
             }
         });
 
+        app.MapPost("/_mock/master-data/changes", (MasterDataChange change, MasterData data) =>
+        {
+            if (change.PurchaseOrders < 1 || change.PurchaseOrders > data.Orders.Count)
+            {
+                return Results.Problem(statusCode: 400, title: $"purchaseOrders must be 1 to {data.Orders.Count}.");
+            }
+
+            return Results.Json(new { changed = data.Change(change.PurchaseOrders, change.Seed, DateTimeOffset.UtcNow) });
+        });
+        app.MapGet("/_mock/master-data/export", (MasterData data) => Results.Text(data.Export(), "text/plain; charset=utf-8"));
         app.MapPost("/_mock/failures", (FailurePlan plan, Ledger ledger) =>
         {
             ledger.Plan(plan);
@@ -237,6 +247,10 @@ public sealed class MockErpProgram
         return app;
     }
 }
+
+/// <param name="PurchaseOrders">How many distinct orders change now.</param>
+/// <param name="Seed">For a repeatable choice; null: random.</param>
+public sealed record MasterDataChange(int PurchaseOrders, int? Seed);
 
 public sealed record VendorInvoice(
     string InvoiceNumber,
