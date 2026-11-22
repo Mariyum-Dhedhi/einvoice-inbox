@@ -98,6 +98,28 @@ public sealed class BankAccountStoreTests(SqlServerFixture fixture)
     }
 
     [Fact]
+    public async Task Versions_written_in_the_same_instant_are_all_kept_in_the_order_they_were_written()
+    {
+        // Issue #75: SQL Server's transaction time moves in steps of a few milliseconds, so a proposal confirmed within
+        // one step leaves a Pending version whose period has zero length, and FOR SYSTEM_TIME ALL leaves such versions
+        // out. One transaction gives every version the same time: the deterministic form of "within one step".
+        var vendor = await VendorAsync();
+        await using var db = fixture.CreateContext();
+        await using var tx = await db.Database.BeginTransactionAsync();
+        var administration = Administration(db);
+        var id = (await administration.ProposeAsync(vendor.Id, NewIban().Value, "admin@test", CancellationToken.None)).AccountId!.Value;
+        Assert.Equal(BankAccountOutcome.Confirmed, (await administration.ConfirmAsync(id, "admin2@test", CancellationToken.None)).Outcome);
+        Assert.Equal(BankAccountOutcome.Removed, (await administration.RemoveAsync(id, "admin@test", "Account closed.", CancellationToken.None)).Outcome);
+
+        var history = (await new EfBankAccountQueries(db).VendorAsync(vendor.Id, CancellationToken.None))!.History;
+
+        Assert.Equal(new[] { BankAccountStatus.Pending, BankAccountStatus.Active }, history.Select(h => h.Status));
+        Assert.Equal(new[] { null, "admin2@test" }, history.Select(h => h.ConfirmedBy));
+        Assert.All(history, h => Assert.Equal(h.ValidFrom, h.ValidTo)); // really the same instant, not a lucky clock
+        await tx.RollbackAsync();
+    }
+
+    [Fact]
     public async Task Nobody_can_rewrite_the_history_table()
     {
         var vendor = await VendorAsync();
