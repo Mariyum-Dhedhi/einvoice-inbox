@@ -92,6 +92,10 @@ func (p Policy) Send(ctx context.Context, client *http.Client, build func(ctx co
 	}
 }
 
+// Wait sleeps the backoff after try n (or until ctx ends): for callers that find an answer temporary themselves,
+// such as a page that arrived broken.
+func (p Policy) Wait(ctx context.Context, n int) error { return p.sleep(ctx, p.backoff(n)) }
+
 // backoff before try n+1: between half and all of Base * 2^(n-1), never more than Max ("equal jitter": never zero,
 // and callers that failed together do not come back together).
 func (p Policy) backoff(n int) time.Duration {

@@ -96,15 +96,15 @@ func Changes[T Record](ctx context.Context, c *Client, set Set[T], since time.Ti
 		if pages > 100_000 {
 			return errors.New("erp: nextLink never ends")
 		}
-		body, status, err := c.get(ctx, next)
+		var p page
+		status, err := c.getJSON(ctx, next, func(body []byte) error { return strictInto(body, &p) })
 		if err != nil {
 			return fmt.Errorf("erp: reading %s page %d: %w", set.Name, pages, err)
 		}
 		if status != http.StatusOK {
 			return fmt.Errorf("erp: reading %s page %d: answer %d", set.Name, pages, status)
 		}
-		var p page
-		if err := strictInto(body, &p); err != nil || p.Value == nil {
+		if p.Value == nil {
 			return fmt.Errorf("erp: %s page %d is not an OData page of the agreed format", set.Name, pages)
 		}
 		records := make([]T, 0, len(*p.Value))
@@ -134,21 +134,53 @@ func One[T Record](ctx context.Context, c *Client, set Set[T], id string) (recor
 	u := *c.base
 	u.Path = c.base.Path + "data/" + set.Name + "('" + strings.ReplaceAll(id, "'", "''") + "')"
 	u.RawPath = c.base.EscapedPath() + "data/" + set.Name + "('" + url.PathEscape(strings.ReplaceAll(id, "'", "''")) + "')"
-	body, status, err := c.get(ctx, &u)
+	status, err := c.getJSON(ctx, &u, func(body []byte) error { return decodeStrict(body, &record) })
 	if err != nil {
 		return record, false, fmt.Errorf("erp: reading %s %s: %w", set.Name, id, err)
 	}
 	switch status {
 	case http.StatusOK:
-		if err := decodeStrict(body, &record); err != nil {
-			return record, false, fmt.Errorf("erp: %s %s is not of the agreed format: %w", set.Name, id, err)
-		}
 		return record, true, nil
 	case http.StatusNotFound:
 		return record, false, nil
 	default:
 		return record, false, fmt.Errorf("erp: reading %s %s: answer %d", set.Name, id, status)
 	}
+}
+
+// errNotContract: the answer is JSON but not the agreed format. Asking again will not change that.
+var errNotContract = errors.New("the answer is not of the agreed format")
+
+// getJSON gets u and, for a 200, decodes the body with decode. A body that broke on the way (cut off, not JSON at
+// all) is temporary like a 503: it is read again after a backoff, up to the policy's tries. Well-formed JSON that is
+// not the contract is permanent. Other statuses are returned for the caller.
+func (c *Client) getJSON(ctx context.Context, u *url.URL, decode func([]byte) error) (int, error) {
+	tries := max(c.cfg.Retry.Tries, 1)
+	for try := 1; ; try++ {
+		body, status, err := c.get(ctx, u)
+		if err != nil || status != http.StatusOK {
+			return status, err
+		}
+		err = decode(body)
+		if err == nil {
+			return status, nil
+		}
+		if !broken(err) {
+			return status, fmt.Errorf("%w: %v", errNotContract, err)
+		}
+		if try >= tries {
+			return status, &retry.GaveUpError{Tries: try, Status: status, Err: errors.New("the answer arrived broken (not JSON)")}
+		}
+		if err := c.cfg.Retry.Wait(ctx, try); err != nil {
+			return status, err
+		}
+	}
+}
+
+// broken tells a body that is not JSON at all (or cut off) from JSON that is not the contract.
+func broken(err error) bool {
+	var syntax *json.SyntaxError
+	return errors.As(err, &syntax) || errors.Is(err, io.ErrUnexpectedEOF) || errors.Is(err, io.EOF)
 }
 
 // sameServer parses a nextLink and refuses one that leaves the ERP: our token must not go anywhere else.

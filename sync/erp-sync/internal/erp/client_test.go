@@ -256,21 +256,69 @@ func TestAnErrorFromThePageCallbackStopsReading(t *testing.T) {
 	}
 }
 
-func TestAPageThatIsNotTheContractIsAnError(t *testing.T) {
+// Well-formed JSON that is not the contract will not get better by asking again: an error at once.
+func TestAPageThatIsNotTheContractIsAnErrorAndNotReadAgain(t *testing.T) {
 	for name, body := range map[string]string{
 		"unknown field":  `{"value":[{"id":"V1","vendorAccountNumber":"K-1","name":"A","vatNumber":null,"status":"Active","modifiedDateTime":"2026-11-21T09:00:00Z","colour":"red"}]}`,
 		"missing field":  `{"value":[{"id":"V1","name":"A","vatNumber":null,"status":"Active","modifiedDateTime":"2026-11-21T09:00:00Z"}]}`,
 		"no value":       `{"items":[]}`,
-		"not json":       `{"value":[`,
 		"no change time": `{"value":[{"id":"V1","vendorAccountNumber":"K-1","name":"A","vatNumber":null,"status":"Active","modifiedDateTime":null}]}`,
 	} {
 		f := newFakeERP(t, func(w http.ResponseWriter, r *http.Request) { _, _ = io.WriteString(w, body) })
 
 		_, err := readAll(t, client(t, f), time.Time{})
 
-		if err == nil {
-			t.Errorf("%s: no error", name)
+		if err == nil || f.dataCalls() != 1 {
+			t.Errorf("%s: got %v after %d data calls, want an error after 1", name, err, f.dataCalls())
 		}
+	}
+}
+
+// A page that broke on the way (cut off, not JSON at all) is a temporary failure: a GET may be asked again.
+func TestABrokenPageIsReadAgain(t *testing.T) {
+	var calls atomic.Int32
+	var waits []time.Duration
+	f := newFakeERP(t, func(w http.ResponseWriter, r *http.Request) {
+		if calls.Add(1) <= 2 {
+			_, _ = io.WriteString(w, `{"value":[`)
+			return
+		}
+		_, _ = io.WriteString(w, `{"value":[`+vendorJSON("V1", 1)+`]}`)
+	})
+
+	got, err := readAll(t, client(t, f, func(cfg *Config) { cfg.Retry = fastRetry(&waits) }), time.Time{})
+
+	if err != nil || ids(got) != "V1" || f.dataCalls() != 3 || len(waits) != 2 {
+		t.Fatalf("got %q, %v after %d data calls and waits %v", ids(got), err, f.dataCalls(), waits)
+	}
+}
+
+func TestAPageThatStaysBrokenGivesUpAfterTheTries(t *testing.T) {
+	for name, body := range map[string]string{"cut off": `{"value":[`, "not json": `<html>busy</html>`, "empty": ``} {
+		f := newFakeERP(t, func(w http.ResponseWriter, r *http.Request) { _, _ = io.WriteString(w, body) })
+
+		_, err := readAll(t, client(t, f), time.Time{})
+
+		if err == nil || f.dataCalls() != 5 {
+			t.Errorf("%s: got %v after %d data calls, want an error after 5", name, err, f.dataCalls())
+		}
+	}
+}
+
+func TestABrokenSingleRecordIsReadAgain(t *testing.T) {
+	var calls atomic.Int32
+	f := newFakeERP(t, func(w http.ResponseWriter, r *http.Request) {
+		if calls.Add(1) == 1 {
+			_, _ = io.WriteString(w, `{"id":"V1",`)
+			return
+		}
+		_, _ = io.WriteString(w, vendorJSON("V1", 1))
+	})
+
+	v, found, err := One(context.Background(), client(t, f), Vendors, "V1")
+
+	if err != nil || !found || v.ID != "V1" || f.dataCalls() != 2 {
+		t.Fatalf("got %+v, %v, %v after %d data calls", v, found, err, f.dataCalls())
 	}
 }
 
