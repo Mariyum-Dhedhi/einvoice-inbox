@@ -1,4 +1,15 @@
+using EInvoice.Domain.Shared;
+
 namespace EInvoice.Domain.Purchasing;
+
+/// <summary>Stored as numbers: never renumber or reuse a value.</summary>
+public enum PurchaseOrderStatus
+{
+    Open = 1,
+
+    /// <summary>Closed in the ERP: nothing more is expected. Invoices are still matched against it as before.</summary>
+    Closed = 2,
+}
 
 /// <summary>What was ordered from a vendor. Mirrors the purchase order header and lines of an ERP.</summary>
 public sealed class PurchaseOrder
@@ -30,11 +41,46 @@ public sealed class PurchaseOrder
 
     public Guid VendorId { get; }
 
-    public DateOnly OrderDate { get; }
+    public DateOnly OrderDate { get; private set; }
 
     public string Currency { get; }
 
+    public PurchaseOrderStatus Status { get; private set; } = PurchaseOrderStatus.Open;
+
+    public RecordSource Source { get; private set; } = RecordSource.Local;
+
+    /// <summary>The ERP's id for this order; null for one made in the app.</summary>
+    public string? ErpId { get; private set; }
+
     public IReadOnlyList<PurchaseOrderLine> Lines => _lines.OrderBy(l => l.LineNumber).ToList().AsReadOnly();
+
+    /// <summary>An order read from the ERP.</summary>
+    public static PurchaseOrder FromErp(
+        string erpId, string number, Guid vendorId, DateOnly orderDate, string currency, IReadOnlyList<PurchaseOrderLine> lines, PurchaseOrderStatus status)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(erpId);
+        return new PurchaseOrder(number, vendorId, orderDate, currency, lines) { Source = RecordSource.Erp, ErpId = erpId, Status = status };
+    }
+
+    /// <summary>
+    /// Follows the ERP: date, lines (replaced as a whole; their order does not matter) and status. Number, vendor and
+    /// currency stay: invoices and receipts refer to them.
+    /// </summary>
+    /// <returns>False when nothing changed: an unchanged record writes no audit event.</returns>
+    public bool ApplyFromErp(DateOnly orderDate, IReadOnlyList<PurchaseOrderLine> lines, PurchaseOrderStatus status)
+    {
+        Vendors.Vendor.ErpOnly(Source);
+        LineRules.EnsureUnique(lines, l => l.LineNumber, "Purchase order");
+        if (OrderDate == orderDate && Status == status && LineRules.SameSet(_lines, lines))
+        {
+            return false;
+        }
+
+        OrderDate = orderDate;
+        Status = status;
+        LineRules.Replace(_lines, lines, l => l.LineNumber);
+        return true;
+    }
 }
 
 /// <param name="UnitPrice">Plain decimal, not Money: unit prices may have more than two decimals.</param>
@@ -87,5 +133,21 @@ internal static class LineRules
         }
 
         return lines;
+    }
+
+    /// <summary>The same lines, in any order.</summary>
+    public static bool SameSet<T>(IReadOnlyCollection<T> current, IReadOnlyCollection<T> next) =>
+        current.Count == next.Count && current.ToHashSet().SetEquals(next);
+
+    /// <summary>
+    /// Makes <paramref name="current"/> hold <paramref name="next"/>: unchanged lines keep their instance, changed ones are
+    /// replaced, missing ones removed, new ones added.
+    /// </summary>
+    public static void Replace<T>(List<T> current, IReadOnlyList<T> next, Func<T, int> key)
+    {
+        var wanted = next.ToDictionary(key);
+        current.RemoveAll(line => !wanted.TryGetValue(key(line), out var same) || !EqualityComparer<T>.Default.Equals(same, line));
+        var kept = current.Select(key).ToHashSet();
+        current.AddRange(next.Where(line => !kept.Contains(key(line))));
     }
 }
