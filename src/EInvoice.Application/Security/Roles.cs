@@ -22,5 +22,12 @@ public static class Roles
     /// <summary>Records purchase orders and goods receipts; reads no invoices.</summary>
     public const string Buyer = "Buyer";
 
+    /// <summary>
+    /// The ERP sync (package 16c), signed in with its API key for one request. Not an account role: no user can hold
+    /// it, so no person signs in with it. Not in <see cref="All"/>.
+    /// </summary>
+    public const string Integration = "Integration";
+
+    /// <summary>The roles people get.</summary>
     public static IReadOnlyList<string> All { get; } = [Clerk, Approver, Auditor, Admin, Buyer];
 }

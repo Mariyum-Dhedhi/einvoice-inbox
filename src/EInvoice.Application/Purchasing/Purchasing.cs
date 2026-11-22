@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.RegularExpressions;
 using EInvoice.Application.Audit;
 using EInvoice.Domain.Purchasing;
+using EInvoice.Domain.Shared;
 
 namespace EInvoice.Application.Purchasing;
 
@@ -35,6 +36,9 @@ public enum PurchasingOutcome
 
     /// <summary>More received than was ordered, counting earlier receipts.</summary>
     OverReceived = 11,
+
+    /// <summary>The order comes from the ERP: its receipts come from the ERP too (package 16c).</summary>
+    ErpManaged = 12,
 }
 
 /// <param name="Id">The new order or receipt; null for a refusal.</param>
@@ -185,6 +189,11 @@ public sealed partial class PurchasingAdministration(IPurchasingStore store, Tim
             return Refused(PurchasingOutcome.OrderNotFound, "There is no such purchase order.");
         }
 
+        if (order.Source == RecordSource.Erp)
+        {
+            return Refused(PurchasingOutcome.ErpManaged, "This order comes from the ERP; its goods receipts come from the ERP too.");
+        }
+
         if (draft.ReceivedDate > Today() || draft.ReceivedDate < order.OrderDate)
         {
             return Refused(PurchasingOutcome.InvalidDate, "A goods receipt is dated between its order date and today.");
@@ -233,7 +242,7 @@ public sealed partial class PurchasingAdministration(IPurchasingStore store, Tim
     }
 
     /// <summary>The first line that cannot be stored as typed, by its position on the form.</summary>
-    private static PurchasingResult? CheckLines(IReadOnlyList<OrderLineDraft> lines)
+    internal static PurchasingResult? CheckLines(IReadOnlyList<OrderLineDraft> lines)
     {
         if (lines is null || lines.Count == 0 || lines.Count > PurchasingLimits.MaxLines)
         {
@@ -276,16 +285,18 @@ public sealed partial class PurchasingAdministration(IPurchasingStore store, Tim
         }
     }
 
+    internal static DateOnly Today(TimeProvider time) => DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(time.GetUtcNow(), Berlin).DateTime);
+
     private DateOnly Today() => DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(time.GetUtcNow(), Berlin).DateTime);
 
     private static string Subject(Guid orderId) => $"PurchaseOrder/{orderId}";
 
-    private static bool IsNumber(string number) => number.Length <= PurchasingLimits.MaxNumberLength && NumberPattern().IsMatch(number);
+    internal static bool IsNumber(string number) => number.Length <= PurchasingLimits.MaxNumberLength && NumberPattern().IsMatch(number);
 
-    private static bool IsText(string text, int maxLength) => text.Length > 0 && text.Length <= maxLength && !text.Any(char.IsControl);
+    internal static bool IsText(string text, int maxLength) => text.Length > 0 && text.Length <= maxLength && !text.Any(char.IsControl);
 
     /// <summary>Decimal places that carry a value (4.50 has one).</summary>
-    private static int Decimals(decimal value) => BitConverter.GetBytes(decimal.GetBits(value / 1.000000000000000000000000000000000m)[3])[2];
+    internal static int Decimals(decimal value) => BitConverter.GetBytes(decimal.GetBits(value / 1.000000000000000000000000000000000m)[3])[2];
 
     private static PurchasingResult Refused(PurchasingOutcome outcome, string detail, int? position = null) => new(outcome, Detail: detail, Position: position);
 

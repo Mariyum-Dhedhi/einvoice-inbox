@@ -17,6 +17,9 @@ public static class AuditActions
     public const string BankAccountRemoved = nameof(BankAccountRemoved);
     public const string PurchaseOrderCreated = nameof(PurchaseOrderCreated);
     public const string GoodsReceiptRecorded = nameof(GoodsReceiptRecorded);
+    public const string VendorSyncedFromErp = nameof(VendorSyncedFromErp);
+    public const string PurchaseOrderSyncedFromErp = nameof(PurchaseOrderSyncedFromErp);
+    public const string GoodsReceiptSyncedFromErp = nameof(GoodsReceiptSyncedFromErp);
 }
 
 /// <summary>An event to append: the chain gives it its sequence number and hashes.</summary>

@@ -1,4 +1,6 @@
 using EInvoice.Domain.Invoices;
+using EInvoice.Domain.Purchasing;
+using EInvoice.Domain.Shared;
 
 namespace EInvoice.Application.Purchasing;
 
@@ -37,9 +39,11 @@ public sealed record ReceiptView(string Number, DateOnly ReceivedDate, IReadOnly
 public sealed record OrderInvoiceView(Guid Id, string? InvoiceNumber, InvoiceStatus Status, decimal? GrossTotal, string? Currency);
 
 /// <param name="Invoices">The invoices quoting this order; null when the reader may not read invoices (the buyer).</param>
+/// <param name="Source">Made in the app, or read from the ERP (then its receipts come from the ERP too).</param>
 public sealed record PurchaseOrderDetail(
     Guid Id, string Number, Guid VendorId, string VendorNumber, string VendorName, DateOnly OrderDate, string Currency,
-    IReadOnlyList<OrderLineView> Lines, IReadOnlyList<ReceiptView> Receipts, IReadOnlyList<OrderInvoiceView>? Invoices);
+    IReadOnlyList<OrderLineView> Lines, IReadOnlyList<ReceiptView> Receipts, IReadOnlyList<OrderInvoiceView>? Invoices,
+    RecordSource Source = RecordSource.Local, PurchaseOrderStatus Status = PurchaseOrderStatus.Open);
 
 public sealed record VendorChoice(Guid Id, string Number, string Name);
 

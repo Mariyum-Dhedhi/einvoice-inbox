@@ -33,6 +33,12 @@ public sealed class EInvoiceDbContext(DbContextOptions<EInvoiceDbContext> option
     /// <summary>The outbox for ERP postings; a job is written in the same save as the approval.</summary>
     public DbSet<PostingJobRecord> PostingJobs => Set<PostingJobRecord>();
 
+    /// <summary>How far the ERP sync has read, per entity (package 16c).</summary>
+    public DbSet<SyncWatermarkRecord> SyncWatermarks => Set<SyncWatermarkRecord>();
+
+    /// <summary>Records the ERP sync could not take yet; it tries them again on every run.</summary>
+    public DbSet<SyncFailureRecord> SyncFailures => Set<SyncFailureRecord>();
+
     /// <summary>The hash-chained audit trail; rows are only ever added (see AuditChain).</summary>
     public DbSet<AuditEventRecord> AuditEvents => Set<AuditEventRecord>();
 
