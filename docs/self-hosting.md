@@ -66,6 +66,23 @@ docker compose --profile public down               # stop everything (data and k
 git pull && docker compose --profile public up -d --build   # update to the latest main
 ```
 
+## Optional: master data from the ERP
+
+The ERP sync (`sync/erp-sync`) can fill the demo with the mock ERP's master data: 250 vendors, 10,000 purchase
+orders and their goods receipts. It reads every 5 minutes and stays inside Docker's network: it talks to the mock ERP
+and to the app through the tunnel container's network, never through the internet. To turn it on:
+1. Put a key and its SHA-256 in `.env` (`key=$(openssl rand -hex 32); printf %s "$key" | sha256sum`), as
+   `SYNC_API_KEY` and `SYNC_API_KEY_SHA256`.
+2. Start it with the public stack:
+
+```bash
+docker compose --profile public --profile sync up -d --build
+docker logs einvoice-erp-sync          # one "sync summary" line per entity and run
+```
+
+The first run loads everything and may take more than one run's four minutes. Each later run reads only what
+changed. After the nightly reset, the next run loads everything again.
+
 ## Every night: back to the start
 
 At 03:00 Berlin time (`RESET_AT` in `.env`), the `demo-reset` service drops the database and builds it again with

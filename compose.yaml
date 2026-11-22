@@ -142,6 +142,8 @@ services:
       Ai__Model: ${AI_MODEL:-qwen2.5:7b}
       Demo__Enabled: "true"
       Tunnel__Enabled: "true"
+      # The ERP sync's key, as its SHA-256 only (the key itself is with erp-sync). Empty: the sync API is closed.
+      Sync__ApiKeySha256: ${SYNC_API_KEY_SHA256:-}
     volumes:
       - web-keys:/keys
     user: "1654:1654"
@@ -153,6 +155,36 @@ services:
     security_opt:
       - no-new-privileges:true
     mem_limit: 1g
+    restart: unless-stopped
+
+  # The ERP sync (package 16c, sync/erp-sync): every 5 minutes it reads vendors, purchase orders and goods receipts
+  # changed in the (mock) ERP and hands them to the app's sync API. Opt in: docker compose --profile public --profile sync
+  # up -d. Needs SYNC_API_KEY and its SHA-256 SYNC_API_KEY_SHA256 in .env (see .env.example); without a key it stops.
+  # It reaches the app inside the tunnel's network (the web container shares it), never through the internet.
+  erp-sync:
+    profiles: [sync]
+    build: ./sync/erp-sync
+    image: einvoice-erp-sync:local
+    container_name: einvoice-erp-sync
+    depends_on:
+      web:
+        condition: service_started
+      mock-erp:
+        condition: service_started
+    environment:
+      ERP_BASE_URL: http://mock-erp:8080/
+      ERP_CLIENT_ID: ${ERP_CLIENT_ID:-einvoice}
+      ERP_CLIENT_SECRET: ${ERP_CLIENT_SECRET:-}
+      APP_BASE_URL: http://tailscale:8080/
+      SYNC_API_KEY: ${SYNC_API_KEY:-}
+      SYNC_INTERVAL: ${SYNC_INTERVAL:-5m}
+      SYNC_RUN_TIMEOUT: ${SYNC_RUN_TIMEOUT:-4m}
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 128m
     restart: unless-stopped
 
   # Every night at 03:00 Berlin time the public demo's database is dropped and built again by db-init's script
