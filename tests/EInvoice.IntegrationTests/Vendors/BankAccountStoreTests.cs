@@ -107,14 +107,25 @@ public sealed class BankAccountStoreTests(SqlServerFixture fixture)
         await using var db = fixture.CreateContext();
         await using var tx = await db.Database.BeginTransactionAsync();
         var administration = Administration(db);
-        var id = (await administration.ProposeAsync(vendor.Id, NewIban().Value, "admin@test", CancellationToken.None)).AccountId!.Value;
-        Assert.Equal(BankAccountOutcome.Confirmed, (await administration.ConfirmAsync(id, "admin2@test", CancellationToken.None)).Outcome);
-        Assert.Equal(BankAccountOutcome.Removed, (await administration.RemoveAsync(id, "admin@test", "Account closed.", CancellationToken.None)).Outcome);
+        async Task<Guid> Propose() => (await administration.ProposeAsync(vendor.Id, NewIban().Value, "admin@test", CancellationToken.None)).AccountId!.Value;
+        async Task Confirm(Guid id) => Assert.Equal(BankAccountOutcome.Confirmed, (await administration.ConfirmAsync(id, "admin2@test", CancellationToken.None)).Outcome);
+        async Task Remove(Guid id) => Assert.Equal(BankAccountOutcome.Removed, (await administration.RemoveAsync(id, "admin@test", "Account closed.", CancellationToken.None)).Outcome);
+
+        // Confirmed and removed in the opposite order to the proposals: the history table receives the versions in an
+        // order that is not the order they began in.
+        var a = await Propose();
+        var b = await Propose();
+        await Confirm(b);
+        await Confirm(a);
+        await Remove(a);
+        await Remove(b);
 
         var history = (await new EfBankAccountQueries(db).VendorAsync(vendor.Id, CancellationToken.None))!.History;
 
-        Assert.Equal(new[] { BankAccountStatus.Pending, BankAccountStatus.Active }, history.Select(h => h.Status));
-        Assert.Equal(new[] { null, "admin2@test" }, history.Select(h => h.ConfirmedBy));
+        Assert.Equal(
+            new[] { (a, BankAccountStatus.Pending), (b, BankAccountStatus.Pending), (b, BankAccountStatus.Active), (a, BankAccountStatus.Active) },
+            history.Select(h => (h.AccountId, h.Status)));
+        Assert.Equal(new[] { null, null, "admin2@test", "admin2@test" }, history.Select(h => h.ConfirmedBy));
         Assert.All(history, h => Assert.Equal(h.ValidFrom, h.ValidTo)); // really the same instant, not a lucky clock
         await tx.RollbackAsync();
     }
