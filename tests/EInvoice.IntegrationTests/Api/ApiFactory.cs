@@ -38,6 +38,12 @@ internal sealed class ApiFactory(
 
     public static readonly Uri BaseAddress = new("https://localhost");
 
+    /// <summary>The ERP sync's API key in every test app (its SHA-256 is in <see cref="Settings"/>). Test-only.</summary>
+    public const string SyncApiKey = "test-sync-key-1f6b3c0e9a4d4b7e8c2a5d9f0e1b3c7a";
+
+    public static string SyncApiKeySha256 { get; } =
+        Convert.ToHexStringLower(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(SyncApiKey)));
+
     public static Dictionary<string, string?> Settings(string connectionString) => new()
     {
         ["ConnectionStrings:EInvoice"] = connectionString,
@@ -46,6 +52,7 @@ internal sealed class ApiFactory(
         ["Kosit:TimeoutSeconds"] = "5",
         ["Matching:PriceTolerancePercent"] = "2.00",
         ["Approval:DefaultLimitEur"] = "10000.00",
+        ["Sync:ApiKeySha256"] = SyncApiKeySha256,
     };
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -74,7 +81,7 @@ internal sealed class ApiFactory(
             s.AddAuthentication()
                 .AddScheme<AuthenticationSchemeOptions, TestUserHandler>(TestUserHandler.SchemeName, null)
                 .AddPolicyScheme(TestUserHandler.HeaderOrCookie, null, p => p.ForwardDefaultSelector = context =>
-                    context.Request.Headers.ContainsKey(TestUserHandler.UserHeader) ? TestUserHandler.SchemeName : IdentityConstants.ApplicationScheme);
+                    context.Request.Headers.ContainsKey(TestUserHandler.UserHeader) ? TestUserHandler.SchemeName : EInvoice.Web.Security.SignInSetup.CookieOrApiKey);
             s.PostConfigure<AuthenticationOptions>(o => o.DefaultAuthenticateScheme = TestUserHandler.HeaderOrCookie);
 
             services?.Invoke(s);
@@ -104,6 +111,14 @@ internal sealed class ApiFactory(
             }
         }
 
+        return client;
+    }
+
+    /// <summary>The ERP sync as it calls: no test header, no cookie, the API key.</summary>
+    public HttpClient CreateSyncClient(string key = SyncApiKey)
+    {
+        var client = CreateApiClient(user: null);
+        client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("ApiKey", key);
         return client;
     }
 

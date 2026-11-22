@@ -314,6 +314,11 @@ namespace EInvoice.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("ErpId")
+                        .HasMaxLength(50)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(50)");
+
                     b.Property<string>("Number")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -331,9 +336,19 @@ namespace EInvoice.Infrastructure.Persistence.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("RowId"));
 
+                    b.Property<int>("Source")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1);
+
                     b.HasKey("Id");
 
                     SqlServerKeyBuilderExtensions.IsClustered(b.HasKey("Id"), false);
+
+                    b.HasIndex("ErpId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_GoodsReceipt_ErpId")
+                        .HasFilter("[ErpId] IS NOT NULL");
 
                     b.HasIndex("Number")
                         .IsUnique()
@@ -346,7 +361,10 @@ namespace EInvoice.Infrastructure.Persistence.Migrations
 
                     SqlServerIndexBuilderExtensions.IsClustered(b.HasIndex("RowId"));
 
-                    b.ToTable("GoodsReceipt", "dbo");
+                    b.ToTable("GoodsReceipt", "dbo", t =>
+                        {
+                            t.HasCheckConstraint("CK_GoodsReceipt_Source", "[Source] IN (1, 2)");
+                        });
                 });
 
             modelBuilder.Entity("EInvoice.Domain.Purchasing.GoodsReceiptLine", b =>
@@ -391,6 +409,11 @@ namespace EInvoice.Infrastructure.Persistence.Migrations
                         .HasColumnType("char(3)")
                         .IsFixedLength();
 
+                    b.Property<string>("ErpId")
+                        .HasMaxLength(50)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(50)");
+
                     b.Property<string>("Number")
                         .IsRequired()
                         .HasMaxLength(20)
@@ -405,12 +428,27 @@ namespace EInvoice.Infrastructure.Persistence.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("RowId"));
 
+                    b.Property<int>("Source")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1);
+
+                    b.Property<int>("Status")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1);
+
                     b.Property<Guid>("VendorId")
                         .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
 
                     SqlServerKeyBuilderExtensions.IsClustered(b.HasKey("Id"), false);
+
+                    b.HasIndex("ErpId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_PurchaseOrder_ErpId")
+                        .HasFilter("[ErpId] IS NOT NULL");
 
                     b.HasIndex("Number")
                         .IsUnique()
@@ -423,7 +461,12 @@ namespace EInvoice.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("VendorId");
 
-                    b.ToTable("PurchaseOrder", "dbo");
+                    b.ToTable("PurchaseOrder", "dbo", t =>
+                        {
+                            t.HasCheckConstraint("CK_PurchaseOrder_Source", "[Source] IN (1, 2)");
+
+                            t.HasCheckConstraint("CK_PurchaseOrder_Status", "[Status] IN (1, 2)");
+                        });
                 });
 
             modelBuilder.Entity("EInvoice.Domain.Purchasing.PurchaseOrderLine", b =>
@@ -477,6 +520,11 @@ namespace EInvoice.Infrastructure.Persistence.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<string>("ErpId")
+                        .HasMaxLength(50)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(50)");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
@@ -496,6 +544,11 @@ namespace EInvoice.Infrastructure.Persistence.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("RowId"));
 
+                    b.Property<int>("Source")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1);
+
                     b.Property<string>("VatId")
                         .HasMaxLength(20)
                         .IsUnicode(false)
@@ -504,6 +557,11 @@ namespace EInvoice.Infrastructure.Persistence.Migrations
                     b.HasKey("Id");
 
                     SqlServerKeyBuilderExtensions.IsClustered(b.HasKey("Id"), false);
+
+                    b.HasIndex("ErpId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_Vendor_ErpId")
+                        .HasFilter("[ErpId] IS NOT NULL");
 
                     b.HasIndex("Number")
                         .IsUnique()
@@ -519,7 +577,10 @@ namespace EInvoice.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("UX_Vendor_VatId")
                         .HasFilter("[VatId] IS NOT NULL");
 
-                    b.ToTable("Vendor", "dbo");
+                    b.ToTable("Vendor", "dbo", t =>
+                        {
+                            t.HasCheckConstraint("CK_Vendor_Source", "[Source] IN (1, 2)");
+                        });
                 });
 
             modelBuilder.Entity("EInvoice.Domain.Vendors.VendorBankAccount", b =>
@@ -1018,6 +1079,100 @@ namespace EInvoice.Infrastructure.Persistence.Migrations
                     b.ToTable("PostingJob", "dbo", t =>
                         {
                             t.HasCheckConstraint("CK_PostingJob_Status", "[Status] IN (1, 2, 3)");
+                        });
+                });
+
+            modelBuilder.Entity("EInvoice.Infrastructure.Persistence.SyncFailureRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Entity")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ErpId")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .IsUnicode(false)
+                        .HasColumnType("varchar(50)");
+
+                    b.Property<DateTimeOffset>("FirstSeen")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset>("LastSeen")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<long>("RowId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("RowId"));
+
+                    b.Property<int>("Tries")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    SqlServerKeyBuilderExtensions.IsClustered(b.HasKey("Id"), false);
+
+                    b.HasIndex("RowId")
+                        .HasDatabaseName("CX_SyncFailure_RowId");
+
+                    SqlServerIndexBuilderExtensions.IsClustered(b.HasIndex("RowId"));
+
+                    b.HasIndex("Entity", "ErpId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_SyncFailure_Entity_ErpId");
+
+                    b.ToTable("SyncFailure", "dbo", t =>
+                        {
+                            t.HasCheckConstraint("CK_SyncFailure_Entity", "[Entity] IN (1, 2, 3)");
+                        });
+                });
+
+            modelBuilder.Entity("EInvoice.Infrastructure.Persistence.SyncWatermarkRecord", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Entity")
+                        .HasColumnType("int");
+
+                    b.Property<long>("RowId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("RowId"));
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset>("Value")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Id");
+
+                    SqlServerKeyBuilderExtensions.IsClustered(b.HasKey("Id"), false);
+
+                    b.HasIndex("Entity")
+                        .IsUnique()
+                        .HasDatabaseName("UX_SyncWatermark_Entity");
+
+                    b.HasIndex("RowId")
+                        .HasDatabaseName("CX_SyncWatermark_RowId");
+
+                    SqlServerIndexBuilderExtensions.IsClustered(b.HasIndex("RowId"));
+
+                    b.ToTable("SyncWatermark", "dbo", t =>
+                        {
+                            t.HasCheckConstraint("CK_SyncWatermark_Entity", "[Entity] IN (1, 2, 3)");
                         });
                 });
 

@@ -104,7 +104,9 @@ public sealed class EfPurchasingQueries(EInvoiceDbContext db) : IPurchasingQueri
                 l.LineNumber, l.ItemNumber, l.Description, l.Quantity, l.UnitPrice, l.TaxRatePercent, Net(l.Quantity, l.UnitPrice),
                 receivedByLine.GetValueOrDefault(l.LineNumber), invoiced.GetValueOrDefault(l.LineNumber))).ToList(),
             receipts.Select(r => new ReceiptView(r.Number, r.ReceivedDate, r.Lines.Select(l => new ReceiptLineView(l.PurchaseOrderLineNumber, l.QuantityReceived)).ToList())).ToList(),
-            invoices);
+            invoices,
+            order.Source,
+            order.Status);
     }
 
     public async Task<IReadOnlyList<VendorChoice>> ActiveVendorsAsync(CancellationToken cancellationToken) =>

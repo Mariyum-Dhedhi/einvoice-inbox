@@ -68,6 +68,7 @@ internal static class TextResources
         keys.UnionWith(Enum.GetNames<AuditProblem>().Select(n => $"AuditProblem.{n}"));
         keys.UnionWith(Enum.GetNames<EInvoice.Application.Purchasing.PurchasingOutcome>().Select(n => $"Purchasing.{n}"));
         keys.UnionWith(Enum.GetNames<EInvoice.Application.Purchasing.ReceiptState>().Select(n => $"ReceiptState.{n}"));
+        keys.UnionWith(Enum.GetNames<EInvoice.Domain.Purchasing.PurchaseOrderStatus>().Select(n => $"OrderStatus.{n}"));
         keys.UnionWith(Constants(typeof(AuditActions)).Select(a => $"AuditAction.{a}"));
         keys.UnionWith(Constants(typeof(Roles)).Select(r => $"Role.{r}"));
         keys.UnionWith(EInvoice.Web.Security.DemoSignIn.Roles.Select(r => $"Demo.Does.{r}")); // what each demo button lets you do

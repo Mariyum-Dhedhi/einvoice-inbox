@@ -42,7 +42,7 @@ public class DatabaseModelTests
             {
                 "AppRole", "AppRoleClaim", "AppUser", "AppUserClaim", "AppUserLogin", "AppUserRole", "AppUserToken", "AuditEvent",
                 "GoodsReceipt", "GoodsReceiptLine", "Invoice", "InvoiceDocument", "InvoiceFinding", "InvoiceLine", "InvoiceStatusChange", "MatchResult",
-                "PostingJob", "PurchaseOrder", "PurchaseOrderLine", "Vendor", "VendorBankAccount",
+                "PostingJob", "PurchaseOrder", "PurchaseOrderLine", "SyncFailure", "SyncWatermark", "Vendor", "VendorBankAccount",
             },
             tables);
     }

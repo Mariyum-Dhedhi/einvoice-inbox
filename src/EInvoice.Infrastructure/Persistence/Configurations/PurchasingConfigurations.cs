@@ -3,6 +3,7 @@ using EInvoice.Domain.Shared;
 using EInvoice.Domain.Vendors;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using static EInvoice.Infrastructure.Persistence.Configurations.ErpMapping;
 using static EInvoice.Infrastructure.Persistence.Configurations.MappingConventions;
 
 namespace EInvoice.Infrastructure.Persistence.Configurations;
@@ -11,9 +12,10 @@ internal sealed class VendorConfiguration : IEntityTypeConfiguration<Vendor>
 {
     public void Configure(EntityTypeBuilder<Vendor> builder)
     {
-        builder.ToTable("Vendor");
+        builder.ToTable("Vendor", table => table.HasCheckConstraint("CK_Vendor_Source", EnumCheck<RecordSource>("Source")));
         builder.HasKey(v => v.Id).IsClustered(false);
         builder.UseClusteredRowId("Vendor");
+        ErpColumns(builder, "Vendor");
 
         builder.Property(v => v.Number).HasMaxLength(20);
         builder.Property(v => v.Name).HasMaxLength(200);
@@ -70,9 +72,15 @@ internal sealed class PurchaseOrderConfiguration : IEntityTypeConfiguration<Purc
 {
     public void Configure(EntityTypeBuilder<PurchaseOrder> builder)
     {
-        builder.ToTable("PurchaseOrder");
+        builder.ToTable("PurchaseOrder", table =>
+        {
+            table.HasCheckConstraint("CK_PurchaseOrder_Source", EnumCheck<RecordSource>("Source"));
+            table.HasCheckConstraint("CK_PurchaseOrder_Status", EnumCheck<PurchaseOrderStatus>("Status"));
+        });
         builder.HasKey(p => p.Id).IsClustered(false);
         builder.UseClusteredRowId("PurchaseOrder");
+        ErpColumns(builder, "PurchaseOrder");
+        builder.Property(p => p.Status).HasDefaultValue(PurchaseOrderStatus.Open).HasSentinel((PurchaseOrderStatus)0);
 
         builder.Property(p => p.Number).HasMaxLength(20);
         builder.Property(p => p.OrderDate);
@@ -107,9 +115,10 @@ internal sealed class GoodsReceiptConfiguration : IEntityTypeConfiguration<Goods
 {
     public void Configure(EntityTypeBuilder<GoodsReceipt> builder)
     {
-        builder.ToTable("GoodsReceipt");
+        builder.ToTable("GoodsReceipt", table => table.HasCheckConstraint("CK_GoodsReceipt_Source", EnumCheck<RecordSource>("Source")));
         builder.HasKey(g => g.Id).IsClustered(false);
         builder.UseClusteredRowId("GoodsReceipt");
+        ErpColumns(builder, "GoodsReceipt");
 
         builder.Property(g => g.Number).HasMaxLength(20);
         builder.Property(g => g.ReceivedDate);
@@ -132,5 +141,20 @@ internal sealed class GoodsReceiptLineConfiguration : IEntityTypeConfiguration<G
 
         builder.Property(l => l.PurchaseOrderLineNumber).ValueGeneratedNever();
         builder.Property(l => l.QuantityReceived).HasColumnType(QuantityType);
+    }
+}
+
+internal static class ErpMapping
+{
+    /// <summary>
+    /// Source (made here or read from the ERP; rows from before package 16c and the seed are Local) and the ERP's id,
+    /// unique where there is one: the sync finds a record by it.
+    /// </summary>
+    public static void ErpColumns<T>(EntityTypeBuilder<T> builder, string table)
+        where T : class
+    {
+        builder.Property<RecordSource>("Source").HasDefaultValue(RecordSource.Local).HasSentinel((RecordSource)0);
+        builder.Property<string?>("ErpId").HasMaxLength(EInvoice.Application.Sync.ErpSync.MaxErpIdLength).IsUnicode(false);
+        builder.HasIndex("ErpId").IsUnique().HasFilter("[ErpId] IS NOT NULL").HasDatabaseName($"UX_{table}_ErpId");
     }
 }

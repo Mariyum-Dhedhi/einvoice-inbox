@@ -1211,4 +1211,37 @@
   <data name="Intake.TooManyUploads" xml:space="preserve">
     <value>You have reached the demo's upload limit. Try again in an hour.</value>
   </data>
+  <data name="Purchasing.FromErp" xml:space="preserve">
+    <value>From the ERP</value>
+  </data>
+  <data name="Purchasing.FromErpHelp" xml:space="preserve">
+    <value>Read from the ERP by the sync; only the sync changes it.</value>
+  </data>
+  <data name="Purchasing.OrderStatus" xml:space="preserve">
+    <value>Status</value>
+  </data>
+  <data name="OrderStatus.Open" xml:space="preserve">
+    <value>Open</value>
+  </data>
+  <data name="OrderStatus.Closed" xml:space="preserve">
+    <value>Closed</value>
+  </data>
+  <data name="Purchasing.ErpReceiptsHint" xml:space="preserve">
+    <value>This order comes from the ERP: its goods receipts come from the ERP too.</value>
+  </data>
+  <data name="Purchasing.ErpManaged" xml:space="preserve">
+    <value>This order comes from the ERP; record its goods receipts there.</value>
+  </data>
+  <data name="AuditAction.VendorSyncedFromErp" xml:space="preserve">
+    <value>Vendor from the ERP</value>
+  </data>
+  <data name="AuditAction.PurchaseOrderSyncedFromErp" xml:space="preserve">
+    <value>Purchase order from the ERP</value>
+  </data>
+  <data name="AuditAction.GoodsReceiptSyncedFromErp" xml:space="preserve">
+    <value>Goods receipt from the ERP</value>
+  </data>
+  <data name="Role.Integration" xml:space="preserve">
+    <value>ERP sync</value>
+  </data>
 </root>

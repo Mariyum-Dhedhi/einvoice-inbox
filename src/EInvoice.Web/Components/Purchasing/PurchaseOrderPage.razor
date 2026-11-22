@@ -2,6 +2,7 @@
 @attribute [Authorize(Policy = Policies.ReadPurchasing)]
 @implements IDisposable
 @using EInvoice.Application.Purchasing
+@using EInvoice.Domain.Shared
 @inject Operations Operations
 @inject IAuthorizationService Authorization
 
@@ -26,10 +27,18 @@ else
     </MudLink>
 
     <MudPaper Outlined="true" Class="pa-4 mb-3">
-        <MudText Typo="Typo.h4" HtmlTag="h1">@order.Number</MudText>
+        <div class="d-flex flex-wrap align-center gap-3">
+            <MudText Typo="Typo.h4" HtmlTag="h1">@order.Number</MudText>
+            @if (order.Source == RecordSource.Erp)
+            {
+                <MudChip T="string" Size="Size.Small" Variant="Variant.Outlined" Color="Color.Default" Icon="@Icons.Material.Outlined.Sync" Class="ma-0"
+                         data-testid="order-source" title="@T["Purchasing.FromErpHelp"]">@T["Purchasing.FromErp"]</MudChip>
+            }
+        </div>
         <dl class="facts mt-3">
             <div><dt>@T["Common.Vendor"]</dt><dd data-testid="order-vendor-name">@order.VendorName <span class="text-secondary">(@order.VendorNumber)</span></dd></div>
             <div><dt>@T["Purchasing.OrderDate"]</dt><dd>@Formats.Date(order.OrderDate)</dd></div>
+            <div><dt>@T["Purchasing.OrderStatus"]</dt><dd data-testid="order-status">@T[$"OrderStatus.{order.Status}"]</dd></div>
             <div><dt>@T["Common.Net"]</dt><dd class="tabular strong">@Formats.Money(order.Lines.Sum(l => l.NetAmount), order.Currency)</dd></div>
         </dl>
     </MudPaper>
@@ -80,6 +89,12 @@ else
 
     @* ---- Record a delivery (buyer) ------------------------------------------------------------------------------- *@
     <AuthorizeView Policy="@Policies.ManagePurchasing" Context="auth">
+        @if (order.Source == RecordSource.Erp)
+        {
+            <MudText Typo="Typo.body2" Class="mb-3" data-testid="erp-receipts-hint">@T["Purchasing.ErpReceiptsHint"]</MudText>
+        }
+        else
+        {
         <MudPaper Outlined="true" Class="pa-4 mb-3" data-testid="receipt-form">
             <MudText Typo="Typo.h6" HtmlTag="h2" Class="mb-1">@T["Purchasing.RecordReceipt"]</MudText>
             <MudText Typo="Typo.body2" Color="Color.Secondary" Class="mb-2">@T["Purchasing.RecordReceiptIntro"]</MudText>
@@ -105,6 +120,7 @@ else
             <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Outlined.Inventory" Class="mt-2"
                        Disabled="_busy" OnClick="RecordReceiptAsync" data-testid="record-receipt">@T["Purchasing.RecordReceiptButton"]</MudButton>
         </MudPaper>
+        }
     </AuthorizeView>
 
     @* ---- Receipts ---------------------------------------------------------------------------------------------------- *@

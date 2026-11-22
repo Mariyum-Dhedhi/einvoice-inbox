@@ -29,8 +29,11 @@ internal static partial class AccessTable
     /// <summary>Signed in, but with none of the five roles.</summary>
     public const string NoRole = "(no role)";
 
-    /// <summary>Who calls: the five roles, a signed-in user without a role, and nobody signed in (null).</summary>
-    public static IReadOnlyList<string?> Callers { get; } = ["Clerk", "Approver", "Auditor", "Admin", "Buyer", NoRole, null];
+    /// <summary>The ERP sync, signed in with the API key (no account holds this role).</summary>
+    public const string Integration = "Integration";
+
+    /// <summary>Who calls: the five roles, the sync's API key, a signed-in user without a role, and nobody signed in (null).</summary>
+    public static IReadOnlyList<string?> Callers { get; } = ["Clerk", "Approver", "Auditor", "Admin", "Buyer", Integration, NoRole, null];
 
     private static readonly Access Readers = Access.Only("Clerk", "Approver", "Auditor");
 
@@ -48,6 +51,16 @@ internal static partial class AccessTable
         ["POST /account/logout"] = Access.SignedIn,
         ["POST /account/language"] = Access.Open, // the login page has the switch too
         ["POST /account/demo"] = Access.Open, // the public demo's one-click sign-in (404 unless Demo:Enabled)
+
+        // The ERP sync (package 16c): the API key only, nobody who signs in
+        ["PUT /api/sync/vendors/{erpId}"] = Access.Only(Integration),
+        ["PUT /api/sync/purchase-orders/{erpId}"] = Access.Only(Integration),
+        ["PUT /api/sync/goods-receipts/{erpId}"] = Access.Only(Integration),
+        ["GET /api/sync/watermarks/{entity}"] = Access.Only(Integration),
+        ["PUT /api/sync/watermarks/{entity}"] = Access.Only(Integration),
+        ["GET /api/sync/failures/{entity}"] = Access.Only(Integration),
+        ["PUT /api/sync/failures/{entity}/{erpId}"] = Access.Only(Integration),
+        ["DELETE /api/sync/failures/{entity}/{erpId}"] = Access.Only(Integration),
 
         // Pages
         ["PAGE /"] = Readers,

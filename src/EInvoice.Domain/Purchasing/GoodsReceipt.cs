@@ -1,3 +1,5 @@
+using EInvoice.Domain.Shared;
+
 namespace EInvoice.Domain.Purchasing;
 
 /// <summary>What actually arrived for a purchase order. One order can have several receipts (partial deliveries).</summary>
@@ -24,9 +26,37 @@ public sealed class GoodsReceipt
 
     public Guid PurchaseOrderId { get; }
 
-    public DateOnly ReceivedDate { get; }
+    public DateOnly ReceivedDate { get; private set; }
+
+    public RecordSource Source { get; private set; } = RecordSource.Local;
+
+    /// <summary>The ERP's id for this receipt; null for one recorded in the app.</summary>
+    public string? ErpId { get; private set; }
 
     public IReadOnlyList<GoodsReceiptLine> Lines => _lines.OrderBy(l => l.PurchaseOrderLineNumber).ToList().AsReadOnly();
+
+    /// <summary>A receipt read from the ERP.</summary>
+    public static GoodsReceipt FromErp(string erpId, string number, Guid purchaseOrderId, DateOnly receivedDate, IReadOnlyList<GoodsReceiptLine> lines)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(erpId);
+        return new GoodsReceipt(number, purchaseOrderId, receivedDate, lines) { Source = RecordSource.Erp, ErpId = erpId };
+    }
+
+    /// <summary>Follows the ERP: date and lines. Number and order stay.</summary>
+    /// <returns>False when nothing changed.</returns>
+    public bool ApplyFromErp(DateOnly receivedDate, IReadOnlyList<GoodsReceiptLine> lines)
+    {
+        Vendors.Vendor.ErpOnly(Source);
+        LineRules.EnsureUnique(lines, l => l.PurchaseOrderLineNumber, "Goods receipt");
+        if (ReceivedDate == receivedDate && LineRules.SameSet(_lines, lines))
+        {
+            return false;
+        }
+
+        ReceivedDate = receivedDate;
+        LineRules.Replace(_lines, lines, l => l.PurchaseOrderLineNumber);
+        return true;
+    }
 }
 
 public sealed record GoodsReceiptLine

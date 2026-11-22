@@ -1070,3 +1070,195 @@ END;
 COMMIT;
 GO
 
+BEGIN TRANSACTION;
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261122090017_AddErpSync'
+)
+BEGIN
+    ALTER TABLE [dbo].[Vendor] ADD [ErpId] varchar(50) NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261122090017_AddErpSync'
+)
+BEGIN
+    ALTER TABLE [dbo].[Vendor] ADD [Source] int NOT NULL DEFAULT 1;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261122090017_AddErpSync'
+)
+BEGIN
+    ALTER TABLE [dbo].[PurchaseOrder] ADD [ErpId] varchar(50) NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261122090017_AddErpSync'
+)
+BEGIN
+    ALTER TABLE [dbo].[PurchaseOrder] ADD [Source] int NOT NULL DEFAULT 1;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261122090017_AddErpSync'
+)
+BEGIN
+    ALTER TABLE [dbo].[PurchaseOrder] ADD [Status] int NOT NULL DEFAULT 1;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261122090017_AddErpSync'
+)
+BEGIN
+    ALTER TABLE [dbo].[GoodsReceipt] ADD [ErpId] varchar(50) NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261122090017_AddErpSync'
+)
+BEGIN
+    ALTER TABLE [dbo].[GoodsReceipt] ADD [Source] int NOT NULL DEFAULT 1;
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261122090017_AddErpSync'
+)
+BEGIN
+    CREATE TABLE [dbo].[SyncFailure] (
+        [Id] uniqueidentifier NOT NULL,
+        [Entity] int NOT NULL,
+        [ErpId] varchar(50) NOT NULL,
+        [Reason] nvarchar(200) NOT NULL,
+        [FirstSeen] datetimeoffset NOT NULL,
+        [LastSeen] datetimeoffset NOT NULL,
+        [Tries] int NOT NULL,
+        [RowId] bigint NOT NULL IDENTITY,
+        CONSTRAINT [PK_SyncFailure] PRIMARY KEY NONCLUSTERED ([Id]),
+        CONSTRAINT [CK_SyncFailure_Entity] CHECK ([Entity] IN (1, 2, 3))
+    );
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261122090017_AddErpSync'
+)
+BEGIN
+    CREATE TABLE [dbo].[SyncWatermark] (
+        [Id] uniqueidentifier NOT NULL,
+        [Entity] int NOT NULL,
+        [Value] datetimeoffset NOT NULL,
+        [UpdatedAt] datetimeoffset NOT NULL,
+        [RowId] bigint NOT NULL IDENTITY,
+        CONSTRAINT [PK_SyncWatermark] PRIMARY KEY NONCLUSTERED ([Id]),
+        CONSTRAINT [CK_SyncWatermark_Entity] CHECK ([Entity] IN (1, 2, 3))
+    );
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261122090017_AddErpSync'
+)
+BEGIN
+    EXEC(N'CREATE UNIQUE INDEX [UX_Vendor_ErpId] ON [dbo].[Vendor] ([ErpId]) WHERE [ErpId] IS NOT NULL');
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261122090017_AddErpSync'
+)
+BEGIN
+    EXEC(N'ALTER TABLE [dbo].[Vendor] ADD CONSTRAINT [CK_Vendor_Source] CHECK ([Source] IN (1, 2))');
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261122090017_AddErpSync'
+)
+BEGIN
+    EXEC(N'CREATE UNIQUE INDEX [UX_PurchaseOrder_ErpId] ON [dbo].[PurchaseOrder] ([ErpId]) WHERE [ErpId] IS NOT NULL');
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261122090017_AddErpSync'
+)
+BEGIN
+    EXEC(N'ALTER TABLE [dbo].[PurchaseOrder] ADD CONSTRAINT [CK_PurchaseOrder_Source] CHECK ([Source] IN (1, 2))');
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261122090017_AddErpSync'
+)
+BEGIN
+    EXEC(N'ALTER TABLE [dbo].[PurchaseOrder] ADD CONSTRAINT [CK_PurchaseOrder_Status] CHECK ([Status] IN (1, 2))');
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261122090017_AddErpSync'
+)
+BEGIN
+    EXEC(N'CREATE UNIQUE INDEX [UX_GoodsReceipt_ErpId] ON [dbo].[GoodsReceipt] ([ErpId]) WHERE [ErpId] IS NOT NULL');
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261122090017_AddErpSync'
+)
+BEGIN
+    EXEC(N'ALTER TABLE [dbo].[GoodsReceipt] ADD CONSTRAINT [CK_GoodsReceipt_Source] CHECK ([Source] IN (1, 2))');
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261122090017_AddErpSync'
+)
+BEGIN
+    CREATE CLUSTERED INDEX [CX_SyncFailure_RowId] ON [dbo].[SyncFailure] ([RowId]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261122090017_AddErpSync'
+)
+BEGIN
+    CREATE UNIQUE INDEX [UX_SyncFailure_Entity_ErpId] ON [dbo].[SyncFailure] ([Entity], [ErpId]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261122090017_AddErpSync'
+)
+BEGIN
+    CREATE CLUSTERED INDEX [CX_SyncWatermark_RowId] ON [dbo].[SyncWatermark] ([RowId]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261122090017_AddErpSync'
+)
+BEGIN
+    CREATE UNIQUE INDEX [UX_SyncWatermark_Entity] ON [dbo].[SyncWatermark] ([Entity]);
+END;
+
+IF NOT EXISTS (
+    SELECT * FROM [__EFMigrationsHistory]
+    WHERE [MigrationId] = N'20261122090017_AddErpSync'
+)
+BEGIN
+    INSERT INTO [__EFMigrationsHistory] ([MigrationId], [ProductVersion])
+    VALUES (N'20261122090017_AddErpSync', N'10.0.14');
+END;
+
+COMMIT;
+GO
+

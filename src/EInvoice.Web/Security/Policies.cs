@@ -37,6 +37,9 @@ public static class Policies
     /// <summary>Adding orders and goods receipts: the buyer only, who touches no invoices (separated duties).</summary>
     public const string ManagePurchasing = nameof(ManagePurchasing);
 
+    /// <summary>The ERP sync's API: vendors, orders and receipts from the ERP. Only its API key carries this role.</summary>
+    public const string SyncMasterData = nameof(SyncMasterData);
+
     internal static AuthorizationBuilder AddEInvoicePolicies(this AuthorizationBuilder builder) => builder
         .AddPolicy(ReadInvoices, p => p.RequireRole(Roles.Clerk, Roles.Approver, Roles.Auditor))
         .AddPolicy(UploadInvoices, p => p.RequireRole(Roles.Clerk))
@@ -47,5 +50,6 @@ public static class Policies
         .AddPolicy(ManageUsers, p => p.RequireRole(Roles.Admin))
         .AddPolicy(ManageVendors, p => p.RequireRole(Roles.Admin))
         .AddPolicy(ReadPurchasing, p => p.RequireRole(Roles.Clerk, Roles.Approver, Roles.Auditor, Roles.Buyer))
-        .AddPolicy(ManagePurchasing, p => p.RequireRole(Roles.Buyer));
+        .AddPolicy(ManagePurchasing, p => p.RequireRole(Roles.Buyer))
+        .AddPolicy(SyncMasterData, p => p.RequireRole(Roles.Integration));
 }
