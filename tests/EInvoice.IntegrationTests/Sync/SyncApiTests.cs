@@ -138,6 +138,19 @@ public sealed class SyncApiTests(SqlServerFixture fixture) : IAsyncLifetime
     }
 
     [Fact]
+    public async Task An_erp_id_that_looks_like_an_app_vendor_never_reaches_that_vendor()
+    {
+        // The sync finds records only by their ERP id, and only records from the ERP: a vendor made in the app is never one.
+        var (status, body) = await PutAsync("/api/sync/vendors/V-1001", VendorBody("V-1001", name: "Taken Over GmbH"));
+
+        Assert.Equal((HttpStatusCode.UnprocessableEntity, "NumberTaken"), (status, Outcome(body)));
+        await using var db = fixture.CreateContext();
+        var local = await db.Vendors.AsNoTracking().SingleAsync(v => v.Number == "V-1001");
+        Assert.Equal((RecordSource.Local, (string?)null), (local.Source, local.ErpId));
+        Assert.NotEqual("Taken Over GmbH", local.Name);
+    }
+
+    [Fact]
     public async Task A_vendor_cannot_change_its_number()
     {
         var erpId = await VendorAsync();

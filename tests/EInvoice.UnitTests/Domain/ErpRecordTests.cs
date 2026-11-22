@@ -125,6 +125,15 @@ public sealed class ErpRecordTests
     }
 
     [Fact]
+    public void Closing_an_order_alone_is_a_change()
+    {
+        var order = ErpOrder();
+
+        Assert.True(order.ApplyFromErp(new DateOnly(2026, 11, 2), [Line(1), Line(2)], PurchaseOrderStatus.Closed));
+        Assert.Equal(PurchaseOrderStatus.Closed, order.Status);
+    }
+
+    [Fact]
     public void An_order_from_the_erp_still_needs_unique_lines()
     {
         Assert.Throws<ArgumentException>(() => ErpOrder().ApplyFromErp(new DateOnly(2026, 11, 2), [Line(1), Line(1)], PurchaseOrderStatus.Open));
