@@ -1,0 +1,17 @@
+{
+  "value": [
+    {
+      "id": "PR-00001",
+      "productReceiptNumber": "GR-26-000001",
+      "purchaseOrderId": "PO-00001",
+      "receivedDate": "2026-11-03",
+      "modifiedDateTime": "2026-11-03T13:40:21+00:00",
+      "lines": [
+        {
+          "purchaseOrderLineNumber": 1,
+          "quantity": 60
+        }
+      ]
+    }
+  ]
+}

@@ -14,6 +14,8 @@ namespace EInvoice.MockErp;
 /// It is its own token issuer (OAuth 2.0 client credentials, like Entra ID in front of D365): POST oauth/token for the
 /// configured client (Auth:ClientId, Auth:ClientSecret, required; Auth:TokenLifetimeSeconds), and every data call needs
 /// one of its unexpired tokens as "Authorization: Bearer", else 401. See <see cref="TokenIssuer"/>.
+/// It also holds master data for the ERP sync (package 16c): GET data/Vendors, data/PurchaseOrders, data/ProductReceipts,
+/// OData style, seeded at start (MasterData:*; see <see cref="MasterData"/> and <see cref="ODataQuery"/>).
 /// </summary>
 public sealed class MockErpProgram
 {
@@ -25,9 +27,11 @@ public sealed class MockErpProgram
         builder.Services.AddSingleton<Ledger>();
         builder.Services.AddSingleton(sp => TokenIssuer.FromConfiguration(sp.GetRequiredService<IConfiguration>().GetSection("Auth")));
         builder.Services.AddSingleton(sp => new Chaos(ChaosPlan.FromConfiguration(sp.GetRequiredService<IConfiguration>().GetSection("Chaos"))));
+        builder.Services.AddSingleton(sp => MasterData.FromConfiguration(sp.GetRequiredService<IConfiguration>().GetSection("MasterData"), DateTimeOffset.UtcNow));
         builder.Services.AddProblemDetails();
         var app = builder.Build();
         _ = app.Services.GetRequiredService<TokenIssuer>(); // no secret configured: refuse to start, not at the first call
+        _ = app.Services.GetRequiredService<MasterData>(); // seeded at start, so the first read is not slow
 
         app.MapPost("/oauth/token", async (HttpRequest request, TokenIssuer issuer) =>
         {
@@ -136,6 +140,68 @@ public sealed class MockErpProgram
 
             var answer = new { documentNumber = booking.DocumentNumber };
             return isNew ? Results.Json(answer, statusCode: 201) : Results.Json(answer, statusCode: 200);
+        });
+
+        app.MapGet("/data/{segment}", async (string segment, HttpRequest request, MasterData data, Chaos chaos, TokenIssuer issuer) =>
+        {
+            using var visit = chaos.Enter();
+            if (!issuer.Accepts(request.Headers.Authorization))
+            {
+                request.HttpContext.Response.Headers.WWWAuthenticate = "Bearer error=\"invalid_token\"";
+                return Results.Problem(statusCode: 401, title: "A valid bearer token is required.");
+            }
+
+            var trouble = chaos.Pick();
+            switch (trouble)
+            {
+                case ChaosKind.Throttle:
+                    request.HttpContext.Response.Headers.RetryAfter = chaos.Plan.RetryAfterSeconds.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    return Results.Problem(statusCode: 429, title: "Too many requests (chaos).");
+                case ChaosKind.Error:
+                    return Results.Problem(statusCode: 500, title: "Internal error (chaos).");
+                case ChaosKind.Unavailable:
+                    request.HttpContext.Response.Headers.RetryAfter = chaos.Plan.RetryAfterSeconds.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    return Results.Problem(statusCode: 503, title: "Service unavailable (chaos).");
+                case ChaosKind.Slow:
+                    await Task.Delay(chaos.Plan.SlowMs, request.HttpContext.RequestAborted);
+                    break;
+                case ChaosKind.Malformed:
+                    return Results.Text("{\"value\":[", "application/json", statusCode: 200); // the page broke on the way
+            }
+
+            if (ODataQuery.Segment(segment) is not { } parsed)
+            {
+                return Results.Problem(statusCode: 404, title: "The ERP has no such set.");
+            }
+
+            var (set, key) = parsed;
+
+            return set switch
+            {
+                "Vendors" => Read(data.Vendors, v => v.ModifiedDateTime, v => v.Id),
+                "PurchaseOrders" => Read(data.Orders, o => o.ModifiedDateTime, o => o.Id),
+                "ProductReceipts" => Read(data.Receipts, r => r.ModifiedDateTime, r => r.Id),
+                _ => Results.Problem(statusCode: 404, title: "The ERP has no such set."),
+            };
+
+            IResult Read<T>(IReadOnlyList<T> records, Func<T, DateTimeOffset> modified, Func<T, string> id)
+            {
+                if (key is not null)
+                {
+                    if (request.Query.Count > 0)
+                    {
+                        return Results.Problem(statusCode: 400, title: "A single record takes no query options.");
+                    }
+
+                    var one = records.FirstOrDefault(r => id(r) == key);
+                    return one is null ? Results.Problem(statusCode: 404, title: "No such record.") : Results.Json(one, MasterData.Json);
+                }
+
+                var (query, problem) = ODataQuery.Parse(request.Query);
+                return query is null
+                    ? Results.Problem(statusCode: 400, title: problem)
+                    : Results.Json(ODataQuery.Page(records, modified, id, query, request), MasterData.Json);
+            }
         });
 
         app.MapPost("/_mock/failures", (FailurePlan plan, Ledger ledger) =>
