@@ -88,6 +88,7 @@ public sealed class RoleMatrixTests(SqlServerFixture fixture) : IAsyncLifetime
         using var client = role switch
         {
             null => _factory.CreateApiClient(user: null),
+            AccessTable.Integration => _factory.CreateSyncClient(), // the real API key: no account has this role
             AccessTable.NoRole => _factory.CreateApiClient($"norole-{Guid.NewGuid():N}@example.com"),
             _ => _factory.CreateApiClient($"{role.ToLowerInvariant()}-{Guid.NewGuid():N}@example.com", role),
         };
@@ -108,6 +109,12 @@ public sealed class RoleMatrixTests(SqlServerFixture fixture) : IAsyncLifetime
         {
             Assert.False(status is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden, $"{caller} should be let in, got {(int)status}");
             Assert.False(target?.StartsWith("/account/", StringComparison.Ordinal) == true, $"{caller} should be let in, was sent to {target}");
+        }
+        else if (role == AccessTable.Integration)
+        {
+            // A program, not a browser: refused with 403 problem details everywhere, pages included, never a redirect.
+            Assert.Equal(HttpStatusCode.Forbidden, status);
+            Assert.Equal("application/problem+json", response.Content.Headers.ContentType?.MediaType);
         }
         else if (role is null)
         {

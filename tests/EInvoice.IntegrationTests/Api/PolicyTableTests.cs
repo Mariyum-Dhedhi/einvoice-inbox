@@ -25,9 +25,10 @@ public sealed class PolicyTableTests
         ["ManageVendors"] = ["Admin"], // vendor master data and bank accounts
         ["ReadPurchasing"] = ["Clerk", "Approver", "Auditor", "Buyer"], // orders and receipts: what invoices are matched against
         ["ManagePurchasing"] = ["Buyer"], // adds orders and receipts; never touches invoices
+        ["SyncMasterData"] = ["Integration"], // the ERP sync's API key: vendors, orders, receipts from the ERP
     };
 
-    private static readonly string[] AllRoles = ["Clerk", "Approver", "Auditor", "Admin", "Buyer"];
+    private static readonly string[] AllRoles = ["Clerk", "Approver", "Auditor", "Admin", "Buyer", "Integration"];
 
     public static TheoryData<string, string> Cases()
     {

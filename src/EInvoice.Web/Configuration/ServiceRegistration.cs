@@ -9,6 +9,7 @@ using EInvoice.Application.Kpi;
 using EInvoice.Application.Matching;
 using EInvoice.Application.Parsing;
 using EInvoice.Application.Posting;
+using EInvoice.Application.Sync;
 using EInvoice.Application.Queries;
 using EInvoice.Application.Security;
 using EInvoice.Application.Validation;
@@ -87,6 +88,8 @@ internal static class ServiceRegistration
             }
         }).AddHttpMessageHandler<ErpAuthHandler>();
         services.AddScoped<IPostingStore, EfPostingStore>();
+        services.AddScoped<IErpSyncStore, EInvoice.Infrastructure.Sync.EfErpSyncStore>();
+        services.AddScoped<ErpSync>();
         services.AddSingleton(sp => new PostingLimits(sp.GetRequiredService<IOptions<ErpSettings>>().Value.MaxConcurrentCalls));
         services.AddSingleton(sp =>
         {

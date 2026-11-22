@@ -24,14 +24,25 @@ public static class SignInSetup
     public const string LogoutPath = "/account/logout";
     public const string AccessDeniedPath = "/account/access-denied";
 
+    /// <summary>
+    /// The default scheme: the ERP sync's API key when the request carries one ("Authorization: ApiKey ..."), else the
+    /// sign-in cookie. A request never gets both.
+    /// </summary>
+    public const string CookieOrApiKey = nameof(CookieOrApiKey);
+
     internal static IServiceCollection AddEInvoiceSignIn(this IServiceCollection services)
     {
         services.AddAuthentication(o =>
             {
-                o.DefaultScheme = IdentityConstants.ApplicationScheme;
+                o.DefaultScheme = CookieOrApiKey;
                 o.DefaultSignInScheme = IdentityConstants.ExternalScheme;
             })
-            .AddIdentityCookies();
+            .AddPolicyScheme(CookieOrApiKey, null, p => p.ForwardDefaultSelector = context =>
+                SyncApiKeyHandler.Claims(context.Request) ? SyncApiKeyHandler.SchemeName : IdentityConstants.ApplicationScheme)
+            .AddScheme<AuthenticationSchemeOptions, SyncApiKeyHandler>(SyncApiKeyHandler.SchemeName, null);
+        services.AddAuthentication().AddIdentityCookies();
+        services.AddOptions<SyncSettings>().BindConfiguration(SyncSettings.Section).ValidateOnStart();
+        services.AddSingleton<IValidateOptions<SyncSettings>, SyncSettingsValidator>();
 
         services.AddIdentityCore<AppUser>(o =>
             {
