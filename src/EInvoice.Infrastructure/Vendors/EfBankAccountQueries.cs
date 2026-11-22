@@ -1,4 +1,5 @@
 using EInvoice.Application.Vendors;
+using EInvoice.Domain.Shared;
 using EInvoice.Domain.Vendors;
 using EInvoice.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -8,9 +9,6 @@ namespace EInvoice.Infrastructure.Vendors;
 /// <summary>Vendors and their bank accounts for the admin pages; earlier versions come from the temporal history.</summary>
 public sealed class EfBankAccountQueries(EInvoiceDbContext db) : IBankAccountQueries
 {
-    // SQL Server marks the current version of a row with the largest datetime2 as its end.
-    private static readonly DateTime OpenEnd = new(9999, 12, 31, 0, 0, 0, DateTimeKind.Utc);
-
     public async Task<IReadOnlyList<VendorOverview>> VendorsAsync(CancellationToken cancellationToken) =>
         await db.Vendors.AsNoTracking()
             .OrderBy(v => v.Number)
@@ -43,23 +41,34 @@ public sealed class EfBankAccountQueries(EInvoiceDbContext db) : IBankAccountQue
             .Select(a => new BankAccountView(a.Id, a.Iban.Value, a.Iban.ToString(), a.Status, a.ProposedBy, a.ProposedAt, a.ConfirmedBy, a.ConfirmedAt))
             .ToList();
 
-        var versions = await db.VendorBankAccounts.TemporalAll().AsNoTracking()
-            .Where(a => a.VendorId == vendorId && EF.Property<DateTime>(a, "ValidTo") < OpenEnd)
-            .Select(a => new
-            {
-                a.Id, a.Iban, a.Status, a.ProposedBy, a.ConfirmedBy,
-                From = EF.Property<DateTime>(a, "ValidFrom"),
-                To = EF.Property<DateTime>(a, "ValidTo"),
-            })
+        // The history table itself, not FOR SYSTEM_TIME ALL (TemporalAll): the transaction time moves in steps of a few
+        // milliseconds, so a version can begin and end in the same instant, and FOR SYSTEM_TIME leaves those out
+        // (issue #75). Versions of the same instant are put in the order they were written by their rowversion.
+        var versions = await db.Database.SqlQuery<HistoryRow>($"""
+                SELECT Id, Iban, Status, ProposedBy, ConfirmedBy, ValidFrom, ValidTo
+                FROM dbo.VendorBankAccountHistory
+                WHERE VendorId = {vendorId}
+                ORDER BY ValidFrom, Version
+                """)
             .ToListAsync(cancellationToken)
             .ConfigureAwait(false);
         var history = versions
-            .OrderBy(v => v.From).ThenBy(v => v.Id)
-            .Select(v => new BankAccountHistoryEntry(v.Id, v.Iban.ToString(), v.Status, v.ProposedBy, v.ConfirmedBy, Utc(v.From), Utc(v.To)))
+            .Select(v => new BankAccountHistoryEntry(v.Id, Iban.Parse(v.Iban).ToString(), v.Status, v.ProposedBy, v.ConfirmedBy, Utc(v.ValidFrom), Utc(v.ValidTo)))
             .ToList();
 
         return new VendorBankDetails(vendor.Id, vendor.Number, vendor.Name, accounts, history);
     }
 
     private static DateTimeOffset Utc(DateTime value) => new(DateTime.SpecifyKind(value, DateTimeKind.Utc));
+
+    private sealed class HistoryRow
+    {
+        public Guid Id { get; init; }
+        public string Iban { get; init; } = "";
+        public BankAccountStatus Status { get; init; }
+        public string ProposedBy { get; init; } = "";
+        public string? ConfirmedBy { get; init; }
+        public DateTime ValidFrom { get; init; }
+        public DateTime ValidTo { get; init; }
+    }
 }
