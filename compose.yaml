@@ -83,13 +83,35 @@ services:
     mem_limit: 256m
 
   # ---- The public demo: docker compose --profile public up -d (docs/self-hosting.md) --------------------------------
-  # Tailscale Funnel gives the demo a public HTTPS address without opening a port on the router. The app shares this
-  # container's network, so the tunnel is its only way in from outside; this PC itself never joins a tailnet.
+  # Holds the network that the tunnel and the app share, and does nothing else. Were it the tunnel's own, the app would
+  # lose it whenever the tunnel stops or dies (tests/public-stack/restart.sh). The tunnel's image, to add no other.
+  tunnel-net:
+    profiles: [public]
+    image: &tailscale-image tailscale/tailscale:v1.104.4@sha256:ed6480b33c6eb67c9cbd203ed42b9fb57e361986725b6856def71b7a3d9e276c
+    container_name: einvoice-tunnel-net
+    hostname: ${TS_HOSTNAME:-einvoice}
+    entrypoint: ["sleep", "infinity"]
+    init: true
+    # No ports: the tunnel is the only way in. (The app refuses plain HTTP from anywhere but the tunnel, so a local port
+    # would not work anyway; use the public address, or the development app on https://localhost:7169.)
+    extra_hosts:
+      - "host.docker.internal:host-gateway"  # Ollama on this PC (Docker Desktop has it anyway)
+    user: "65534:65534"
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 32m
+    restart: unless-stopped
+
+  # Tailscale Funnel gives the demo a public HTTPS address without opening a port on the router. The app shares its
+  # network (tunnel-net), so the tunnel is its only way in from outside; this PC itself never joins a tailnet.
   tailscale:
     profiles: [public]
-    image: tailscale/tailscale:v1.104.4@sha256:ed6480b33c6eb67c9cbd203ed42b9fb57e361986725b6856def71b7a3d9e276c
+    image: *tailscale-image
     container_name: einvoice-tailscale
-    hostname: ${TS_HOSTNAME:-einvoice}
+    network_mode: service:tunnel-net
     environment:
       # From .env, never committed. Empty: the tunnel waits for a login and there is no public address.
       TS_AUTHKEY: ${TS_AUTHKEY:-}
@@ -100,10 +122,6 @@ services:
     volumes:
       - tailscale-state:/var/lib/tailscale
       - ./docker/tailscale/serve.json:/config/serve.json:ro
-    # No ports: the tunnel is the only way in. (The app refuses plain HTTP from anywhere but the tunnel, so a local port
-    # would not work anyway; use the public address, or the development app on https://localhost:7169.)
-    extra_hosts:
-      - "host.docker.internal:host-gateway"  # Ollama on this PC (Docker Desktop has it anyway)
     cap_drop:
       - ALL
     security_opt:
@@ -118,15 +136,13 @@ services:
       dockerfile: docker/web/Dockerfile
     image: einvoice-web:local
     container_name: einvoice-web
-    network_mode: service:tailscale
+    network_mode: service:tunnel-net
     depends_on:
       db-init:
         condition: service_completed_successfully
       kosit-validator:
         condition: service_healthy
       mock-erp:
-        condition: service_started
-      tailscale:
         condition: service_started
     environment:
       ASPNETCORE_ENVIRONMENT: Production
@@ -160,7 +176,7 @@ services:
   # The ERP sync (package 16c, sync/erp-sync): every 5 minutes it reads vendors, purchase orders and goods receipts
   # changed in the (mock) ERP and hands them to the app's sync API. Opt in: docker compose --profile public --profile sync
   # up -d. Needs SYNC_API_KEY and its SHA-256 SYNC_API_KEY_SHA256 in .env (see .env.example); without a key it stops.
-  # It reaches the app inside the tunnel's network (the web container shares it), never through the internet.
+  # It reaches the app inside the tunnel's network (tunnel-net, which the web container shares), never through the internet.
   erp-sync:
     profiles: [sync]
     build: ./sync/erp-sync
@@ -175,7 +191,7 @@ services:
       ERP_BASE_URL: http://mock-erp:8080/
       ERP_CLIENT_ID: ${ERP_CLIENT_ID:-einvoice}
       ERP_CLIENT_SECRET: ${ERP_CLIENT_SECRET:-}
-      APP_BASE_URL: http://tailscale:8080/
+      APP_BASE_URL: http://tunnel-net:8080/
       SYNC_API_KEY: ${SYNC_API_KEY:-}
       SYNC_INTERVAL: ${SYNC_INTERVAL:-5m}
       SYNC_RUN_TIMEOUT: ${SYNC_RUN_TIMEOUT:-4m}

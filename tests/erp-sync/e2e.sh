@@ -19,7 +19,7 @@ PY=${PYTHON:-python3}
 HERE=tests/erp-sync
 MOCK=http://127.0.0.1:${MOCK_ERP_PORT:-8090}
 WORK=$(mktemp -d)
-COMPOSE=(docker compose -p einvoice-e2e -f compose.yaml -f tests/erp-sync/compose.e2e.yaml --profile public --profile sync)
+COMPOSE=(docker compose -p einvoice-e2e -f compose.yaml --profile public --profile sync)
 RESULTS=()
 EXTRA=()   # more settings for the sync runs of a step
 

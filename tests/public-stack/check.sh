@@ -1,7 +1,7 @@
 #!/bin/sh
 # Checks the running public stack the way the tunnel talks to the app: plain HTTP on 127.0.0.1:8080 inside the tunnel's
 # network, with X-Forwarded-Proto: https and the visitor's address. Run in a container that shares that network:
-#   docker run --rm --network container:einvoice-tailscale -v "$PWD/tests/public-stack:/check:ro" \
+#   docker run --rm --network container:einvoice-tunnel-net -v "$PWD/tests/public-stack:/check:ro" \
 #     --entrypoint sh einvoice-kosit-validator:1.6.3-xr-2026-08-31 /check/check.sh
 set -eu
 cd /tmp

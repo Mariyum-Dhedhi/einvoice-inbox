@@ -2,7 +2,8 @@
 
 The live demo runs on this PC in Docker, including the language model on the GPU. Tailscale Funnel gives it a public
 HTTPS address such as `https://einvoice.tail1234.ts.net`. Nothing is opened on the router, and the PC itself never
-joins a Tailscale network: only a Tailscale **container** does, and the app shares that container's network.
+joins a Tailscale network: only a Tailscale **container** does. The app and that container share one network, held by
+a third container (`tunnel-net`), so the tunnel can restart without cutting the app off.
 
 The link works while the PC is on, with Docker running (and Ollama, for PDF invoices).
 
@@ -120,7 +121,7 @@ with everything else.
 CI runs it on every pull request (job `public-stack`, without a key, so no public address). To run it here:
 
 ```bash
-docker run --rm --network container:einvoice-tailscale -v "$PWD/tests/public-stack:/check:ro" \
+docker run --rm --network container:einvoice-tunnel-net -v "$PWD/tests/public-stack:/check:ro" \
   --entrypoint sh einvoice-kosit-validator:1.6.3-xr-2026-08-31 /check/check.sh
 ```
 
