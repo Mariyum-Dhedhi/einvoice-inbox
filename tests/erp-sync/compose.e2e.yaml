@@ -1,7 +1,0 @@
-# The E2E's change to compose.yaml (tests/erp-sync/e2e.sh). Without an auth key, the tunnel container gives up waiting
-# for a login after a minute and restarts, and the app, which lives in its network, loses that network with it. The
-# tunnel is not under test here: in its place a container that only holds the network, so the app stays reachable.
-services:
-  tailscale:
-    entrypoint: ["sleep", "infinity"]
-    restart: "no"
