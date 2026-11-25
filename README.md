@@ -6,6 +6,10 @@ Accounts-payable automation for German e-invoices: receives XRechnung XML, ZUGFe
 **reads PDFs with a local language model**, validates and three-way matches every invoice against
 purchase orders and goods receipts, and sends anything doubtful to a person with a stated reason.
 
+**[Try the live demo](https://einvoice.tail140227.ts.net)**: pick a role and you are signed in, no password needed. Sample invoices to upload are in
+[demo/invoices](demo/invoices), explained in [demo/README.md](demo/README.md). All data is synthetic and reset every
+night at 03:00 Berlin time. It runs on a home PC, so it is offline when that PC is.
+
 ![An approver's view of an exception: the reason in plain words, the three-way match with the price 5.56 % above the order, and a decision that needs a reason](docs/images/review-match.png)
 
 *An approver reviews an exception. The page is made by a browser test (`Readme_screenshot_an_approver_reviews_a_price_variance`).*
@@ -29,7 +33,7 @@ Built in public, one [work package](https://github.com/Mariyum-Dhedhi/einvoice-i
 - [x] Purchase orders and goods receipts in the app
 - [x] Load test, security scan and mutation testing, [measured](#under-load-measured)
 - [x] Public demo stack: one-click demo accounts, Tailscale Funnel, nightly reset ([self-hosting](docs/self-hosting.md))
-- [ ] Live link
+- [x] [Live link](https://einvoice.tail140227.ts.net)
 - [ ] 2-minute demo video ([script](docs/demo-video.md))
 
 ## AI extraction, measured
