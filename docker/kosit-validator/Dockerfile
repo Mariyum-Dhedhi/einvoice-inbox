@@ -17,7 +17,7 @@ ADD --checksum=sha256:2530cd107c414511c5d0462ec10f886910395abfca820db82e83d70bf0
 RUN mkdir -p /kosit/configuration && unzip -q /tmp/configuration.zip -d /kosit/configuration
 
 # --- Stage 2: runtime ------------------------------------------------------------------------------
-FROM eclipse-temurin:21.0.13_9-jre-noble@sha256:0d57a8e90c2bb844c5a8e1b2b71e11eff06dad7edcfd803cd21ed4ae203b2515
+FROM eclipse-temurin:21.0.13_9-jre-noble@sha256:b4f9d2a0bc273417cf5219b7b832bbf0493ed500b7b57d5001d9f83374659060
 
 COPY --from=fetch --chown=root:root --chmod=0444 /kosit/validator.jar /opt/kosit/validator.jar
 COPY --from=fetch --chown=root:root /kosit/configuration /opt/kosit/configuration
